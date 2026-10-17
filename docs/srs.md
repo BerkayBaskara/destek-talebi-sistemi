@@ -44,21 +44,22 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **US-04:** Müşteri olarak, talebime personel tarafından verilen yanıtları okuyup tekrar cevap yazabilmeliyim.
 *   **US-05:** Müşteri olarak, talebimi açarken önem derecesini seçebilmeliyim ki acil durumları sisteme iletebileyim.
 *   **US-06:** Müştreri olarak sisteme ad-soyad şifre formatında kayıt olabilmeli ve şifre sıfırlayabilmek için de "gizli soru"ya cevap verebilmeliyim ki e-posta veya sms gerekmeden üyelik oluşturabileyim.
+*   **US-07:** Müşteri olarak, henüz "Talep Bekleniyor" aşamasındaki bir talebi iptal edebilmeliyim ki yanlışlıkla açtığım veya kendi kendime çözdüğüm sorunlar personeli meşgul etmesin.
 
 **Personel Hikayeleri:**
-*   **US-06:** Personel olarak, üzerime atanan biletleri bir Kanban panosunda görebilmeliyim ki iş takibimi kolay yapabileyim.
-*   **US-07:** Personel olarak, talebin durumunu sürükle-bırak yöntemiyle güncelleyebilmeliyim ki işlemlerimi hızlıca kaydedebileyim.
-*   **US-08:** Personel olarak, bir talebe metin olarak yanıt yazıp müşteriye iletebilmeliyim.
-*   **US-09:** Personel olarak, atanan biletler üzerindeki SLA geri sayımını dakika/saat cinsinden görebilmeliyim ki gecikmeleri önleyebileyim.
-*   **US-10:** Personel olarak, SLA süresi yaklaşan biletlerde renkli uyarılar alabilmeliyim ki önceliğimi buna göre belirleyebileyim.
+*   **US-08:** Personel olarak, üzerime atanan biletleri bir Kanban panosunda görebilmeliyim ki iş takibimi kolay yapabileyim.
+*   **US-09:** Personel olarak, talebin durumunu sürükle-bırak yöntemiyle güncelleyebilmeliyim ki işlemlerimi hızlıca kaydedebileyim.
+*   **US-10:** Personel olarak, bir talebe metin olarak yanıt yazıp müşteriye iletebilmeliyim.
+*   **US-11:** Personel olarak, atanan biletler üzerindeki SLA geri sayımını dakika/saat cinsinden görebilmeliyim ki gecikmeleri önleyebileyim.
+*   **US-12:** Personel olarak, SLA süresi yaklaşan biletlerde renkli uyarılar alabilmeliyim ki önceliğimi buna göre belirleyebileyim.
 
 **Yönetici Hikayeleri:**
-*   **US-11:** Yönetici olarak, sisteme yeni personel ve kategoriler ekleyebilmeliyim.
-*   **US-12:** Yönetici olarak, personel SLA ihlal oranlarını ve ortalama çözüm sürelerini detaylı bir rapor olarak görebilmeliyim.
-*   **US-13:** Yönetici olarak, destek kategorilerini ve bu kategorilerin varsayılan SLA kurallarını belirleyebilmeliyim.
-*   **US-14:** Yönetici olarak, resmi tatilleri tarih bazlı olarak sisteme girebilmeliyim ki SLA hesaplamaları doğru yapılsın.
-*   **US-15:** Yönetici olarak, geciken biletlerin) hangi üst personele otomatik devredileceğini seçebilmeliyim.
-*   **US-16:** Yönetici olarak, işletmemin çalışma günlerini) ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
+*   **US-13:** Yönetici olarak, sisteme yeni personel ve kategoriler ekleyebilmeliyim.
+*   **US-14:** Yönetici olarak, personel SLA ihlal oranlarını ve ortalama çözüm sürelerini detaylı bir rapor olarak görebilmeliyim.
+*   **US-15:** Yönetici olarak, destek kategorilerini ve bu kategorilerin varsayılan SLA kurallarını belirleyebilmeliyim.
+*   **US-16:** Yönetici olarak, resmi tatilleri tarih bazlı olarak sisteme girebilmeliyim ki SLA hesaplamaları doğru yapılsın.
+*   **US-17:** Yönetici olarak, geciken biletlerin) hangi üst personele otomatik devredileceğini seçebilmeliyim.
+*   **US-18:** Yönetici olarak, işletmemin çalışma günlerini) ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
 
 ## 8. İşlevsel Gereksinimler (Functional Requirements - FR)
 
@@ -67,7 +68,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-03:** Sistem, biletin içeriğini (metnini) analiz ederek anahtar kelime eşleşmesi ile akıllı/gölge öncelik belirleyebilmelidir.
 *   **FR-04:** Sistem, açılan yeni bileti, havuzdaki mevcut aktif iş yükü (açık bilet sayısı) en az olan personele otomatik olarak atamalıdır.
 *   **FR-05 (Çekirdek Algoritma):** Sistem; biletin açıldığı anı, sisteme girilen resmi tatil günlerini ve mesai saatlerini hesaplayarak kesin bir SLA bitiş tarihi (Deadline) oluşturmalıdır.
-*   **FR-06:** Sistem, durum geçişlerini State deseni ile kısıtlamalıdır. Kapatılmış bir bilet yeniden "İşlemde" durumuna alınamaz. (US-07)
+*   **FR-06:** Sistem, durum geçişlerini State deseni ile kısıtlamalıdır. Kapatılmış bir bilet yeniden "İşlemde" durumuna alınamaz ve sadece "Talep Bekleniyor" statüsündeki biletler müşteri tarafından "İptal Edildi" statüsüne çekilebilir. (US-07, US-08)
 *   **FR-07:** Sistem, SLA süresinin %80'i dolduğunda bileti arayüzde sarı uyarı moduna, %100'ü dolduğunda ise kırmızı ihlal moduna sokmalıdır. (US-09, US-10)
 *   **FR-08:** Sistem, SLA süresi tamamen dolduğunda bileti otomatik olarak eskalasyon yöneticisine (bir üst yetkiliye) devretmeli ve veritabanına eskalasyon kaydı atmalıdır.
 *   **FR-09:** Sistem, personelin biletleri yönetmesi için AJAX tabanlı (sayfa yenilemeden çalışan) bir Kanban panosu sağlamalıdır. (US-06)
@@ -75,11 +76,13 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-11:** Sistem, yöneticilerin sadece tarih seçerek resmi tatilleri ekleyebileceği bir takvim arayüzü sunmalıdır. (US-14)
 *   **FR-12:** Sistem, bilet çözüm işlemlerini kayıt altına almalı ve her personel için "SLA'ya uyum oranı" ve "Ortalama çözüm süresi" değerlerini hesaplayıp raporlamalıdır. (US-12)
 *   **FR-13:** Sistem, SLA hesaplamasında (FR-05) kod içine sabitlenmiş (hard-coded) saatler yerine, yöneticinin sistem ayarlarından girdiği dinamik mesai günlerini ve saatlerini veritabanından çekerek baz almalıdır. (US-16)
+*   **FR-14:** Sistem; bir bilet eskalasyona uğradığında yeni atanan personelin talebi inceleyebilmesi için veya SLA süresinin dolmasına çok az kala müşteri tarafından yeni bir yanıt/itiraz geldiğinde, mevcut SLA bitiş tarihine yöneticinin belirlediği standart bir ek süre otomatik olarak ilave etmelidir.
+
 
 ## 9. Ölçülebilir İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
 
-*   **NFR-01 Performans:** SLA hesaplama algoritması, 5 yıllık tatil verisi ve on binlerce bilet kaydı veritabanında bulunsa dahi, yeni bir bilet açıldığında süre hesabını en fazla **500 milisaniye (0.5 saniye)** içerisinde tamamlamalıdır.
-*   **NFR-02 Kullanılabilirlik:** Personel Kanban panosu, ilgili personelin üzerinde 100 aktif bilet bulunduğunda bile sayfayı **1 saniyenin altında** render etmeli ve AJAX sürükle-bırak gecikmesi **200 ms altında** gerçekleşmelidir.
-*   **NFR-03 Güvenlik:** Sisteme yüklenen ek dosyalar genel URL ile indirilememeli, "storage" dizininde korunmalı ve sadece biletin yetkili kullanıcısına **1 saniye içerisinde** doğrulanarak gösterilmelidir.
-*   **NFR-04 Güvenilirlik / Eşzamanlılık:** İki personelin havuzdaki aynı bileti aynı anda üzerine almak istemesi durumunda, sistem ilk işlemi veritabanında satır kilidi (`SELECT ... FOR UPDATE`) ile bağlamalı ve ikinci personelin isteğini maksimum **100 ms içinde** reddederek hata mesajı göstermelidir.
-*   **NFR-05 Uyumluluk:** Sistem arayüzü (özellikle Kanban panosu ve formlar), 375 px (mobil) genişlik ile 1920 px (masaüstü) genişlik arasındaki tüm ekranlarda, **%100 oranında yatay kaydırma çubuğu çıkmayacak şekilde** fonksiyonelliğini korumalıdır.
+*   **NFR-01:** SLA hesaplama algoritması, 5 yıllık tatil verisi ve on binlerce bilet kaydı veritabanında bulunsa dahi, yeni bir bilet açıldığında süre hesabını en fazla **500 milisaniye (0.5 saniye)** içerisinde tamamlamalıdır.
+*   **NFR-02:** Personel Kanban panosu, ilgili personelin üzerinde 100 aktif bilet bulunduğunda bile sayfayı **1 saniyenin altında** render etmeli ve AJAX sürükle-bırak gecikmesi **200 ms altında** gerçekleşmelidir.
+*   **NFR-03:** Sisteme yüklenen ek dosyalar genel URL ile indirilememeli, "storage" dizininde korunmalı ve sadece biletin yetkili kullanıcısına **1 saniye içerisinde** doğrulanarak gösterilmelidir.
+*   **NFR-04:** İki personelin havuzdaki aynı bileti aynı anda üzerine almak istemesi durumunda, sistem ilk işlemi veritabanında satır kilidi (`SELECT ... FOR UPDATE`) ile bağlamalı ve ikinci personelin isteğini maksimum **100 ms içinde** reddederek hata mesajı göstermelidir.
+*   **NFR-05:** Sistem arayüzü (özellikle Kanban panosu ve formlar), 375 px (mobil) genişlik ile 1920 px (masaüstü) genişlik arasındaki tüm ekranlarda, **%100 oranında yatay kaydırma çubuğu çıkmayacak şekilde** fonksiyonelliğini korumalıdır.
