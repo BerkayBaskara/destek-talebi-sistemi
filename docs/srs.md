@@ -16,7 +16,26 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 * Gerçek ödeme sistemi veya faturalandırma.
 * Biletleri PDF olarak indirme işlemi.
 
-## 4. Kullanıcı Hikayeleri
+## 4. Varsayımlar ve Bağımlılıklar
+* **Sunucu Saat Dilimi:** Sistemin kurulu olduğu sunucunun saat dilimi (Timezone) ayarlarının, işletmenin bulunduğu fiziksel konuma göre doğru yapılandırıldığı varsayılmıştır.
+* **Geçerli Veri Formatı:** Yönetici tarafından çalışma programı olarak sisteme yüklenen JSON dosyasının, sistemin beklediği veri şemasına (schema) uygun, eksiksiz ve UTF-8 formatında olduğu varsayılmıştır.
+* **Donanım/Ağ Bağımlılığı:** Sistemin sürekli olarak aktif bir MySQL/MariaDB veritabanı sunucusuna bağlı olduğu varsayılmıştır.
+
+## 5. Kısıtlamalar (Constraints)
+* **Teknik Kısıtlama (Çatı Bağımsızlığı):** Proje, Laravel veya Symfony gibi harici hazır framework'ler kullanılmadan, PHP, PDO ve Nesne Yönelimli Programlama prensipleriyle (PSR-4 standartlarında) geliştirilmek zorundadır.
+* **Mimari Kısıtlama:** Sistem kesinlikle katmanlı mimariyle (Controller, Service, Repository, Model) inşa edilmeli; durum geçişleri State deseniyle, eskalasyon uyarıları ise Observer deseniyle yönetilmelidir.
+* **Veritabanı Kısıtlaması:** Veritabanı tasarımı zorunlu olarak en az 3NF (Üçüncü Normal Form) kurallarına uygun şekilde normalize edilmelidir.
+* **Dosya Kısıtlaması:** Müşteriler tarafından yüklenecek olan sorun gösterge ekleri güvenlik sebebiyle sadece JPG, PNG ve PDF formatlarıyla kısıtlanmış olup, dosya başına maksimum yükleme boyutu 5 MB olarak belirlenmiştir.
+
+## 6. Tanımlar ve Kısaltmalar (Glossary)
+* **SLA (Service Level Agreement):** Hizmet Seviyesi Anlaşması. Müşterinin açtığı bir destek talebinin, işletmenin mesai saatlerine göre maksimum kaç saat/gün içinde çözülmesi gerektiğini belirleyen taahhüt süresi.
+* **Eskalasyon:** SLA süresi dolan, izin günü çakışması yaşanan veya personelin 3 çözüm hakkını tükettiği durumlarda, biletin otomatik veya manuel olarak bir üst yetkiliye devredilmesi işlemi.
+* **Kanban Panosu:** Personelin üzerine aldığı destek taleplerini durumlarına göre sütunlar halinde gördüğü ve sürükle-bırak yöntemiyle güncellediği asenkron (AJAX) çalışma arayüzü.
+* **Ortak Havuz:** Sisteme yeni düşmüş, statüsü "Talep Bekleniyor" olan ve henüz hiçbir destek personeli tarafından kabul edilmemiş biletlerin beklediği genel kuyruk.
+* **JSON (JavaScript Object Notation):** Yöneticilerin, işletmeye özel çalışma günlerini, saatlerini ve tatillerini sisteme aktarmak için kullanacakları hafif, metin tabanlı veri değişim formatı.
+* **Core PHP:** Herhangi bir dış kütüphane veya web çatısı kullanılmadan yazılan saf PHP kod yapısı.
+
+## 7. Kullanıcı Hikayeleri
 
 **Müşteri Hikayeleri:**
 *   **US-01:** Müşteri olarak, sistem üzerinden yeni bir destek talebi açabilmeliyim ki sorunumu yetkililere bildirebileyim.
@@ -41,7 +60,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **US-15:** Yönetici olarak, geciken biletlerin) hangi üst personele otomatik devredileceğini seçebilmeliyim.
 *   **US-16:** Yönetici olarak, işletmemin çalışma günlerini) ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
 
-## 5. İşlevsel Gereksinimler (Functional Requirements - FR)
+## 8. İşlevsel Gereksinimler (Functional Requirements - FR)
 
 *   **FR-01:** Sistem, müşteri girişi yapıldığında kategori, öncelik, başlık ve mesaj alanlarından oluşan bir form sunmalıdır. (Bağlantılı Hikayeler: US-01, US-05)
 *   **FR-02:** Sistem, bilet oluşturma esnasında JPG/PNG/PDF formatlarında, tür ve boyut kontrolü yapılarak ek dosya yüklenmesine izin vermelidir. (US-02)
@@ -57,7 +76,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-12:** Sistem, bilet çözüm işlemlerini kayıt altına almalı ve her personel için "SLA'ya uyum oranı" ve "Ortalama çözüm süresi" değerlerini hesaplayıp raporlamalıdır. (US-12)
 *   **FR-13:** Sistem, SLA hesaplamasında (FR-05) kod içine sabitlenmiş (hard-coded) saatler yerine, yöneticinin sistem ayarlarından girdiği dinamik mesai günlerini ve saatlerini veritabanından çekerek baz almalıdır. (US-16)
 
-## 6. Ölçülebilir İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
+## 9. Ölçülebilir İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
 
 *   **NFR-01 Performans:** SLA hesaplama algoritması, 5 yıllık tatil verisi ve on binlerce bilet kaydı veritabanında bulunsa dahi, yeni bir bilet açıldığında süre hesabını en fazla **500 milisaniye (0.5 saniye)** içerisinde tamamlamalıdır.
 *   **NFR-02 Kullanılabilirlik:** Personel Kanban panosu, ilgili personelin üzerinde 100 aktif bilet bulunduğunda bile sayfayı **1 saniyenin altında** render etmeli ve AJAX sürükle-bırak gecikmesi **200 ms altında** gerçekleşmelidir.
