@@ -20,11 +20,11 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 
 **Müşteri Hikayeleri:**
 *   **US-01:** Müşteri olarak, sistem üzerinden yeni bir destek talebi açabilmeliyim ki sorunumu yetkililere bildirebileyim.
-*   **US-02:** Müşteri olarak, talebime ekran görüntüsü (dosya) ekleyebilmeliyim ki sorunumu daha net anlatabileyim.
+*   **US-02:** Müşteri olarak, talebime ek dosya ekleyebilmeliyim ki sorunumu daha net anlatabileyim.
 *   **US-03:** Müşteri olarak, açtığım taleplerin durumunu (Açık, İşlemde, Çözüldü) listeyebilmeliyim ki sürecin ne aşamada olduğunu bileyim.
 *   **US-04:** Müşteri olarak, talebime personel tarafından verilen yanıtları okuyup tekrar cevap yazabilmeliyim.
 *   **US-05:** Müşteri olarak, talebimi açarken önem derecesini seçebilmeliyim ki acil durumları sisteme iletebileyim.
-*   **US-06:** Müştreri olarak sisteme ad-soyad şifre formatında kayıt olabilmeli ve şifre sıfırlayabilmek için de Gizli soruya cevap verebilmeliyim ki e-posta veya sms gerekmesin.
+*   **US-06:** Müştreri olarak sisteme ad-soyad şifre formatında kayıt olabilmeli ve şifre sıfırlayabilmek için de "gizli soru"ya cevap verebilmeliyim ki e-posta veya sms gerekmeden üyelik oluşturabileyim.
 
 **Personel Hikayeleri:**
 *   **US-06:** Personel olarak, üzerime atanan biletleri bir Kanban panosunda görebilmeliyim ki iş takibimi kolay yapabileyim.
