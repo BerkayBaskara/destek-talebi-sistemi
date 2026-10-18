@@ -67,7 +67,30 @@ Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akı
 ![Arayüz Sayfa Haritası](images/interfacepagemape.png)
 
 
-## 7. Risk Listesi
+## 7. Ekran Taslakları
+
+
+## 7.1 Müşteri Talep Formu
+![Müşteri Talep Formu](wireframes/musteri-talep-formu.png)
+
+
+## 7.2 Müşteri Taleplerim
+![Müşteri Taleplerim](wireframes/musteri-taleplerim.png)
+
+
+## 7.3 Personel Talepler
+![Personel Talepler](wireframes/personel-talepler.png)
+
+
+## 7.4 Personel Detay
+![Personel Detay](wireframes/personel-detay.png)
+
+
+## 7.5 Yönetici SLA Rapor
+![Yönetici SLA Rapor](wireframes/yonetici-sla-rapor.png)
+
+
+## 8. Risk Listesi
 
 Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yönetimi) ve zaman planlamasını tehdit eden riskler aşağıda listelenmiş ve derecelendirilmiştir.
 
@@ -81,7 +104,7 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 | **Ekip içi geliştirme esnasında çakışan kodlar (Git Conflict)** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal (branch) / Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
 
 
-## 8. Plan ve Backlog
+## 9. Plan ve Backlog
 
 Projenin görev dağılımı, zaman yönetimi ve iş takibi GitHub Projects üzerinde oluşturulan Scrum/Kanban tabanlı backlog panosu üzerinden yürütülmektedir. SRS belgesindeki tüm İşlevsel Gereksinimler (FR) ve kullanıcı hikayeleri (US) birer GitHub Issue olarak açılmış ve ilgili kilometre taşlarına bağlanmıştır.
 
