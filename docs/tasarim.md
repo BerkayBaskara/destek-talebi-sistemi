@@ -36,13 +36,15 @@ destek-talebi-sistemi/
 
 
 ## 2. Sınıf Diyagramı
+![Sınıf Diyagramı](images/classdiagram.png)
 
 
 ## 3. Sıralama Diyagramı
+![Sıralama Diyagramı](images/sequencediagram.png)
 
 
 ## 4. ER Diyagramı Ve Normalizasyon
-
+![İlişki Diyagramı](images/ERdiagram.png)
 
 ## 5. Tasarım Desenleri
 
@@ -62,6 +64,7 @@ Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akı
 
 
 ## 6. Arayüz ve Sayfa Haritası
+![Arayüz Sayfa Haritası](images/interfacepagemape.png)
 
 
 ## 7. Risk Listesi
@@ -78,4 +81,23 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 | **Ekip içi geliştirme esnasında çakışan kodlar (Git Conflict)** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal (branch) / Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
 
 
-## 8. Plan
+## 8. Plan ve Backlog
+
+Projenin görev dağılımı, zaman yönetimi ve iş takibi GitHub Projects üzerinde oluşturulan Scrum/Kanban tabanlı backlog panosu üzerinden yürütülmektedir. SRS belgesindeki tüm İşlevsel Gereksinimler (FR) ve kullanıcı hikayeleri (US) birer GitHub Issue olarak açılmış ve ilgili kilometre taşlarına bağlanmıştır.
+
+* **Proje Backlog Panosu:** [GitHub Projects Panosuna Git](https://github.com/users/BerkayBaskara/projects/4)
+
+### 8.1. Kilometre Taşları (Milestones)
+
+Projenin geliştirme süreci, dersin gereksinimlerine uygun olarak 3 ana kilometre taşına (Milestone) bölünmüştür:
+
+* **Kilometre Taşı 1: Sunum 1 (Tasarım ve Mimari)**
+  * **Hedef:** Proje gereksinimlerinin çıkarılması, katmanlı mimarinin kurulması, UML ve ER diyagramlarının tamamlanması.
+  * **Durum:** Tamamlandı.
+* **Kilometre Taşı 2: Sunum 2 (Aşama 2 - Veritabanısız Geliştirme)**
+  * **Hedef:** Projenin veritabanı olmadan, tamamen JSON dosyaları (Repository katmanı) üzerinde çalışan sürümünün tamamlanması. Çekirdek problem olan SLA algoritmasının ve Kanban arayüzünün kodlanması, ilgili `aşama-2` etiketli Issue'ların kapatılması.
+* **Kilometre Taşı 3: Sunum 3 (Aşama 3 - Veritabanı ve Final)**
+  * **Hedef:** Sistemin JSON'dan MySQL/MariaDB veritabanına geçirilmesi (Mimari yapı sayesinde sadece Repository sınıfları değiştirilecektir). Eskalasyon loglarının, yetki kontrollerinin, PDO transaction/satır kilidi güvenliklerinin uygulanması ve PHPUnit testlerinin tamamlanarak projenin canlıya hazır hale getirilmesi.
+
+### 8.2. İş Takip Yöntemi
+Panomuzda `Backlog`, `Bu hafta`, `Devam ediyor` ve `Bitti` sütunları bulunmaktadır. Her bir geliştirme görevi (`aşama-2`, `aşama-3`, `çekirdek`, `test` etiketleriyle) ekip üyelerine atanmış olup, *Branch (Dal)* ve *Pull Request (PR)* mantığıyla çakışmalar (conflict) önlenerek ana (`main`) dala aktarılacaktır.
