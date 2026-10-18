@@ -110,7 +110,7 @@ Projenin görev dağılımı, zaman yönetimi ve iş takibi GitHub Projects üze
 
 * **Proje Backlog Panosu:** [GitHub Projects Panosuna Git](https://github.com/users/BerkayBaskara/projects/4)
 
-### 8.1. Kilometre Taşları (Milestones)
+### 9.1. Kilometre Taşları (Milestones)
 
 Projenin geliştirme süreci, dersin gereksinimlerine uygun olarak 3 ana kilometre taşına (Milestone) bölünmüştür:
 
@@ -122,5 +122,5 @@ Projenin geliştirme süreci, dersin gereksinimlerine uygun olarak 3 ana kilomet
 * **Kilometre Taşı 3: Sunum 3 (Aşama 3 - Veritabanı ve Final)**
   * **Hedef:** Sistemin JSON'dan MySQL/MariaDB veritabanına geçirilmesi (Mimari yapı sayesinde sadece Repository sınıfları değiştirilecektir). Eskalasyon loglarının, yetki kontrollerinin, PDO transaction/satır kilidi güvenliklerinin uygulanması ve PHPUnit testlerinin tamamlanarak projenin canlıya hazır hale getirilmesi.
 
-### 8.2. İş Takip Yöntemi
+### 9.2. İş Takip Yöntemi
 Panomuzda `Backlog`, `Bu hafta`, `Devam ediyor` ve `Bitti` sütunları bulunmaktadır. Her bir geliştirme görevi (`aşama-2`, `aşama-3`, `çekirdek`, `test` etiketleriyle) ekip üyelerine atanmış olup, *Branch (Dal)* ve *Pull Request (PR)* mantığıyla çakışmalar (conflict) önlenerek ana (`main`) dala aktarılacaktır.
