@@ -27,7 +27,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 * **Veritabanı Kısıtlaması:** Veritabanı tasarımı zorunlu olarak en az 3NF (Üçüncü Normal Form) kurallarına uygun şekilde normalize edilmelidir.
 * **Dosya Kısıtlaması:** Müşteriler tarafından yüklenecek olan sorun gösterge ekleri güvenlik sebebiyle sadece JPG, PNG ve PDF formatlarıyla kısıtlanmış olup, dosya başına maksimum yükleme boyutu 5 MB olarak belirlenmiştir.
 
-## 6. Tanımlar ve Kısaltmalar (Glossary)
+## 6. Tanımlar ve Kısaltmalar
 * **SLA (Service Level Agreement):** Hizmet Seviyesi Anlaşması. Müşterinin açtığı bir destek talebinin, işletmenin mesai saatlerine göre maksimum kaç saat/gün içinde çözülmesi gerektiğini belirleyen taahhüt süresi.
 * **Eskalasyon:** SLA süresi dolan, izin günü çakışması yaşanan veya personelin 3 çözüm hakkını tükettiği durumlarda, biletin otomatik veya manuel olarak bir üst yetkiliye devredilmesi işlemi.
 * **Kanban Panosu:** Personelin üzerine aldığı destek taleplerini durumlarına göre sütunlar halinde gördüğü ve sürükle-bırak yöntemiyle güncellediği asenkron (AJAX) çalışma arayüzü.
@@ -35,7 +35,12 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 * **JSON (JavaScript Object Notation):** Yöneticilerin, işletmeye özel çalışma günlerini, saatlerini ve tatillerini sisteme aktarmak için kullanacakları hafif, metin tabanlı veri değişim formatı.
 * **Core PHP:** Herhangi bir dış kütüphane veya web çatısı kullanılmadan yazılan saf PHP kod yapısı.
 
-## 7. Kullanıcı Hikayeleri
+
+## 7. Use Case
+![Use Case Diyagramı](images/usecase.png)
+
+
+## 8. Kullanıcı Hikayeleri
 
 **Müşteri Hikayeleri:**
 *   **US-01:** Müşteri olarak, sistem üzerinden yeni bir destek talebi açabilmeliyim ki sorunumu yetkililere bildirebileyim.
@@ -61,7 +66,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **US-17:** Yönetici olarak, geciken biletlerin) hangi üst personele otomatik devredileceğini seçebilmeliyim.
 *   **US-18:** Yönetici olarak, işletmemin çalışma günlerini) ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
 
-## 8. İşlevsel Gereksinimler (Functional Requirements - FR)
+## 9. İşlevsel Gereksinimler (Functional Requirements - FR)
 
 *   **FR-01:** Sistem, müşteri girişi yapıldığında kategori, öncelik, başlık ve mesaj alanlarından oluşan bir form sunmalıdır. (Bağlantılı Hikayeler: US-01, US-05)
 *   **FR-02:** Sistem, bilet oluşturma esnasında JPG/PNG/PDF formatlarında, tür ve boyut kontrolü yapılarak ek dosya yüklenmesine izin vermelidir. (US-02)
@@ -79,7 +84,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-14:** Sistem; bir bilet eskalasyona uğradığında yeni atanan personelin talebi inceleyebilmesi için veya SLA süresinin dolmasına çok az kala müşteri tarafından yeni bir yanıt/itiraz geldiğinde, mevcut SLA bitiş tarihine yöneticinin belirlediği standart bir ek süre otomatik olarak ilave etmelidir.
 
 
-## 9. Ölçülebilir İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
+## 10. İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
 
 *   **NFR-01:** SLA hesaplama algoritması, 5 yıllık tatil verisi ve on binlerce bilet kaydı veritabanında bulunsa dahi, yeni bir bilet açıldığında süre hesabını en fazla **500 milisaniye (0.5 saniye)** içerisinde tamamlamalıdır.
 *   **NFR-02:** Personel Kanban panosu, ilgili personelin üzerinde 100 aktif bilet bulunduğunda bile sayfayı **1 saniyenin altında** render etmeli ve AJAX sürükle-bırak gecikmesi **200 ms altında** gerçekleşmelidir.
