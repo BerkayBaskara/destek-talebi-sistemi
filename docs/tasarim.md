@@ -96,13 +96,13 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 
 | Risk | Olasılık | Etki | Önlem |
 | :--- | :--- | :--- | :--- |
-| **JSON takvim işleme algoritmalarının SLA'i yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
+| **Takvim işleme algoritmalarının SLA'i yanlış hesaplaması** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
 | **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında kilitleme (`SELECT ... FOR UPDATE`) mekanizması kullanılması. |
 | **Oto-eskalasyon döngülerinin sunucuyu kilitlemesi veya sonsuz döngüye girmesi** | Orta | Yüksek | Yöneticinin personele izin girdiği anda çalışan eskalasyon tetikleyicisinin, işlem öncesi veritabanı kilit mekanizmaları ile korumaya alınması. |
 | **Zararlı dosya yükleme girişimleri** | Orta | Yüksek | Müşteri ek dosyaları için sadece JPG ve PNG izin verilmesi, sıkı MIME-type doğrulaması yapılması ve dosyaların doğrudan erişime kapalı `storage` klasöründe tutulması. |
 | **Kanban panosunda aşırı veri yüklenmesinden kaynaklı tarayıcı donması** | Yüksek | Orta | Kanban sütunlarındaki aktif biletlere limitasyon getirilmesi ve kapalı biletlerin panodan kaldırılarak ayrı bir ekrana taşınması. |
-| **Puan sisteminin istismarı (Oyunlaştırma Riski)** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
-| **Sunucu ve Veritabanı Saat Dilimi (Timezone) Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir Timezone standardı belirlenmesi. |
+| **Puan sisteminin istismarı** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
+| **Sunucu ve Veritabanı Saat Dilimi Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir Timezone standardı belirlenmesi. |
 | **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
 
 
