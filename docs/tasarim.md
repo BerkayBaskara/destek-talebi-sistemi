@@ -96,17 +96,19 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 
 | Risk | Olasılık | Etki | Önlem |
 | :--- | :--- | :--- | :--- |
-| **JSON takvim işleme algoritmalarının SLA'i yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan (schema validation) geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
-| **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında `SELECT ... FOR UPDATE` ile satır kilitleme kullanılması ve PDO transaction bloklarının oluşturulması. |
-| **Müşterilerin sistem üretimi numaralarını veya Gizli Soru cevaplarını unutması** | Yüksek | Orta | Müşteriye kayıt sonrasında benzersiz numarasının net bir tasarımla vurgulanması ve Yöneticiler için "Müşteri Bilgisi Görüntüleme/Sıfırlama" arayüzü sağlanması. |
+| **JSON takvim işleme algoritmalarının SLA'i yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
+| **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında kilitleme (`SELECT ... FOR UPDATE`) mekanizması kullanılması. |
 | **Oto-eskalasyon döngülerinin sunucuyu kilitlemesi veya sonsuz döngüye girmesi** | Orta | Yüksek | Yöneticinin personele izin girdiği anda çalışan eskalasyon tetikleyicisinin, işlem öncesi veritabanı kilit mekanizmaları ile korumaya alınması. |
-| **Yapay zekânın, mimari katman kurallarını çiğneyerek spagetti kod üretmesi** | Yüksek | Orta | AI'a verilen her geliştirme isteminin başına 1. Bölüm'deki katman tablosunun bağlam (context) olarak verilmesi ve kodların depoya atılmadan önce manuel incelenmesi. |
-| **Ekip içi geliştirme esnasında çakışan kodlar (Git Conflict)** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal (branch) / Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
+| **Zararlı dosya yükleme girişimleri** | Orta | Yüksek | Müşteri ek dosyaları için sadece JPG ve PNG izin verilmesi, sıkı MIME-type doğrulaması yapılması ve dosyaların doğrudan erişime kapalı `storage` klasöründe tutulması. |
+| **Kanban panosunda aşırı veri yüklenmesinden kaynaklı tarayıcı donması** | Yüksek | Orta | Kanban sütunlarındaki aktif biletlere limitasyon getirilmesi ve kapalı biletlerin panodan kaldırılarak ayrı bir ekrana taşınması. |
+| **Puan sisteminin istismarı (Oyunlaştırma Riski)** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
+| **Sunucu ve Veritabanı Saat Dilimi (Timezone) Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir Timezone standardı belirlenmesi. |
+| **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
 
 
 ## 9. Plan ve Backlog
 
-Projenin görev dağılımı, zaman yönetimi ve iş takibi GitHub Projects üzerinde oluşturulan Scrum/Kanban tabanlı backlog panosu üzerinden yürütülmektedir. SRS belgesindeki tüm İşlevsel Gereksinimler (FR) ve kullanıcı hikayeleri (US) birer GitHub Issue olarak açılmış ve ilgili kilometre taşlarına bağlanmıştır.
+Projenin görev dağılımı, zaman yönetimi ve iş takibi GitHub Projects üzerinde oluşturulan Scrum/Kanban tabanlı backlog panosu üzerinden yürütülmektedir. SRS belgesindeki tüm İşlevsel Gereksinimler ve kullanıcı hikayeleri birer GitHub Issue olarak açılmış ve ilgili kilometre taşlarına bağlanmıştır.
 
 * **Proje Backlog Panosu:** [GitHub Projects Panosuna Git](https://github.com/users/BerkayBaskara/projects/4)
 
