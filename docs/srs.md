@@ -74,7 +74,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-02:** Sistem, bilet oluşturma esnasında JPG ve PNG formatlarında, tür ve boyut kontrolü yapılarak ek dosya yüklenmesine izin vermelidir. (US-02)
 *   **FR-03:** Sistem, biletin içeriğin analiz ederek anahtar kelime eşleşmesi ile akıllı/gölge öncelik belirleyebilmelidir.
 *   **FR-04:** Sistem, açılan yeni bileti, havuzdaki mevcut aktif iş yükü en az olan personele otomatik olarak atamalıdır.
-*   **FR-05 (Çekirdek Algoritma):** Sistem; biletin açıldığı anı, sisteme girilen resmi tatil günlerini ve mesai saatlerini hesaplayarak kesin bir SLA bitiş tarihi oluşturmalıdır.
+*   **FR-05:** Sistem; biletin açıldığı anı, sisteme girilen resmi tatil günlerini ve mesai saatlerini hesaplayarak kesin bir SLA bitiş tarihi oluşturmalıdır.
 *   **FR-06:** Sistem, durum geçişlerini State deseni ile kısıtlamalıdır. Kapatılmış bir bilet yeniden "İşlemde" durumuna alınamaz ve sadece "Talep Bekleniyor" statüsündeki biletler müşteri tarafından "İptal Edildi" statüsüne çekilebilir. (US-07, US-08)
 *   **FR-07:** Sistem, SLA süresinin %80'i dolduğunda bileti arayüzde sarı uyarı moduna, %100'ü dolduğunda ise kırmızı ihlal moduna sokmalıdır. (US-09, US-10)
 *   **FR-08:** Sistem, SLA süresi tamamen dolduğunda bileti otomatik olarak eskalasyon yöneticisine (bir üst yetkiliye) devretmeli ve veritabanına eskalasyon kaydı atmalıdır.
@@ -86,6 +86,11 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-14:** Sistem; bir bilet eskalasyona uğradığında yeni atanan personelin talebi inceleyebilmesi için veya SLA süresinin dolmasına çok az kala müşteri tarafından yeni bir yanıt/itiraz geldiğinde, mevcut SLA bitiş tarihine yöneticinin belirlediği standart bir ek süre otomatik olarak ilave etmelidir.
 *   **FR-15:** Sistem, bilet "Çözüldü" statüsüne geçtiğinde personele standart bir taban puan vermelidir. Bu puan; 1. denemede %100, 2. denemede %70, 3. denemede %40 oranında yansıtılmalı; eskalasyonla devredilen taleplerde ise asıl personele puan verilmemeli, devralan personele ise zorluk bonusu olarak %20 ekstra puan eklenmelidir.
 *   **FR-16:** Sistem, bilet oluşturma formuna yöneticilerin de erişebilmesine ve kendi oturumlarıyla bilet açabilmesine izin vermelidir.
+*   **FR-17:** Sistem, "Talep Çözüldü" statüsündeki biletleri arka planda sürekli denetlemeli ve müşteriden 3 iş günü boyunca hiçbir onay veya ret yanıtı gelmemesi durumunda, bileti otomatik olarak "Kapalı" statüsüne almalıdır.
+*   **FR-18:** Kapsam dışı bırakılan e-posta bildirimlerinin eksikliğini gidermek için sistem; yeni bilet ataması, müşteri itirazı veya eskalasyon durumlarında personele uygulama içi bir çan ikonu üzerinden okunmamış bildirimleri sayfa yenilenmeden göstermelidir.
+*   **FR-19:** Sistem, her biletin detay sayfasında; biletin açılmasından kapanmasına kadar geçen tüm durum değişikliklerini kronolojik bir log olarak listelemelidir.
+*   **FR-20:** Sistem, Ortak Havuzdan personele bilet ataması yaparken, veritabanında o gün veya ertesi gün için aktif bir izni bulunan personelleri atama/dağıtım havuzundan otomatik olarak hariç tutmalıdır.
+*   **FR-21:** Sistem, "Talep Çözüldü" statüsündeki bir bilet müşteri tarafından reddedildiğinde, bileti tekrar "Talep İnceleniyor" statüsüne çekmeli ve biletin ait olduğu personelin "çözüm deneme hakkı" sayacını bir artırmalıdır.
 
 
 ## 10. İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
@@ -93,5 +98,10 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **NFR-01:** SLA hesaplama algoritması, 5 yıllık tatil verisi ve on binlerce bilet kaydı veritabanında bulunsa dahi, yeni bir bilet açıldığında süre hesabını en fazla **500 milisaniye (0.5 saniye)** içerisinde tamamlamalıdır.
 *   **NFR-02:** Personel Kanban panosu, ilgili personelin üzerinde 100 aktif bilet bulunduğunda bile sayfayı **1 saniyenin altında** render etmeli ve AJAX sürükle-bırak gecikmesi **200 ms altında** gerçekleşmelidir.
 *   **NFR-03:** Sisteme yüklenen ek dosyalar genel URL ile indirilememeli, "storage" dizininde korunmalı ve sadece biletin yetkili kullanıcısına **1 saniye içerisinde** doğrulanarak gösterilmelidir.
-*   **NFR-04:** İki personelin havuzdaki aynı bileti aynı anda üzerine almak istemesi durumunda, sistem ilk işlemi veritabanında satır kilidi (`SELECT ... FOR UPDATE`) ile bağlamalı ve ikinci personelin isteğini maksimum **100 ms içinde** reddederek hata mesajı göstermelidir.
-*   **NFR-05:** Sistem arayüzü (özellikle Kanban panosu ve formlar), 375 px (mobil) genişlik ile 1920 px (masaüstü) genişlik arasındaki tüm ekranlarda, **%100 oranında yatay kaydırma çubuğu çıkmayacak şekilde** fonksiyonelliğini korumalıdır.
+*   **NFR-04:** İki personelin havuzdaki aynı bileti aynı anda üzerine almak istemesi durumunda, sistem ilk işlemi veritabanında satır kilidi ile bağlamalı ve ikinci personelin isteğini maksimum **100 ms içinde** reddederek hata mesajı göstermelidir.
+*   **NFR-05:** Sistem arayüzü , 375 px genişlik ile 1920 px genişlik arasındaki tüm ekranlarda, **%100 oranında yatay kaydırma çubuğu çıkmayacak şekilde** fonksiyonelliğini korumalıdır.
+*   **NFR-06:** Sistemdeki tüm form gönderim işlemleri benzersiz bir oturum jetonu ile korunmalı, token eksik veya geçersiz olduğunda sistem işlemi maksimum 50 milisaniye içinde reddederek "403" Yetkisiz Erişim hatası vermelidir.
+*   **NFR-07:** Yöneticinin sisteme yüklediği çalışma saatleri JSON dosyasının bozulması, formatının hatalı olması veya yanlışlıkla silinmesi durumunda sistem çökmemeli; maksimum 100 milisaniye içerisinde kod içine gömülü varsayılan mesai saatlerine geçiş yaparak çalışmaya devam etmelidir.
+*   **NFR-08:** Sisteme yüklenen dosya ekleri, sunucu disk alanından tasarruf sağlamak amacıyla arka planda maksimum 1920x1080 piksel çözünürlüğe küçültülmeli ve bu işlem dosya başına en fazla 2 saniye sürmelidir.
+*   **NFR-09:** Projenin tüm Core PHP kod tabanı PSR-12 kodlama standartlarına %100 uymalı ve PHPStan statik kod analiz aracından 0 hata ile geçecek yapıda yazılmalıdır.
+*   **NFR-10:** Sisteme giriş yapmış personellerin ve yöneticilerin aktif oturumları , güvenlik gereği arka arkaya 30 dakika boyunca hiçbir fare veya klavye etkileşimi olmazsa sunucu tarafından otomatik olarak sonlandırılmalıdır.
