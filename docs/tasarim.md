@@ -57,7 +57,7 @@ Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akı
 * **Neden Seçildi:** Kurallar karmaşıklaştığı için , her durumun geçiş mantığını kendi sınıfına hapsetmek koddaki hata ihtimalini minimize eder ve mimariyi temiz tutar.
 
 ## 5.2 Observer Deseni
-* **Problem:** Sistemde bir olayın başka olayları tetiklemesi gereken çoklu durumlar vardır: Yöneticinin bir personele izin girmesi o an SLA'sı dolmak üzere olan biletleri anında eskalasyona sokmalı, 3 iş günü dolduğunda bilet otomatik kapanmalı veya müşteri itiraz ettiğinde SLA süresi örn: +12 saat uzamalıdır.
+* **Problem:** Sistemde bir olayın başka olayları tetiklemesi gereken çoklu durumlar vardır: Yöneticinin bir personele izin girmesi o an SLA'sı dolmak üzere olan biletleri anında eskalasyona sokmalı, 3 iş günü dolduğunda bilet otomatik kapanmalı veya müşteri itiraz ettiğinde SLA süresi örn: +12 saat uzamalıdır ayrıca müşteri yanıt verdiğinde SLA uzar, ancak personel soru sorduğunda SLA algoritması tetiklenmemelidir.
 * **Desen:** Observer deseni; bir olay gerçekleştiğinde sistemi haberdar eden yayıncılar ve bu olayları dinleyip tepki veren EscalationObserver, SlaExtensionObserver gibi gözlemci sınıflarla uygulanır.
 * **Alternatif:** Desensiz çözüm, personelin izin ekleme fonksiyonunun içine gidip SLA hesaplama ve eskalasyon devretme fonksiyonlarını (hard-coded) doğrudan çağırmaktı.
 * **Neden Seçildi:** Gözlemci deseni sayesinde izin yönetim modülü ile bilet yönetim modülü birbirinden tamamen bağımsız çalışır. Bu sayede modüller arası tight coupling engellenir.

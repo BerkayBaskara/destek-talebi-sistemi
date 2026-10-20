@@ -58,15 +58,16 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **US-11:** Personel olarak, atanan biletler üzerindeki SLA geri sayımını dakika/saat cinsinden görebilmeliyim ki gecikmeleri önleyebileyim.
 *   **US-12:** Personel olarak, SLA süresi yaklaşan biletlerde renkli uyarılar alabilmeliyim ki önceliğimi buna göre belirleyebileyim.
 *   **US-13:** Personel olarak, çözdüğüm taleplerden puan kazanabileyim ki hem motive olabileyim hem de gösterdiğim çaba görsel olarak görünebilsin.
+*   **US-14:** Personel olarak, kullanıcıya soru sorabilmeliyim ki problemi daha iyi anlayabileyim.
 
 **Yönetici Hikayeleri:**
-*   **US-14:** Yönetici olarak, sisteme yeni personel ve kategoriler ekleyebilmeliyim.
-*   **US-15:** Yönetici olarak, personel SLA ihlal oranlarını ve ortalama çözüm sürelerini detaylı bir rapor olarak görebilmeliyim.
-*   **US-16:** Yönetici olarak, destek kategorilerini ve bu kategorilerin varsayılan SLA kurallarını belirleyebilmeliyim.
-*   **US-17:** Yönetici olarak, resmi tatilleri tarih bazlı olarak sisteme girebilmeliyim ki SLA hesaplamaları doğru yapılsın.
-*   **US-18:** Yönetici olarak, geciken biletlerin hangi üst personele otomatik devredileceğini seçebilmeliyim.
-*   **US-19:** Yönetici olarak, işletmemin çalışma günlerini ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
-*   **US-20:** Yönetici olarak, sistem üzerinden yeni bir destek talebi açabilmeliyim ki işletme içi sorunları da havuza iletebileyim.
+*   **US-15:** Yönetici olarak, sisteme yeni personel ve kategoriler ekleyebilmeliyim ki sistemdeki çeşitliliği artırabileyim.
+*   **US-16:** Yönetici olarak, personel SLA ihlal oranlarını ve ortalama çözüm sürelerini detaylı bir rapor olarak görebilmeliyim.
+*   **US-17:** Yönetici olarak, destek kategorilerini ve bu kategorilerin varsayılan SLA kurallarını belirleyebilmeliyim ki sistemi daha iyi yönetebileyim.
+*   **US-18:** Yönetici olarak, resmi tatilleri tarih bazlı olarak sisteme girebilmeliyim ki SLA hesaplamaları doğru yapılabilsin.
+*   **US-19:** Yönetici olarak, geciken biletlerin hangi üst personele otomatik devredileceğini seçebilmeliyim ki sistemi daha iyi yönetebileyim.
+*   **US-20:** Yönetici olarak, işletmemin çalışma günlerini ve mesai saatlerini sisteme tanımlayabilmeliyim ki SLA hesaplamaları tamamen işletmeme özel yapılabilsin.
+*   **US-21:** Yönetici olarak, sistem üzerinden yeni bir destek talebi açabilmeliyim ki işletme içi sorunları da havuza iletebileyim.
 
 ## 9. İşlevsel Gereksinimler (Functional Requirements - FR)
 
@@ -91,6 +92,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-19:** Sistem, her biletin detay sayfasında; biletin açılmasından kapanmasına kadar geçen tüm durum değişikliklerini kronolojik bir log olarak listelemelidir.
 *   **FR-20:** Sistem, Ortak Havuzdan personele bilet ataması yaparken, veritabanında o gün veya ertesi gün için aktif bir izni bulunan personelleri atama/dağıtım havuzundan otomatik olarak hariç tutmalıdır.
 *   **FR-21:** Sistem, "Talep Çözüldü" statüsündeki bir bilet müşteri tarafından reddedildiğinde, bileti tekrar "Talep İnceleniyor" statüsüne çekmeli ve biletin ait olduğu personelin "çözüm deneme hakkı" sayacını bir artırmalıdır.
+*   **US-22:** Sistem, personelin müşteri talebine yanıt verirken bunu bir "Soru" olarak işaretlemesine izin vermelidir. Bir bilet için bu hak maksimum 2 ile sınırlandırılmalı ve sorulan sorular, biletin hesaplanmış SLA bitiş tarihini kesinlikle değiştirmemeli veya duraklatmamalıdır.
 
 
 ## 10. İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
