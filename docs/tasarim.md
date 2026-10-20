@@ -46,6 +46,14 @@ destek-talebi-sistemi/
 ## 4. ER Diyagramı Ve Normalizasyon
 ![İlişki Diyagramı](images/ERdiagram.png)
 
+### 4.1 3NF Normalizasyon Gerekçesi
+
+Veritabanı tasarımımız, veri tekrarını önlemek ve tutarlılığı korumak adına yeni eklenen ek dosyalar (`attachments`), durum geçmişi (`ticket_logs`) ve puan verileri de dahil edilerek 3NF standartlarına uygun tasarlanmıştır:
+
+* **1NF (Birinci Normal Form):** Hiçbir tabloda liste halinde veya virgülle ayrılmış veri bulunmaz; tüm sütunlar atomiktir. Örneğin, bir biletin birden fazla ek dosyası veya durum değişimi olabileceği için bu veriler `tickets` tablosunda virgülle tutulmamış, tamamen ayrı `attachments` ve `ticket_logs` tablolarına taşınarak 1:N ilişkisi kurulmuştur.
+* **2NF (İkinci Normal Form):** Tablolardaki tüm özellikler, kompozit anahtarlara değil doğrudan tekil birincil anahtara tam bağımlıdır. Kısmi bağımlılık ihtimali, her tabloya özel bağımsız ve otomatik artan tekil bir `id` atanarak baştan engellenmiştir.
+* **3NF (Üçüncü Normal Form):** Tablolarda anahtar olmayan sütunların birbirine geçişli bağımlılığı yoktur. Örneğin, `tickets` tablosunda kategorinin adı veya SLA saat sınırı tutulmaz; sadece `category_id` tutulur ve bu kurallar `categories` ile `sla_policies` tablolarından referansla çekilir. Benzer şekilde, personelin kazandığı toplam puan bilette değil `users` tablosunda kümülatif tutulur. Bu sayede örneğin bir kategori ismi değiştiğinde binlerce bilet kaydının güncellenmesine gerek kalmaz.
+
 ## 5. Tasarım Desenleri
 
 Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akışını ve eskalasyon/izin yönetimini kontrol altında tutmak için iki temel tasarım deseni uygulanmıştır.
@@ -97,13 +105,13 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 | Risk | Olasılık | Etki | Önlem |
 | :--- | :--- | :--- | :--- |
 | **JSON takvim işleme algoritmalarının SLA'i yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
-| **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında kilitleme (`SELECT ... FOR UPDATE`) mekanizması kullanılması. |
+| **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında kilitleme mekanizması kullanılması. |
 | **Oto-eskalasyon döngülerinin sunucuyu kilitlemesi veya sonsuz döngüye girmesi** | Orta | Yüksek | Yöneticinin personele izin girdiği anda çalışan eskalasyon tetikleyicisinin, işlem öncesi veritabanı kilit mekanizmaları ile korumaya alınması. |
 | **Zararlı dosya yükleme girişimleri** | Orta | Yüksek | Müşteri ek dosyaları için sadece JPG ve PNG izin verilmesi, sıkı MIME-type doğrulaması yapılması ve dosyaların doğrudan erişime kapalı `storage` klasöründe tutulması. |
 | **Kanban panosunda aşırı veri yüklenmesinden kaynaklı tarayıcı donması** | Yüksek | Orta | Kanban sütunlarındaki aktif biletlere limitasyon getirilmesi ve kapalı biletlerin panodan kaldırılarak ayrı bir ekrana taşınması. |
-| **Puan sisteminin istismarı (Oyunlaştırma Riski)** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
-| **Sunucu ve Veritabanı Saat Dilimi (Timezone) Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir Timezone standardı belirlenmesi. |
-| **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve dal ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
+| **Puan sisteminin istismarı** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
+| **Sunucu ve Veritabanı Saat Dilimi Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir saat dilimi standardı belirlenmesi. |
+| **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve branch ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
 
 
 ## 9. Plan ve Backlog
@@ -125,4 +133,4 @@ Projenin geliştirme süreci, dersin gereksinimlerine uygun olarak 3 ana kilomet
   * **Hedef:** Sistemin JSON'dan MySQL/MariaDB veritabanına geçirilmesi (Mimari yapı sayesinde sadece Repository sınıfları değiştirilecektir). Eskalasyon loglarının, yetki kontrollerinin, PDO transaction/satır kilidi güvenliklerinin uygulanması ve PHPUnit testlerinin tamamlanarak projenin canlıya hazır hale getirilmesi.
 
 ### 9.2. İş Takip Yöntemi
-Panomuzda `Backlog`, `Bu hafta`, `Devam ediyor` ve `Bitti` sütunları bulunmaktadır. Her bir geliştirme görevi (`aşama-2`, `aşama-3`, `çekirdek`, `test` etiketleriyle) ekip üyelerine atanmış olup, *Branch (Dal)* ve *Pull Request (PR)* mantığıyla çakışmalar (conflict) önlenerek ana (`main`) dala aktarılacaktır.
+Panomuzda `Backlog`, `Bu hafta`, `Devam ediyor` ve `Bitti` sütunları bulunmaktadır. Her bir geliştirme görevi (`aşama-2`, `aşama-3`, `çekirdek`, `test` etiketleriyle) ekip üyelerine atanmış olup, *Branch* ve *Pull Request* mantığıyla çakışmalar önlenerek ana (`main`) dala aktarılacaktır.
