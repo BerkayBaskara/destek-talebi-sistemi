@@ -24,6 +24,7 @@ Proje, dinamik SLA (Hizmet Seviyesi Sözleşmesi) hesaplamaları, puanlama taban
 
 ## 📂 Klasör Yapısı
 
+```text
 destek-talebi-sistemi/
 ├── database/          # Veritabanı dosyaları (Migration ve Seed betikleri)
 ├── docs/              # Dokümantasyon klasörü
@@ -46,3 +47,4 @@ destek-talebi-sistemi/
 ├── composer.json      # Proje bağımlılıkları ve PSR-4 ayarları
 ├── composer.lock      # Kurulan bağımlılıkların versiyon kilit dosyası
 └── README.md          # Kurulum talimatları ve proje özeti
+```
