@@ -25,7 +25,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 * **Teknik Kısıtlama (Çatı Bağımsızlığı):** Proje, Laravel veya Symfony gibi harici hazır framework'ler kullanılmadan, PHP, PDO ve Nesne Yönelimli Programlama prensipleriyle (PSR-4 standartlarında) geliştirilmek zorundadır.
 * **Mimari Kısıtlama:** Sistem kesinlikle katmanlı mimariyle (Controller, Service, Repository, Model) inşa edilmeli; durum geçişleri State deseniyle, eskalasyon uyarıları ise Observer deseniyle yönetilmelidir.
 * **Veritabanı Kısıtlaması:** Veritabanı tasarımı zorunlu olarak en az 3NF (Üçüncü Normal Form) kurallarına uygun şekilde normalize edilmelidir.
-* **Dosya Kısıtlaması:** Müşteriler tarafından yüklenecek olan sorun gösterge ekleri güvenlik sebebiyle sadece JPG, PNG ve PDF formatlarıyla kısıtlanmış olup, dosya başına maksimum yükleme boyutu 5 MB olarak belirlenmiştir.
+* **Dosya Kısıtlaması:** Müşteriler tarafından yüklenecek olan sorun gösterge ekleri güvenlik sebebiyle görsel olarak sadece JPG ve PDF video olarak ise MP4 ve WebM formatlarıyla kısıtlanmış olup, dosya başına maksimum yükleme boyutu yönetici tarafından belirlenecektir.
 
 ## 6. Tanımlar ve Kısaltmalar
 * **SLA (Service Level Agreement):** Hizmet Seviyesi Anlaşması. Müşterinin açtığı bir destek talebinin, işletmenin mesai saatlerine göre maksimum kaç saat/gün içinde çözülmesi gerektiğini belirleyen taahhüt süresi.
@@ -72,7 +72,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 ## 9. İşlevsel Gereksinimler (Functional Requirements - FR)
 
 *   **FR-01:** Sistem, müşteri girişi yapıldığında kategori, öncelik, başlık ve mesaj alanlarından oluşan bir form sunmalıdır. (US-01, US-05)
-*   **FR-02:** Sistem, bilet oluşturma esnasında JPG ve PNG formatlarında, tür ve boyut kontrolü yapılarak ek dosya yüklenmesine izin vermelidir. (US-02)
+*   **FR-02:** Sistem, bilet oluşturma esnasında JPG, PNG formatlarındaki görsellerin yanı sıra MP4 ve WebM formatlarında video yüklenmesine izin vermelidir. Görseller ve videolar için yöneticinin belirlediği maksimum boyut ve MIME-Type kontrolü yapılmalıdır. (US-02)
 *   **FR-03:** Sistem, biletin içeriğin analiz ederek anahtar kelime eşleşmesi ile akıllı/gölge öncelik belirleyebilmelidir.
 *   **FR-04:** Sistem, açılan yeni bileti, havuzdaki mevcut aktif iş yükü en az olan personele otomatik olarak atamalıdır.
 *   **FR-05:** Sistem; biletin açıldığı anı, sisteme girilen resmi tatil günlerini ve mesai saatlerini hesaplayarak kesin bir SLA bitiş tarihi oluşturmalıdır.
@@ -92,7 +92,7 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-19:** Sistem, her biletin detay sayfasında; biletin açılmasından kapanmasına kadar geçen tüm durum değişikliklerini kronolojik bir log olarak listelemelidir.
 *   **FR-20:** Sistem, Ortak Havuzdan personele bilet ataması yaparken, veritabanında o gün veya ertesi gün için aktif bir izni bulunan personelleri atama/dağıtım havuzundan otomatik olarak hariç tutmalıdır.
 *   **FR-21:** Sistem, "Talep Çözüldü" statüsündeki bir bilet müşteri tarafından reddedildiğinde, bileti tekrar "Talep İnceleniyor" statüsüne çekmeli ve biletin ait olduğu personelin "çözüm deneme hakkı" sayacını bir artırmalıdır.
-*   **US-22:** Sistem, personelin müşteri talebine yanıt verirken bunu bir "Soru" olarak işaretlemesine izin vermelidir. Bir bilet için bu hak maksimum 2 ile sınırlandırılmalı ve sorulan sorular, biletin hesaplanmış SLA bitiş tarihini kesinlikle değiştirmemeli veya duraklatmamalıdır.
+*   **FR-22:** Sistem, personelin müşteri talebine yanıt verirken bunu bir "Soru" olarak işaretlemesine izin vermelidir. Bir bilet için bu hak maksimum 2 ile sınırlandırılmalı ve sorulan sorular, biletin hesaplanmış SLA bitiş tarihini kesinlikle değiştirmemeli veya duraklatmamalıdır.
 
 
 ## 10. İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
@@ -107,3 +107,4 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **NFR-08:** Sisteme yüklenen dosya ekleri, sunucu disk alanından tasarruf sağlamak amacıyla arka planda maksimum 1920x1080 piksel çözünürlüğe küçültülmeli ve bu işlem dosya başına en fazla 2 saniye sürmelidir.
 *   **NFR-09:** Projenin tüm Core PHP kod tabanı PSR-12 kodlama standartlarına %100 uymalı ve PHPStan statik kod analiz aracından 0 hata ile geçecek yapıda yazılmalıdır.
 *   **NFR-10:** Sisteme giriş yapmış personellerin ve yöneticilerin aktif oturumları , güvenlik gereği arka arkaya 30 dakika boyunca hiçbir fare veya klavye etkileşimi olmazsa sunucu tarafından otomatik olarak sonlandırılmalıdır.
+*   **NFR-11:** Sistem, sunucuya aktarımı tamamlanan maksimum 50 MB boyutundaki bir video dosyasının MIME türü güvenlik doğrulamasını ve storage klasörüne kalıcı olarak yazılma işlemini, istemcinin ağ hızından tamamen bağımsız olarak en fazla 1600 milisaniye içerisinde tamamlamalıdır.
