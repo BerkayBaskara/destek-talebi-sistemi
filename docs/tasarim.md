@@ -91,6 +91,7 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 | **Puan sisteminin istismarı** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
 | **Sunucu ve Veritabanı Saat Dilimi Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir saat dilimi standardı belirlenmesi. |
 | **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve branch ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
+| **Müşterilerin yüklediği yüksek çözünürlüklü ve/veya uzun videoların sunucu disk alanını çok kısa sürede tüketmesi.** | Yüksek | Düşük | Videolar için katı bir dosya boyutu sınırı (örn: 50 MB) uygulanması ve durumu "Kapalı" statüsüne geçen biletlerdeki video dosyalarının yönetici tarafından belirlenen gün sonra sunucudan otomatik silinmesini sağlayan bir temizlik betiği yazılması.
 
 
 ## 9. Plan ve Backlog
