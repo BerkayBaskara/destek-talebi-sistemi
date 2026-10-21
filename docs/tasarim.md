@@ -13,27 +13,6 @@ Projemiz, herhangi bir harici framework (Laravel, Symfony vb.) kullanılmadan, t
 | **Model** | Veritabanındaki bir kaydı temsil eden, veriyi taşıyan sade sınıflardır. | Veritabanı bağlantısı açmaz, SQL çalıştırmaz. | `Ticket`, `User`, `CalendarConfig` |
 | **View** | Kullanıcıya HTML arayüzünü (Kanban panosu vb.) gösterir ve XSS önlemi alır. | Veritabanından doğrudan veri çekmez, iş hesabı yapmaz. | `views/kanban/board.php`, `views/auth/login.php` |
 
-## 1.2. Klasör Yapısı
-
-Sistemdeki tüm istekler `public/index.php` üzerinden karşılanır. Güvenlik gereği JSON takvim dosyaları ve kullanıcı yüklemeleri kapalı dizinlerde (storage) tutulur.
-
-```text
-destek-talebi-sistemi/
-├── public/            # index.php (tek giriş noktası), css, js (Kanban AJAX), görseller
-├── src/
-│   ├── Controller/    # HTTP/AJAX isteklerini karşılayan sınıflar
-│   ├── Service/       # JSON takvim okuma, SLA esnekliği ve eskalasyon algoritmaları
-│   ├── Repository/    # PDO veritabanı ve JSON dosya okuma/yazma arayüzleri
-│   └── Model/         # Varlık sınıfları (User, Ticket, Escalation)
-├── views/             # Şablon dosyaları (Müşteri ekranları, Personel Kanban panosu)
-├── database/          # MySQL migration (3NF) ve örnek veri (seed) betikleri
-├── tests/             # JSON çalışma saatleri ve SLA sınır testleri için PHPUnit
-├── docs/              # srs.md, tasarim.md, ai-gunlugu.md, wireframes/
-├── storage/           # Yüklenen takvim JSON dosyaları ve müşteri eklentileri (korumalı alan)
-├── composer.json      # PSR-4 otomatik yükleme ve test/analiz bağımlılıkları
-└── README.md          # Kurulum ve yapılandırma talimatları
-```
-
 
 ## 2. Sınıf Diyagramı
 ![Sınıf Diyagramı](images/classdiagram.png)
