@@ -93,6 +93,14 @@ final class AuthServiceTest extends TestCase
         self::assertTrue($this->auth->resetPassword($user->customerNo, 'izmir', 'yeniSifre99'));
     }
 
+    public function test_reset_password_ascii_i_answer(): void
+    {
+        $user = $this->auth->register('Ali', 'Kaya', 'gizliSifre1', AuthService::SECRET_QUESTIONS[1], 'Istanbul');
+
+        self::assertTrue($this->auth->resetPassword($user->customerNo, 'istanbul', 'yeniSifre99'));
+        self::assertTrue($this->auth->resetPassword($user->customerNo, 'İSTANBUL', 'yeniSifre98'));
+    }
+
     public function test_reset_password_wrong_answer_returns_false(): void
     {
         $user = $this->registerDefault();

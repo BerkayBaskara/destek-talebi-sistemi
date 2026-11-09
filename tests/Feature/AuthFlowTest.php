@@ -99,6 +99,19 @@ final class AuthFlowTest extends FeatureTestCase
         self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
     }
 
+    public function test_idle_timeout_on_form_post_redirects_to_login_not_csrf_error(): void
+    {
+        $this->loginAs($this->registerCustomer(), 'gizliSifre1');
+        $token = $this->kernel->csrf()->token(); // sayfa 30 dakika önce açılmış gibi
+        $this->clock->advance('+31 minutes');
+
+        $response = $this->kernel->handle(new \App\Core\Http\Request('POST', '/cikis', [], ['_csrf' => $token]));
+
+        self::assertSame(302, $response->status);
+        self::assertSame('/giris', $response->headers['Location']);
+        self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
+    }
+
     public function test_logout_ends_session(): void
     {
         $this->loginAs($this->registerCustomer(), 'gizliSifre1');

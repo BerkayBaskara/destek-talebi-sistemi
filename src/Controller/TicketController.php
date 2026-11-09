@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Core\Http\Request;
 use App\Core\Http\Response;
+use App\Exception\ConflictException;
 use App\Exception\ValidationException;
 use App\Kernel;
 use App\Model\Enum\Priority;
@@ -132,9 +133,7 @@ final class TicketController
         try {
             $this->tickets->perform($id, $actor, $request->string('islem'));
             $this->kernel->session()->flash('success', 'Talep durumu güncellendi.');
-        } catch (InvalidTransitionException $e) {
-            $this->kernel->session()->flash('error', $e->getMessage());
-        } catch (ValidationException $e) {
+        } catch (InvalidTransitionException | ValidationException | ConflictException $e) {
             $this->kernel->session()->flash('error', $e->getMessage());
         }
 

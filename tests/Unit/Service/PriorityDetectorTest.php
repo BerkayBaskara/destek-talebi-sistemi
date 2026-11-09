@@ -30,6 +30,11 @@ final class PriorityDetectorTest extends TestCase
         self::assertSame(Priority::High, self::detector()->detect('VPN\'E BAĞLANAMIYORUM'));
     }
 
+    public function test_ascii_capital_i_is_detected(): void
+    {
+        self::assertSame(Priority::Urgent, self::detector()->detect('ACIL: KRITIK sorun'));
+    }
+
     public function test_highest_match_wins(): void
     {
         self::assertSame(Priority::Urgent, self::detector()->detect('Sistem yavaş ve artık tamamen çalışmıyor'));

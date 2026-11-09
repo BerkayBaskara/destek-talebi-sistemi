@@ -30,7 +30,13 @@ final class AuthService
     {
     }
 
-    public function register(string $name, string $surname, string $password, string $secretQuestion, string $secretAnswer): User
+    public function register(
+        string $name,
+        string $surname,
+        #[\SensitiveParameter] string $password,
+        string $secretQuestion,
+        #[\SensitiveParameter] string $secretAnswer,
+    ): User
     {
         $name = trim($name);
         $surname = trim($surname);
@@ -66,7 +72,7 @@ final class AuthService
         ));
     }
 
-    public function login(string $customerNo, string $password): ?User
+    public function login(string $customerNo, #[\SensitiveParameter] string $password): ?User
     {
         $user = $this->users->findByCustomerNo(self::normalizeNumber($customerNo));
         if ($user === null || !password_verify($password, $user->passwordHash)) {
@@ -82,7 +88,11 @@ final class AuthService
     }
 
     /** Cevap doğruysa şifreyi değiştirir ve true döner; yanlışsa hiçbir şey değişmez. */
-    public function resetPassword(string $customerNo, string $secretAnswer, string $newPassword): bool
+    public function resetPassword(
+        string $customerNo,
+        #[\SensitiveParameter] string $secretAnswer,
+        #[\SensitiveParameter] string $newPassword,
+    ): bool
     {
         if (Text::length($newPassword) < self::MIN_PASSWORD) {
             throw new ValidationException(['password' => 'Şifre en az 8 karakter olmalı.']);
@@ -129,9 +139,9 @@ final class AuthService
         return strtoupper(trim($customerNo));
     }
 
-    /** "  Pamuk " ve "pamuk" aynı cevap sayılır. */
+    /** "  Pamuk " ve "pamuk", "Istanbul" ve "İSTANBUL" aynı cevap sayılır. */
     private static function normalizeAnswer(string $answer): string
     {
-        return Text::lower(trim($answer));
+        return Text::fold(trim($answer));
     }
 }

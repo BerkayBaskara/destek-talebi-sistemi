@@ -201,7 +201,10 @@ final class TicketService
                 throw new ValidationException(['action' => 'Bilinmeyen işlem.']);
         }
 
-        $this->tickets->save($ticket);
+        // Okuma ile yazma arasında başka bir istek talebi değiştirdiyse üzerine yazma (NFR-04 ruhu).
+        if (!$this->tickets->saveIfStatus($ticket, $old)) {
+            throw new ConflictException('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.');
+        }
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, ['old' => $old, 'new' => $ticket->status, 'actor_id' => (int) $actor->id]);
 
         return $ticket;
@@ -353,7 +356,7 @@ final class TicketService
             return true;
         }
 
-        return str_contains(Text::lower($ticket->title), Text::lower($query));
+        return str_contains(Text::fold($ticket->title), Text::fold($query));
     }
 
     public function mustFind(int $ticketId): Ticket

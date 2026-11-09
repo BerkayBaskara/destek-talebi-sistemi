@@ -166,6 +166,9 @@ final class JsonStore
         if ($content === false) {
             throw new StorageException('Veri dosyası okunamadı: ' . $table);
         }
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $content = substr($content, 3); // elle düzenlenip BOM ile kaydedilmiş dosya
+        }
         if (trim($content) === '') {
             return [];
         }
