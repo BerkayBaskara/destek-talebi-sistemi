@@ -80,16 +80,47 @@ final class TicketController
     {
         $viewer = $this->kernel->requireRole();
         $ticket = $this->tickets->findVisible($id, $viewer);
+        $replies = $this->kernel->replyRepository()->findByTicket($id);
+        $logs = $this->kernel->ticketLogRepository()->findByTicket($id);
+
+        // Ekranda isim göstermek için ilgili kullanıcıları bir kez yükle (0 = Sistem).
+        $ids = array_merge([$ticket->creatorId, (int) $ticket->agentId], array_map(static fn ($r) => $r->userId, $replies), array_map(static fn ($l) => $l->userId, $logs));
+        $names = [0 => 'Sistem'];
+        foreach (array_unique($ids) as $userId) {
+            if ($userId > 0) {
+                $names[$userId] = $this->kernel->userRepository()->findById($userId)?->fullName() ?? 'Silinmiş kullanıcı';
+            }
+        }
 
         return $this->kernel->render('tickets/show', [
             'title' => 'Talep #' . $ticket->id,
             'ticket' => $ticket,
             'viewer' => $viewer,
+            'names' => $names,
             'category' => $this->kernel->categoryRepository()->findById($ticket->categoryId),
             'sla' => $this->kernel->slaStatusService()->forTicket($ticket),
-            'replies' => $this->kernel->replyRepository()->findByTicket($id),
+            'replies' => $replies,
+            'logs' => $logs,
             'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
+            'actions' => $this->tickets->availableActions($ticket, $viewer),
+            'canReply' => $this->tickets->canReply($ticket, $viewer),
         ]);
+    }
+
+    /** Talebe mesaj yazma (US-04, US-10). */
+    public function reply(Request $request, int $id): Response
+    {
+        $author = $this->kernel->requireRole();
+        $this->tickets->findVisible($id, $author);
+
+        try {
+            $this->tickets->addReply($id, $author, $request->string('mesaj'));
+            $this->kernel->session()->flash('success', 'Mesajınız gönderildi.');
+        } catch (ValidationException $e) {
+            $this->kernel->session()->flash('error', $e->getMessage());
+        }
+
+        return Response::redirect('/talepler/' . $id . '#mesajlar');
     }
 
     /** Durum eylemi (iptal, incelemeye al, çözüldü, onayla, reddet). İzinsiz geçişin nedeni kullanıcıya gösterilir. */

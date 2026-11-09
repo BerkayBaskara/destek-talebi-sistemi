@@ -207,6 +207,50 @@ final class TicketService
         return $ticket;
     }
 
+    /**
+     * Ekranda gösterilecek eylem düğmeleri: kullanıcının yetkisi olan ve mevcut durumda State'in izin verdiği eylemler.
+     * Sunucu her eylemde perform() ile yine denetler; bu liste yalnız arayüz içindir.
+     *
+     * @return list<string> cancel | start_review | resolve | approve | reject
+     */
+    public function availableActions(Ticket $ticket, User $viewer): array
+    {
+        $isOwner = $ticket->creatorId === $viewer->id;
+        $isHandler = $viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id);
+        $state = $ticket->state();
+        $checks = [
+            'cancel' => [$isOwner, static fn () => $state->cancel($ticket)],
+            'start_review' => [$isHandler, static fn () => $state->startReview($ticket)],
+            'resolve' => [$isHandler, static fn () => $state->resolve($ticket)],
+            'approve' => [$isOwner, static fn () => $state->close($ticket)],
+            'reject' => [$isOwner, static fn () => $state->reject($ticket)],
+        ];
+
+        $actions = [];
+        foreach ($checks as $action => [$allowed, $try]) {
+            if (!$allowed) {
+                continue;
+            }
+            try {
+                $try();
+                $actions[] = $action;
+            } catch (InvalidTransitionException) {
+                // bu durumda izin yok
+            }
+        }
+
+        return $actions;
+    }
+
+    /** Yanıt yazabilir mi (arayüzde form gösterilsin mi). */
+    public function canReply(Ticket $ticket, User $viewer): bool
+    {
+        return !$ticket->status->isFinal()
+            && ($ticket->creatorId === $viewer->id
+                || $viewer->role === Role::Admin
+                || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id));
+    }
+
     /** Kanban'da kartı sütuna taşıma: yalnız ileri geçişler (Alındı → İnceleniyor → Çözüldü). */
     public function moveOnKanban(int $ticketId, User $agent, TicketStatus $target): Ticket
     {
