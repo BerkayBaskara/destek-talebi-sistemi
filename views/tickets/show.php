@@ -4,6 +4,7 @@
 /** @var \App\Model\Category|null $category */
 /** @var \App\Model\SlaStatus $sla */
 /** @var list<\App\Model\Reply> $replies */
+/** @var list<\App\Model\Attachment> $attachments */
 /** @var \App\Core\View $view */
 ?>
 <p><a href="javascript:history.back()">&lsaquo; Geri dön</a></p>
@@ -17,6 +18,16 @@
         <div><strong>SLA:</strong> <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></div>
     </div>
 </section>
+<?php if ($attachments !== []): ?>
+<section class="card">
+    <h2>Ekler</h2>
+    <ul class="attachments">
+        <?php foreach ($attachments as $attachment): ?>
+            <li><a href="/ekler/<?= e($attachment->id) ?>" target="_blank" rel="noopener">📎 ek-<?= e($attachment->id) ?> (<?= e($attachment->fileType) ?>)</a></li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
 <section class="card">
     <h2>Mesajlar</h2>
     <?php foreach ($replies as $reply): ?>

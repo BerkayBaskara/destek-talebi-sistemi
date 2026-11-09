@@ -21,7 +21,10 @@ use App\Exception\NotFoundException;
 use App\Exception\RedirectException;
 use App\Model\Enum\Role;
 use App\Model\User;
+use App\Repository\AttachmentRepositoryInterface;
 use App\Repository\CategoryRepositoryInterface;
+use App\Repository\Json\JsonAttachmentRepository;
+use App\Service\AttachmentService;
 use App\Repository\Json\JsonCalendarRepository;
 use App\Repository\Json\JsonCategoryRepository;
 use App\Repository\Json\JsonReplyRepository;
@@ -68,6 +71,8 @@ final class Kernel
     private readonly SlaCalculatorService $slaCalculator;
     private readonly SlaStatusService $slaStatusService;
     private readonly TicketService $ticketService;
+    private readonly AttachmentRepositoryInterface $attachmentRepository;
+    private readonly AttachmentService $attachmentService;
 
     public function __construct(
         private readonly string $rootDir,
@@ -105,6 +110,14 @@ final class Kernel
             $this->clock,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
+
+        $this->attachmentRepository = new JsonAttachmentRepository($this->store);
+        $this->attachmentService = AttachmentService::fromSettingsFile(
+            $this->attachmentRepository,
+            $this->rootDir . '/storage/uploads',
+            $config . '/settings.json',
+            $this->clock,
+        );
 
         $registerRoutes = require __DIR__ . '/routes.php';
         $registerRoutes($this->router, $this);
@@ -271,6 +284,16 @@ final class Kernel
     public function ticketService(): TicketService
     {
         return $this->ticketService;
+    }
+
+    public function attachmentRepository(): AttachmentRepositoryInterface
+    {
+        return $this->attachmentRepository;
+    }
+
+    public function attachmentService(): AttachmentService
+    {
+        return $this->attachmentService;
     }
 
     /** NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır. */
