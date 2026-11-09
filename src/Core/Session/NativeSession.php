@@ -58,11 +58,12 @@ final class NativeSession implements SessionInterface
         session_regenerate_id(true);
     }
 
+    /** Oturum verisini siler ve yeni kimlik verir; oturum açık kalır ki çıkış mesajı gösterilebilsin. */
     public function destroy(): void
     {
         $_SESSION = [];
         if (session_status() === PHP_SESSION_ACTIVE) {
-            session_destroy();
+            session_regenerate_id(true);
         }
     }
 }
