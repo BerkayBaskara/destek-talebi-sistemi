@@ -247,7 +247,7 @@ Her geçiş `TicketService` üzerinden yapılır, `ticket_logs`'a kayıt düşer
 
 ## 15. Süreç
 
-- Çalışma `asama-2` dalında, her parça ayrı ve anlamlı commit mesajıyla. Push ve pull request'i Yusuf açar (hoca PR ile çalışma istiyor; GitHub hesabı Yusuf'un).
+- Her parça kendi dalında, ekibin `tür/konu` adlandırmasıyla (`ozellik/tasarim-belgesi`, `ozellik/altyapi`, `ozellik/sla-hesaplama`, `ozellik/durum-gecisleri` …). Her dal anlamlı commit'ler içerir ve bir pull request olur; PR açıklamasında ilgili issue `Closes #27` biçiminde bağlanır. Parçalar birbirine dayandığı için PR'lar sırayla birleştirilir; sonraki dal güncel `main`'den açılır. Push, PR ve birleştirmeyi Yusuf yapar (hoca PR ile çalışma istiyor; GitHub hesabı Yusuf'un).
 - Yerel çalıştırma: `composer install`, `php bin/seed.php`, `php -S localhost:8000 -t public`. WAMP ile de çalışır (sanal host `public/`'i göstermeli). README'ye yazılır.
 - AI günlüğü kayıtları Aşama 2 sonunda Yusuf tarafından eklenir.
 
