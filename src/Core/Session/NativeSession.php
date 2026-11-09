@@ -10,6 +10,7 @@ final class NativeSession implements SessionInterface
     public function __construct()
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
+            ini_set('session.use_strict_mode', '1'); // dışarıdan uydurulmuş oturum kimliği kabul edilmez
             session_set_cookie_params([
                 'lifetime' => 0,
                 'path' => '/',

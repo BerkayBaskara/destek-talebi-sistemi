@@ -109,7 +109,18 @@ final class AuthFlowTest extends FeatureTestCase
 
         self::assertSame(302, $response->status);
         self::assertSame('/giris', $response->headers['Location']);
+        self::assertSame('DENY', $response->headers['X-Frame-Options'] ?? null, 'Erken dönen yanıtta da güvenlik başlıkları olmalı.');
         self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
+    }
+
+    public function test_csrf_token_is_rotated_on_login(): void
+    {
+        $number = $this->registerCustomer();
+        $before = $this->kernel->csrf()->token();
+
+        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1']);
+
+        self::assertNotSame($before, $this->kernel->csrf()->token());
     }
 
     public function test_login_form_posted_after_idle_expiry_still_logs_in(): void

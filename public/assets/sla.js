@@ -11,7 +11,13 @@
     var ids = Array.prototype.map.call(badges, function (b) { return b.dataset.ticketId; });
 
     fetch('/api/sla?ids=' + encodeURIComponent(ids.join(',')), { headers: { Accept: 'application/json' } })
-      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (response) {
+        if (response.status === 401) {
+          window.location.href = '/giris'; // oturum süresi doldu; rozetler donup kalmasın
+          return null;
+        }
+        return response.ok ? response.json() : null;
+      })
       .then(function (data) {
         if (!data) {
           return;

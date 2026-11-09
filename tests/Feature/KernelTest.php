@@ -22,11 +22,11 @@ final class KernelTest extends FeatureTestCase
         self::assertStringContainsString('Güvenlik anahtarı (CSRF)', $response->body);
     }
 
-    public function test_api_post_without_csrf_returns_json_403(): void
+    public function test_api_without_session_returns_json_401(): void
     {
         $response = $this->postJson('/api/deneme', ['a' => 1], withCsrf: false);
 
-        self::assertSame(403, $response->status);
+        self::assertSame(401, $response->status);
         self::assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
         self::assertFalse(json_decode($response->body, true)['ok']);
     }
@@ -50,6 +50,16 @@ final class KernelTest extends FeatureTestCase
         self::assertSame(500, $response->status);
         self::assertStringContainsString('Beklenmeyen bir hata oluştu', $response->body);
         self::assertStringNotContainsString('Gizli2026!', $response->body);
+    }
+
+    public function test_post_body_dropped_by_php_limit_shows_size_message_not_csrf(): void
+    {
+        // post_max_size aşılınca PHP $_POST ve $_FILES'ı boş bırakır; yalnız Content-Length kalır.
+        $response = $this->kernel->handle(new \App\Core\Http\Request('POST', '/talepler', [], [], [], ['Content-Length' => '99999999999']));
+
+        self::assertSame(413, $response->status);
+        self::assertStringContainsString('Gönderilen dosyalar toplamda çok büyük', $response->body);
+        self::assertStringNotContainsString('CSRF', $response->body);
     }
 
     public function test_html_responses_have_security_headers(): void

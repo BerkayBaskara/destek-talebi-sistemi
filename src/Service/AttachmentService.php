@@ -31,6 +31,9 @@ final class AttachmentService
     private const MAX_WIDTH = 1920;
     private const MAX_HEIGHT = 1080;
 
+    /** GD görseli açarken piksel başına ~5 bayt kullanır; bunun üstü 128 MB bellek sınırını aşabilir. */
+    private const MAX_PIXELS = 24_000_000;
+
     /** @var callable(string, string): bool */
     private $mover;
 
@@ -121,6 +124,11 @@ final class AttachmentService
      */
     public function validate(array $file): string
     {
+        if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
+            // php.ini'deki upload_max_filesize aşıldı: tekrar denemek işe yaramaz, kullanıcıya doğrusunu söyle.
+            $mb = max(1, (int) round(self::iniBytes((string) ini_get('upload_max_filesize')) / 1024 / 1024));
+            throw new ValidationException(['ekler' => "Dosya, sunucunun izin verdiği boyutu aşıyor (en fazla {$mb} MB): " . $file['name']]);
+        }
         if ($file['error'] !== UPLOAD_ERR_OK || !is_file($file['tmp_name'])) {
             throw new ValidationException(['ekler' => 'Dosya yüklenemedi (' . $file['name'] . '). Lütfen tekrar deneyin.']);
         }
@@ -137,6 +145,14 @@ final class AttachmentService
         if ($size > $limit) {
             $mb = max(1, (int) round($limit / 1024 / 1024));
             throw new ValidationException(['ekler' => $isVideo ? "Video en fazla {$mb} MB olabilir." : "Dosya en fazla {$mb} MB olabilir."]);
+        }
+
+        // Görsel çözünürlüğü dosyayı açmadan, yalnız başlıktan okunur; talep kaydedilmeden önce reddedilir.
+        if ($extension === 'jpg' || $extension === 'png') {
+            $info = getimagesize($file['tmp_name']);
+            if ($info === false || $info[0] * $info[1] > self::MAX_PIXELS) {
+                throw new ValidationException(['ekler' => 'Görselin çözünürlüğü çok yüksek (en fazla 24 milyon piksel).']);
+            }
         }
 
         return $extension;
@@ -165,6 +181,20 @@ final class AttachmentService
         }
 
         return $this->repo->save(new Attachment(null, $ticketId, (int) $user->id, $name, $mime, $this->clock->now()));
+    }
+
+    /** php.ini boyut değeri ("2M", "8M", "1G") → bayt. */
+    public static function iniBytes(string $value): int
+    {
+        $value = trim($value);
+        $number = (int) $value;
+
+        return match (strtoupper(substr($value, -1))) {
+            'G' => $number * 1024 ** 3,
+            'M' => $number * 1024 ** 2,
+            'K' => $number * 1024,
+            default => $number,
+        };
     }
 
     public function absolutePath(Attachment $attachment): string
