@@ -55,6 +55,9 @@ final class Kernel
     /** NFR-10: 30 dakika hareketsiz kalan oturum kapatılır. */
     public const IDLE_TIMEOUT_SECONDS = 1800;
 
+    /** Giriş gerektirmeyen formlar: oturum süresi dolmuş olsa da normal işlenir. */
+    private const PUBLIC_FORMS = ['/giris', '/kayit', '/sifre-sifirla', '/sifre-sifirla/yeni'];
+
     private readonly ClockInterface $clock;
     private readonly SessionInterface $session;
     private readonly JsonStore $store;
@@ -127,7 +130,8 @@ final class Kernel
     {
         try {
             $isWrite = in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true);
-            if ($this->enforceIdleTimeout() && $isWrite) {
+            $publicForm = in_array($request->path, self::PUBLIC_FORMS, true);
+            if ($this->enforceIdleTimeout($request) && $isWrite && !$publicForm) {
                 // Süresi dolmuş oturumla gönderilen form "CSRF geçersiz" yerine girişe yönlendirilir.
                 return $request->isApi()
                     ? Response::json(['ok' => false, 'error' => 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.'], 401)
@@ -143,7 +147,9 @@ final class Kernel
 
             $response = $this->router->dispatch($request);
         } catch (RedirectException $e) {
-            $response = Response::redirect($e->url);
+            $response = $request->isApi()
+                ? Response::json(['ok' => false, 'error' => 'Oturum açmanız gerekiyor.'], 401)
+                : Response::redirect($e->url);
         } catch (HttpException $e) {
             $response = $this->error($request, $e->status, $e->getMessage());
         } catch (AuthorizationException $e) {
@@ -307,8 +313,11 @@ final class Kernel
         return $this->attachmentService;
     }
 
-    /** NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner. */
-    private function enforceIdleTimeout(): bool
+    /**
+     * NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner.
+     * Sayfanın kendi kendine yaptığı SLA yoklaması (/api/sla) kullanıcı etkinliği sayılmaz.
+     */
+    private function enforceIdleTimeout(Request $request): bool
     {
         if ($this->session->get('user_id') === null) {
             return false;
@@ -317,13 +326,17 @@ final class Kernel
         $now = $this->clock->now()->getTimestamp();
         $last = $this->session->get('last_activity');
         if (is_int($last) && $now - $last > self::IDLE_TIMEOUT_SECONDS) {
+            $token = $this->csrf->token();
             $this->session->destroy();
+            $this->session->set('_csrf', $token); // açık sayfadaki giriş formu çalışmaya devam etsin
             $this->session->flash('error', 'Oturumunuz 30 dakika işlem yapılmadığı için sonlandırıldı. Lütfen tekrar giriş yapın.');
 
             return true;
         }
 
-        $this->session->set('last_activity', $now);
+        if ($request->path !== '/api/sla') {
+            $this->session->set('last_activity', $now);
+        }
 
         return false;
     }

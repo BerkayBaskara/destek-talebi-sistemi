@@ -117,6 +117,22 @@ button.linklike { background: none; border: 0; padding: 0; font: inherit; cursor
 .sla-missed { background: var(--danger-bg); color: var(--danger); }
 .sla-none { color: var(--muted); }
 
+/* Kanban (FR-09) */
+.kanban { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kanban-col { background: #eef1f4; border-radius: var(--radius); padding: 10px; min-height: 200px; }
+.kanban-col h2 { font-size: 1rem; margin: 0 0 10px; }
+.kanban-col.drop-target { outline: 2px dashed var(--link); }
+.kanban-cards { display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.kanban-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; cursor: grab; }
+.kanban-card.dragging { opacity: 0.5; }
+.kanban-card a { font-weight: 600; text-decoration: none; }
+.kanban-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.kanban-move { padding: 6px; font-size: 0.9em; }
+@media (max-width: 700px) { .kanban { grid-template-columns: 1fr; } }
+.row-warning td { background: #fff8db; }
+.row-breached td { background: var(--danger-bg); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
 .narrow { max-width: 480px; margin-left: auto; margin-right: auto; }
 .big-number { font-size: 2rem; font-weight: 700; letter-spacing: 2px; margin: 8px 0 16px; }
 .who { opacity: 0.85; font-size: 0.95em; }
