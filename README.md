@@ -48,3 +48,69 @@ destek-talebi-sistemi/
 ├── composer.lock      # Kurulan bağımlılıkların versiyon kilit dosyası
 └── README.md          # Kurulum talimatları ve proje özeti
 ```
+
+## 📌 Aşama 2 durumu (veritabanısız, JSON)
+
+Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her tablo ER diyagramındaki adıyla ayrı bir dosyadır; aynı anda yazmaya karşı dosya kilidi (`flock`) kullanılır. Aşama 3'te yalnız `src/Repository/Json/*` sınıflarının yerine `MySql*` sınıfları yazılır; servisler ve testler değişmez.
+
+| Gereksinim | Aşama 2'de |
+|---|---|
+| FR-01 talep formu, FR-02 ek dosya, FR-03 akıllı öncelik, FR-04 otomatik atama, FR-05 SLA hesabı, FR-06 State, FR-07 %80/%100 uyarı, FR-09 AJAX Kanban, FR-19 durum geçmişi | ✅ |
+| Kayıt / giriş / gizli soruyla şifre sıfırlama, 3 rol, arama + filtre, Aşama 2 özet raporu | ✅ |
+| FR-08 eskalasyon, FR-10–18, FR-20–22, MySQL | Aşama 3 |
+
+Ayrıntılar: `docs/superpowers/specs/2026-11-09-asama-2-design.md` (tasarım), `docs/izlenebilirlik.md` (gereksinim → test).
+
+## ⚙️ Kurulum
+
+Gereksinimler: **PHP 8.2+** (`fileinfo`, `gd`, `mbstring` eklentileri), **Composer**.
+
+```bash
+composer install
+php bin/seed.php
+```
+
+`php bin/seed.php` örnek veriyi sıfırdan üretir (storage/data içindeki tüm veriyi siler). Sarı/kırmızı SLA örnekleri seed'in çalıştığı ana göre ayarlanır; **sunumdan hemen önce yeniden çalıştırın**.
+
+### Çalıştırma
+
+**PHP'nin yerleşik sunucusu** (en kolayı):
+
+```bash
+php -d upload_max_filesize=50M -d post_max_size=160M -S localhost:8000 -t public public/index.php
+```
+
+Tarayıcıda `http://localhost:8000` açın. (`-d` ayarları, 5 MB görsel / 50 MB video yüklemesi içindir; PHP'nin varsayılanı 2 MB'tır.)
+
+**WAMP (Apache):** bir sanal host oluşturup `DocumentRoot`'u bu projenin `public/` klasörü yapın. `public/.htaccess` tüm istekleri `index.php`'ye yönlendirir ve yükleme sınırlarını ayarlar (mod_rewrite açık olmalı).
+
+### Örnek hesaplar (şifre: `Destek2026!`)
+
+| Rol | Numara | Ad |
+|---|---|---|
+| Yönetici | Y000001 | Selin Arslan |
+| Personel | P000001, P000002, P000003 | Zeynep Kaya, Murat Demir, Elif Şahin |
+| Müşteri | M100001 – M100005 | Ahmet Yılmaz, Ayşe Çelik, Mehmet Öztürk, Fatma Aydın, Can Koç |
+
+Gizli sorunun cevabı (şifre sıfırlama denemesi için): `pamuk`. Yeni müşteri "Kayıt ol" ekranından açılır; sistem müşteri numarasını kendisi üretir.
+
+### Testler ve statik analiz
+
+```bash
+php vendor/bin/phpunit
+php vendor/bin/phpstan analyse
+```
+
+Çekirdek SLA vaka tablosunu adlarıyla görmek için: `php vendor/bin/phpunit --testdox --filter SlaCalculatorServiceTest`
+
+### Yapılandırma dosyaları (`storage/config/`)
+
+- `calendar.json`: mesai günleri/saatleri, öğle arası ve resmi tatiller. Dosya bozulur veya silinirse sistem varsayılan mesaiye (Pzt–Cum 09:00–18:00, öğle 12:00–13:00) döner.
+- `priority_keywords.json`: akıllı öncelik anahtar kelimeleri.
+- `settings.json`: ek dosya sınırları.
+
+## 🗄️ Aşama 3 için notlar (MySQL)
+
+- ER diyagramına eklenen alanlar: `tickets.title`, `tickets.customer_priority`, `tickets.resolved_at`, `users.surname`. Talep açıklaması `replies` tablosuna ilk mesaj olarak yazılır.
+- Eşzamanlılık: `TicketRepositoryInterface::assignIfUnassigned` ve `saveIfStatus` koşullu güncellemedir; MySQL karşılığı `UPDATE ... WHERE agent_id IS NULL AND status = 'pending'` / `WHERE status = ?` (veya `SELECT ... FOR UPDATE`).
+- Observer: `TicketService` olayları (`ticket_created`, `status_changed`, `customer_replied` ...) yayınlar; `EscalationObserver` ve `SlaExtensionObserver` `src/Kernel.php`'de `attachObserver` ile eklenir.
