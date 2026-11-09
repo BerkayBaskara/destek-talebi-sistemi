@@ -84,6 +84,34 @@ button.linklike { background: none; border: 0; padding: 0; font: inherit; cursor
 
 .error-page h1 { color: var(--danger); }
 
+.card-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-head h1 { margin: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+.filters > div { min-width: 140px; }
+.filters .grow { flex: 1 1 200px; }
+.narrow-wide { max-width: 720px; margin-left: auto; margin-right: auto; }
+.meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; }
+.message { border-left: 3px solid var(--border); padding: 4px 12px; margin-bottom: 12px; }
+.message.mine { border-left-color: var(--link); background: #f1f6fd; }
+.pagination { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 12px; }
+
+/* Durum rozetleri */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.85em; font-weight: 600; background: #e4e7eb; }
+.status-pending { background: #e3ecfb; color: #1d4f9c; }
+.status-taken, .status-in_review { background: var(--warn-bg); color: var(--warn); }
+.status-resolved { background: var(--ok-bg); color: var(--ok); }
+.status-closed { background: #e4e7eb; color: var(--muted); }
+.status-cancelled { background: var(--danger-bg); color: var(--danger); }
+
+/* SLA göstergesi (FR-07): sarı %80, kırmızı süre aşıldı */
+.sla-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.85em; font-weight: 600; }
+.sla-normal { background: #eef1f4; color: var(--text); }
+.sla-warning { background: #ffe58a; color: #6b4a00; }
+.sla-breached { background: var(--danger); color: #fff; }
+.sla-met { background: var(--ok-bg); color: var(--ok); }
+.sla-missed { background: var(--danger-bg); color: var(--danger); }
+.sla-none { color: var(--muted); }
+
 .narrow { max-width: 480px; margin-left: auto; margin-right: auto; }
 .big-number { font-size: 2rem; font-weight: 700; letter-spacing: 2px; margin: 8px 0 16px; }
 .who { opacity: 0.85; font-size: 0.95em; }

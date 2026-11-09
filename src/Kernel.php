@@ -21,9 +21,26 @@ use App\Exception\NotFoundException;
 use App\Exception\RedirectException;
 use App\Model\Enum\Role;
 use App\Model\User;
+use App\Repository\CategoryRepositoryInterface;
+use App\Repository\Json\JsonCalendarRepository;
+use App\Repository\Json\JsonCategoryRepository;
+use App\Repository\Json\JsonReplyRepository;
+use App\Repository\Json\JsonSlaPolicyRepository;
+use App\Repository\Json\JsonTicketLogRepository;
+use App\Repository\Json\JsonTicketRepository;
 use App\Repository\Json\JsonUserRepository;
+use App\Repository\ReplyRepositoryInterface;
+use App\Repository\SlaPolicyRepositoryInterface;
+use App\Repository\TicketLogRepositoryInterface;
+use App\Repository\TicketRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
+use App\Service\AssignmentService;
 use App\Service\AuthService;
+use App\Service\Observer\TicketLogObserver;
+use App\Service\PriorityDetector;
+use App\Service\SlaCalculatorService;
+use App\Service\SlaStatusService;
+use App\Service\TicketService;
 use Throwable;
 
 /**
@@ -43,6 +60,14 @@ final class Kernel
     private readonly Router $router;
     private readonly UserRepositoryInterface $userRepository;
     private readonly AuthService $authService;
+    private readonly TicketRepositoryInterface $ticketRepository;
+    private readonly CategoryRepositoryInterface $categoryRepository;
+    private readonly SlaPolicyRepositoryInterface $slaPolicyRepository;
+    private readonly ReplyRepositoryInterface $replyRepository;
+    private readonly TicketLogRepositoryInterface $ticketLogRepository;
+    private readonly SlaCalculatorService $slaCalculator;
+    private readonly SlaStatusService $slaStatusService;
+    private readonly TicketService $ticketService;
 
     public function __construct(
         private readonly string $rootDir,
@@ -58,6 +83,28 @@ final class Kernel
 
         $this->userRepository = new JsonUserRepository($this->store);
         $this->authService = new AuthService($this->userRepository);
+
+        // Aşama 2: tüm depolar JSON. Aşama 3'te yalnız bu satırlar MySql* sınıflarıyla değişir.
+        $this->ticketRepository = new JsonTicketRepository($this->store);
+        $this->categoryRepository = new JsonCategoryRepository($this->store);
+        $this->slaPolicyRepository = new JsonSlaPolicyRepository($this->store);
+        $this->replyRepository = new JsonReplyRepository($this->store);
+        $this->ticketLogRepository = new JsonTicketLogRepository($this->store);
+
+        $config = $this->rootDir . '/storage/config';
+        $this->slaCalculator = new SlaCalculatorService(new JsonCalendarRepository($config . '/calendar.json'));
+        $this->slaStatusService = new SlaStatusService($this->slaCalculator, $this->clock);
+        $this->ticketService = new TicketService(
+            $this->ticketRepository,
+            $this->replyRepository,
+            $this->categoryRepository,
+            $this->slaPolicyRepository,
+            $this->slaCalculator,
+            PriorityDetector::fromFile($config . '/priority_keywords.json'),
+            new AssignmentService($this->userRepository, $this->ticketRepository),
+            $this->clock,
+        );
+        $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
 
         $registerRoutes = require __DIR__ . '/routes.php';
         $registerRoutes($this->router, $this);
@@ -184,6 +231,46 @@ final class Kernel
     public function authService(): AuthService
     {
         return $this->authService;
+    }
+
+    public function ticketRepository(): TicketRepositoryInterface
+    {
+        return $this->ticketRepository;
+    }
+
+    public function categoryRepository(): CategoryRepositoryInterface
+    {
+        return $this->categoryRepository;
+    }
+
+    public function slaPolicyRepository(): SlaPolicyRepositoryInterface
+    {
+        return $this->slaPolicyRepository;
+    }
+
+    public function replyRepository(): ReplyRepositoryInterface
+    {
+        return $this->replyRepository;
+    }
+
+    public function ticketLogRepository(): TicketLogRepositoryInterface
+    {
+        return $this->ticketLogRepository;
+    }
+
+    public function slaCalculator(): SlaCalculatorService
+    {
+        return $this->slaCalculator;
+    }
+
+    public function slaStatusService(): SlaStatusService
+    {
+        return $this->slaStatusService;
+    }
+
+    public function ticketService(): TicketService
+    {
+        return $this->ticketService;
     }
 
     /** NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır. */

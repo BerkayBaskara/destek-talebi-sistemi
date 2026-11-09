@@ -70,6 +70,22 @@ abstract class FeatureTestCase extends TestCase
         return $this->kernel->handle(new Request('POST', $path, [], $data, $files));
     }
 
+    protected const PASSWORD = 'gizliSifre1';
+
+    /** Yeni müşteri kaydeder, müşteri numarasını döner (şifre: self::PASSWORD). */
+    protected function registerCustomer(string $name = 'Ahmet'): string
+    {
+        return $this->kernel->authService()
+            ->register($name, 'Yılmaz', self::PASSWORD, \App\Service\AuthService::SECRET_QUESTIONS[0], 'Pamuk')
+            ->customerNo;
+    }
+
+    /** Örnek kategorileri ve SLA kurallarını yükler (1 Donanım, 2 Yazılım, 3 Ağ / Erişim, 4 Hesap). */
+    protected function seedCatalog(): void
+    {
+        (new \App\Seed\DemoSeeder($this->kernel, $this->clock))->seedCatalog();
+    }
+
     protected function loginAs(string $customerNo, string $password): void
     {
         $response = $this->post('/giris', ['customer_no' => $customerNo, 'password' => $password]);
