@@ -13,3 +13,24 @@ tasarim.md dosyasında katman şeması, klasör yapısı, tasarım desenleri, ri
 * **Müdahale 1:** Müdahale olmadı.
 * **Kullanılan prompt 2:** "Bana sınıf, sıralama ve ER diyagramları, arayüz sayfa haritası ve ekran taslaklarının her biri için draw.io'da kullanabileceğim, kopyala-yapıştır formatında alabileceğim PlantUML kodları verebilir misin?"
 * **Müdahale 2:** Çoğu kez müdahale etmek zorunda kalındı; en son tüm kodları teker teker vermesi için yönlendirildi.
+
+## Kapsam ve yapay zeka önerileri (09.11.2026)
+* **Neden:** Issue'larda olmayan ama hocanın ortak şartları için gerekli altyapıyı belirlemek.
+* **Sonuç:** Yapay zekanın önerileri kabul edildi: tek giriş noktası ve kendi Router'ımız, her tablo için ayrı JSON dosyası ve dosya kilidi (flock), örnek veri betiği, arama ve filtre, Observer altyapısının kurulup eskalasyonun Aşama 3'e bırakılması.
+* **Müdahale:** Yapay zeka, hocanın "en az bir rapor ekranı" şartını tamamen Aşama 3'e bırakmayı önerdi. Bunu düzelttim: Aşama 3'teki rapor projenin genel raporu, Aşama 2'ye kadar olan kısmın özet raporu bu aşamada yapıldı.
+
+## Kodlama (10.11.2026) — 11 dal, 11 PR (#50–#60)
+* **Neden:** Planı görev görev uygulamak: önce başarısız test, sonra kod.
+* **Kullanılan prompt:** "Planlarını uygulamaya başla, 1 alt agent gerekli yerlerde denetim yapsın."
+* **Sonuç:** Altyapı (JSON depolama, Router, CSRF, oturum), SLA çekirdeği, State deseni, talep açma, akıllı öncelik, otomatik atama, dosya yükleme, talep detayı, AJAX Kanban, özet rapor, örnek veri, README ve izlenebilirlik tablosu. 221 PHPUnit testi geçiyor, PHPStan 0 hata.
+* **Müdahale:** Her ekranı tarayıcıda denedim; 375 px genişlikte yatay kaydırma yok.
+
+## Bağımsız denetimde yakalanan hatalar (10.11.2026)
+Kodu yazan yapay zekanın kendi kodunda, ayrı bir inceleyici yapay zeka şu hataları buldu. Her biri önce hatayı gösteren bir testle kanıtlandı, sonra düzeltildi:
+* Beklenmeyen hatalar yakalanmıyordu; WAMP'ta hata ekranı girilen şifreyi gösterebilirdi → genel 500 sayfası eklendi.
+* Durum değişiklikleri kilitsiz okunup yazılıyordu; müşterinin iptali, personelin aynı anda talebi almasını silebiliyordu → "durum hâlâ aynıysa kaydet" kontrolü eklendi.
+* Türkçe harf karşılaştırması "Internet" ile "internet"i, "ACIL" ile "acil"i eşleştirmiyordu; bu, gizli soruyla şifre sıfırlamayı da bozuyordu → ortak bir karşılaştırma fonksiyonu yazıldı.
+* Çok yüksek çözünürlüklü bir fotoğraf PHP'nin belleğini tüketiyordu; talep o sırada zaten kaydedildiği için tekrar gönderimde çift talep oluşacaktı → görselin boyutu dosya açılmadan kontrol ediliyor.
+* WAMP'ın 2 MB yükleme sınırı yüzünden 10 MB'lık video gönderen kullanıcı yanıltıcı bir "CSRF hatası" görüyordu → doğru mesaj gösteriliyor, `.htaccess` ile sınır 50 MB'a çıkarıldı.
+* 30 dakika işlem yapılmadan gönderilen form "CSRF geçersiz" hatası veriyordu → giriş sayfasına yönlendiriliyor.
+* Son denetimde: PNG görseller JPEG'den fazla bellek istediği için PNG'ye ayrı bir sınır kondu; örnek verideki sarı (SLA %80) talepler 30 dakikada kırmızıya döndüğü için uzun SLA'lı örnekler seçildi; yönetici listesinin filtreleme kodu controller'dan servise taşındı.
