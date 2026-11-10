@@ -41,10 +41,10 @@ Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akı
 * **Problem:** Sistemdeki taleplerin Talep Bekleniyor, Talep Alındı, Talep İnceleniyor ve Talep Çözüldü gibi katı bir akış izlemesi gerekmektedir. Bir müşterinin talebi sadece "Bekleniyor" statüsündeyken iptal edilebilmeli, ilgili personel ise 3. çözüm reddinden sonra talebi tekrar "Alındı" statüsüne geçirememelidir.
 * **Desen:** State deseni; biletin güncel statüsünü temsil eden durum sınıfları (PendingState, TakenState, ResolvedState vb.) ile uygulanır. Her sınıf kendi içindeki "iptal edilebilir mi?", "tekrar alınabilir mi?" kurallarını barındırır.
 * **Alternatif:** Desensiz çözüm, TicketService veya Controller içinde durumu kontrol eden devasa ve okunabilirliği çok az olan bir if/elseif/switch yığını kullanmaktı.
-* **Neden Seçildi:** Kurallar karmaşıklaştığı için , her durumun geçiş mantığını kendi sınıfına hapsetmek koddaki hata ihtimalini minimize eder ve mimariyi temiz tutar.
+* **Neden Seçildi:** Kurallar karmaşıklaştığı için her durumun geçiş mantığını kendi sınıfına hapsetmek koddaki hata ihtimalini minimize eder ve mimariyi temiz tutar.
 
 ## 5.2 Observer Deseni
-* **Problem:** Sistemde bir olayın başka olayları tetiklemesi gereken çoklu durumlar vardır: Yöneticinin bir personele izin girmesi o an SLA'sı dolmak üzere olan biletleri anında eskalasyona sokmalı, 3 iş günü dolduğunda bilet otomatik kapanmalı veya müşteri itiraz ettiğinde SLA süresi örn: +12 saat uzamalıdır ayrıca müşteri yanıt verdiğinde SLA uzar, ancak personel soru sorduğunda SLA algoritması tetiklenmemelidir.
+* **Problem:** Sistemde bir olayın başka olayları tetiklemesi gereken çoklu durumlar vardır: Yöneticinin bir personele izin girmesi o an SLA'sı dolmak üzere olan biletleri anında eskalasyona sokmalı, 3 iş günü dolduğunda bilet otomatik kapanmalı veya müşteri itiraz ettiğinde SLA süresi örn: +12 saat uzamalıdır; ayrıca müşteri yanıt verdiğinde SLA uzar, ancak personel soru sorduğunda SLA algoritması tetiklenmemelidir.
 * **Desen:** Observer deseni; bir olay gerçekleştiğinde sistemi haberdar eden yayıncılar ve bu olayları dinleyip tepki veren EscalationObserver, SlaExtensionObserver gibi gözlemci sınıflarla uygulanır.
 * **Alternatif:** Desensiz çözüm, personelin izin ekleme fonksiyonunun içine gidip SLA hesaplama ve eskalasyon devretme fonksiyonlarını (hard-coded) doğrudan çağırmaktı.
 * **Neden Seçildi:** Gözlemci deseni sayesinde izin yönetim modülü ile bilet yönetim modülü birbirinden tamamen bağımsız çalışır. Bu sayede modüller arası tight coupling engellenir.
@@ -83,15 +83,15 @@ Geliştirme sürecinde projenin iş kurallarını (JSON takvim, SLA, havuz yöne
 
 | Risk | Olasılık | Etki | Önlem |
 | :--- | :--- | :--- | :--- |
-| **JSON takvim işleme algoritmalarının SLA'i yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
+| **JSON takvim işleme algoritmalarının SLA'yı yanlış hesaplaması (Çekirdek Problem)** | Orta | Yüksek | Yüklenen JSON formatının kesin yapısal doğrulamadan geçirilmesi ve `SlaCalculatorService` için kapsamlı PHPUnit testleri yazılması. |
 | **Aynı anda birden fazla personelin Ortak Havuzdaki aynı bileti alması (Race Condition)** | Düşük | Yüksek | Veritabanı okuma-yazma anında kilitleme mekanizması kullanılması. |
 | **Oto-eskalasyon döngülerinin sunucuyu kilitlemesi veya sonsuz döngüye girmesi** | Orta | Yüksek | Yöneticinin personele izin girdiği anda çalışan eskalasyon tetikleyicisinin, işlem öncesi veritabanı kilit mekanizmaları ile korumaya alınması. |
-| **Zararlı dosya yükleme girişimleri** | Orta | Yüksek | Müşteri ek dosyaları için sadece JPG ve PNG izin verilmesi, sıkı MIME-type doğrulaması yapılması ve dosyaların doğrudan erişime kapalı `storage` klasöründe tutulması. |
+| **Zararlı dosya yükleme girişimleri** | Orta | Yüksek | Müşteri ek dosyaları için sadece izinli türlere (JPG, PNG, PDF, MP4, WebM) izin verilmesi, sıkı MIME-type doğrulaması yapılması ve dosyaların doğrudan erişime kapalı `storage` klasöründe tutulması. |
 | **Kanban panosunda aşırı veri yüklenmesinden kaynaklı tarayıcı donması** | Yüksek | Orta | Kanban sütunlarındaki aktif biletlere limitasyon getirilmesi ve kapalı biletlerin panodan kaldırılarak ayrı bir ekrana taşınması. |
 | **Puan sisteminin istismarı** | Orta | Yüksek | Personelin hızlı puan kazanmak için eksik çözüm sunmasını engellemek adına, kazanılan puanların hesaba "Müşteri Onayı" alındıktan sonra geçmesinin sağlanması. |
 | **Sunucu ve Veritabanı Saat Dilimi Uyuşmazlığı** | Yüksek | Yüksek | SLA bitiş sürelerinin yanlış hesaplanmaması için tüm `DateTime` objelerinde ve veritabanı bağlantısında sabit bir saat dilimi standardı belirlenmesi. |
 | **Ekip içi geliştirme esnasında çakışan kodlar** | Yüksek | Düşük | Özelliklerin dosya bazında modüllere ayrılarak dağıtılması ve branch ve Pull Request sistemiyle kontrollü kod birleştirme uygulanması. |
-| **Müşterilerin yüklediği yüksek çözünürlüklü ve/veya uzun videoların sunucu disk alanını çok kısa sürede tüketmesi.** | Yüksek | Düşük | Videolar için katı bir dosya boyutu sınırı (örn: 50 MB) uygulanması ve durumu "Kapalı" statüsüne geçen biletlerdeki video dosyalarının yönetici tarafından belirlenen gün sonra sunucudan otomatik silinmesini sağlayan bir temizlik betiği yazılması.
+| **Müşterilerin yüklediği yüksek çözünürlüklü ve/veya uzun videoların sunucu disk alanını çok kısa sürede tüketmesi.** | Yüksek | Düşük | Videolar için katı bir dosya boyutu sınırı (örn: 50 MB) uygulanması ve durumu "Kapalı" statüsüne geçen biletlerdeki video dosyalarının yönetici tarafından belirlenen gün sayısı kadar sonra sunucudan otomatik silinmesini sağlayan bir temizlik betiği yazılması. |
 
 
 ## 9. Plan ve Backlog
@@ -109,6 +109,7 @@ Projenin geliştirme süreci, dersin gereksinimlerine uygun olarak 3 ana kilomet
   * **Durum:** Tamamlandı.
 * **Kilometre Taşı 2: Sunum 2 (Aşama 2 - Veritabanısız Geliştirme)**
   * **Hedef:** Projenin veritabanı olmadan, tamamen JSON dosyaları (Repository katmanı) üzerinde çalışan sürümünün tamamlanması. Çekirdek problem olan SLA algoritmasının ve Kanban arayüzünün kodlanması, ilgili `aşama-2` etiketli Issue'ların kapatılması.
+  * **Durum:** Tamamlandı (PR #50–#60).
 * **Kilometre Taşı 3: Sunum 3 (Aşama 3 - Veritabanı ve Final)**
   * **Hedef:** Sistemin JSON'dan MySQL/MariaDB veritabanına geçirilmesi (Mimari yapı sayesinde sadece Repository sınıfları değiştirilecektir). Eskalasyon loglarının, yetki kontrollerinin, PDO transaction/satır kilidi güvenliklerinin uygulanması ve PHPUnit testlerinin tamamlanarak projenin canlıya hazır hale getirilmesi.
 

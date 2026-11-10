@@ -50,7 +50,7 @@ Bu özellikler için Aşama 2'de yalnız **takılma noktaları** bırakılır: a
 
 - İş mantığının controller'a veya görünüme sızması (hoca bunu yapay zekânın sık hatası olarak sayıyor).
 - Aşama 3'e geçişte servislerin veya testlerin değişmesini gerektiren bir repository tasarımı.
-- Yusuf'un sunumda açıklayamayacağı karmaşıklıkta kod. Kod sade, yorumları yerinde Türkçe olmalı.
+- Sunumda açıklanamayacak karmaşıklıkta kod. Kod sade, yorumları yerinde Türkçe olmalı.
 - Herhangi bir framework veya framework'e özgü kod (Laravel, Symfony vb.).
 - Tarayıcıdan gelen tarih, süre veya durum bilgisine güvenmek.
 
@@ -67,7 +67,7 @@ Bu özellikler için Aşama 2'de yalnız **takılma noktaları** bırakılır: a
 
 ## 6. Yaklaşımlar
 
-Yusuf yapım kararlarını bana bıraktı ("ne gerekiyorsa ekleyebilirsin, hocanın isteklerine uysun"). Değerlendirilen seçenekler:
+Hocanın şartlarına uymak kaydıyla değerlendirilen seçenekler ve seçilenler:
 
 ### 6.1 Arayüz
 
@@ -99,10 +99,10 @@ public/index.php  →  Router  →  Controller  →  Service  →  Repository (a
                                   View          Observer olayları
 ```
 
-- **`public/index.php`:** tek giriş noktası. Oturumu başlatır, `src/bootstrap.php` ile nesneleri bağlar (elle yazılmış basit bağımlılık kurulumu, DI kütüphanesi yok), Router'ı çalıştırır. Hata yakalama burada.
-- **`App\Core\Router`:** HTTP yöntemi + yol kalıbı (`/tickets/{id}`) → `Controller::metod`. İş kuralı içermez.
+- **`public/index.php`:** tek giriş noktası. Oturumu başlatır ve isteği `src/Kernel.php`'ye verir. Kernel nesneleri bağlar (elle yazılmış basit bağımlılık kurulumu, DI kütüphanesi yok), Router'ı çalıştırır ve hataları yakalar.
+- **`App\Core\Router`:** HTTP yöntemi + yol kalıbı (`/talepler/{id}`) → `Controller::metod`. İş kuralı içermez.
 - **`App\Core\Request` / `Response`, `Session`, `Csrf`, `View`:** küçük yardımcılar. `View::render('tickets/show', [...])` çıktıyı `htmlspecialchars` ile kaçıran `e()` yardımcısını kullanır.
-- **Controller'lar** (`src/Controller`): `AuthController`, `TicketController`, `PoolController`, `KanbanController` (JSON döner), `AttachmentController`, `ReportController`, `HomeController`.
+- **Controller'lar** (`src/Controller`): `HomeController`, `AuthController`, `TicketController`, `AttachmentController`, `AgentController` (ortak havuz ve personel listesi), `KanbanController` (JSON döner), `AdminController` (yönetici listesi ve özet rapor).
 - **Servisler** (`src/Service`): `AuthService`, `TicketService`, `SlaCalculatorService`, `SlaStatusService` (yüzde/renk/kalan süre), `AssignmentService`, `PriorityDetector`, `AttachmentService`, `ReportService`.
 - **Repository arayüzleri** (`src/Repository`): `UserRepositoryInterface`, `TicketRepositoryInterface`, `CategoryRepositoryInterface`, `SlaPolicyRepositoryInterface`, `ReplyRepositoryInterface`, `AttachmentRepositoryInterface`, `TicketLogRepositoryInterface`, `CalendarRepositoryInterface`. JSON uygulamaları `src/Repository/Json/` altında. (`escalations` ve `agent_leaves` arayüzleri Aşama 3'te Boran'a ait.)
 - **Modeller** (`src/Model`): `User`, `Ticket`, `Category`, `SlaPolicy`, `Reply`, `Attachment`, `TicketLog`, `CalendarConfig`; enum'lar `Role`, `TicketStatus`, `Priority`.
@@ -214,7 +214,7 @@ Her geçiş `TicketService` üzerinden yapılır, `ticket_logs`'a kayıt düşer
 `TicketObserver::update(Ticket $ticket, string $eventType): void` (sınıf diyagramı). `TicketService` gözlemcileri tutar ve olayları yayar: `ticket_created`, `ticket_assigned`, `status_changed`, `customer_replied`, `agent_replied`.
 
 - Aşama 2'de çalışan gözlemci: `TicketLogObserver` (durum geçmişini yazar, FR-19). Böylece desen sunumda gerçekten çalışırken gösterilebilir.
-- Aşama 3'te Boran'ın ekleyeceği: `EscalationObserver`, `SlaExtensionObserver` (sınıf diyagramındaki adlar). `bootstrap.php`'de tek satırla eklenirler.
+- Aşama 3'te Boran'ın ekleyeceği: `EscalationObserver`, `SlaExtensionObserver` (sınıf diyagramındaki adlar). `src/Kernel.php`'de `attachObserver` ile tek satırla eklenirler.
 
 ## 12. Özellik ayrıntıları
 
@@ -226,8 +226,8 @@ Her geçiş `TicketService` üzerinden yapılır, `ticket_logs`'a kayıt düşer
 - **Ek dosya (FR-02, NFR-03, NFR-08):** izinli MIME türleri `finfo` ile gerçek içerikten kontrol edilir: `image/jpeg`, `image/png`, `application/pdf`, `video/mp4`, `video/webm`. Uzantıya güvenilmez. Boyut sınırı `storage/config/settings.json`'da (görsel/PDF 5 MB, video 50 MB; yönetici ekranı Aşama 3). Dosyalar `storage/uploads/` altında rastgele adla (`bin2hex(random_bytes(16))`) saklanır, yalnız yetkili kullanıcıya `AttachmentController` üzerinden verilir. JPG/PNG en fazla 1920×1080'e GD ile küçültülür; PDF ve video olduğu gibi saklanır.
 - **Yanıtlaşma (US-04, US-10):** talep detay sayfasında kronolojik mesajlar; müşteri ve atanan personel yanıt yazabilir. `is_question` alanı her zaman `false` yazılır (soru hakkı FR-22 Boran).
 - **Çözüm onayı:** `resolved` talebin detayında müşteri "Çözümü onayla" (→ `closed`) veya "Reddet" (→ `in_review`, `attempt_count` +1) düğmelerini görür. Personel detay sayfasından da durum ilerletebilir (`taken → in_review → resolved`), Kanban'a mecbur değildir.
-- **SLA görünümü (FR-07, US-11):** `SlaStatusService` geçen iş dakikası / toplam iş dakikası oranını hesaplar: %80 altı normal, %80–99 sarı, %100 ve üstü kırmızı ("Süre aşıldı"). Kalan süre iş saatine göre "3 sa 20 dk" biçiminde. Kanban ve listelerde rozet olarak; sayfa açıkken `GET /api/tickets/sla` her 60 saniyede bir yenilenir. `closed`, `cancelled`, `resolved` taleplerde sayaç durur. (Eskalasyon tetiklemesi FR-08 Boran.)
-- **Kanban (FR-09):** personelin kendi talepleri üç sütunda: Talep Alındı, Talep İnceleniyor, Talep Çözüldü. Kart sürüklenince `POST /api/tickets/{id}/status` (JSON); sunucu State ile doğrular, geçersizse kart eski yerine döner ve neden gösterilir. Geçerli hedefler: `taken → in_review`, `in_review → resolved`. Mobilde her kartta durum menüsü.
+- **SLA görünümü (FR-07, US-11):** `SlaStatusService` geçen iş dakikası / toplam iş dakikası oranını hesaplar: %80 altı normal, %80–99 sarı, %100 ve üstü kırmızı ("Süre aşıldı"). Kalan süre iş saatine göre "3 sa 20 dk" biçiminde. Kanban ve listelerde rozet olarak; sayfa açıkken `GET /api/sla` her 60 saniyede bir yenilenir. `closed`, `cancelled`, `resolved` taleplerde sayaç durur. (Eskalasyon tetiklemesi FR-08 Boran.)
+- **Kanban (FR-09):** personelin kendi talepleri üç sütunda: Talep Alındı, Talep İnceleniyor, Talep Çözüldü. Kart sürüklenince `POST /api/talepler/{id}/durum` (JSON); sunucu State ile doğrular, geçersizse kart eski yerine döner ve neden gösterilir. Geçerli hedefler: `taken → in_review`, `in_review → resolved`. Mobilde her kartta durum menüsü.
 - **Durum geçmişi (FR-19):** talep detayında `ticket_logs` kronolojik listesi: tarih, kim, eski → yeni durum.
 - **Taleplerim + arama/filtre:** müşteri listesi; durum filtresi ve başlık/numara araması; sayfa başına 10, sayfalama.
 - **Aşama 2 özet ekranı (yönetici):** durumlara göre talep sayıları, etkin önceliğe göre dağılım, şu an sarı ve kırmızı durumdaki talepler (liste), personel başına aktif iş yükü, çözülmüş talepler için ortalama çözüm süresi (iş saati). Personel bazında ihlal oranı yok (FR-12, Boran).
@@ -247,15 +247,15 @@ Her geçiş `TicketService` üzerinden yapılır, `ticket_logs`'a kayıt düşer
 
 ## 15. Süreç
 
-- Her parça kendi dalında, ekibin `tür/konu` adlandırmasıyla (`ozellik/tasarim-belgesi`, `ozellik/altyapi`, `ozellik/sla-hesaplama`, `ozellik/durum-gecisleri` …). Her dal anlamlı commit'ler içerir ve bir pull request olur; PR açıklamasında ilgili issue `Closes #27` biçiminde bağlanır. Parçalar birbirine dayandığı için PR'lar sırayla birleştirilir; sonraki dal güncel `main`'den açılır. Push, PR ve birleştirmeyi Yusuf yapar (hoca PR ile çalışma istiyor; GitHub hesabı Yusuf'un).
+- Her parça kendi dalında, ekibin `tür/konu` adlandırmasıyla (`ozellik/tasarim-belgesi`, `ozellik/altyapi`, `ozellik/sla-hesaplama`, `ozellik/durum-gecisleri` …). Her dal anlamlı commit'ler içerir ve bir pull request olur; PR açıklamasında ilgili issue `Closes #27` biçiminde bağlanır. Parçalar birbirine dayandığı için her dal bir öncekinin ucundan açılır ve PR'lar sırayla birleştirilir (hoca PR ile çalışma istiyor).
 - Yerel çalıştırma: `composer install`, `php bin/seed.php`, `php -S localhost:8000 -t public`. WAMP ile de çalışır (sanal host `public/`'i göstermeli). README'ye yazılır.
-- AI günlüğü kayıtları Aşama 2 sonunda Yusuf tarafından eklenir.
+- Yapay zekâ kullanımı `docs/ai-gunlugu.md`'ye işlenir.
 
-## 16. Kurucuya bırakılanlar
+## 16. Uygulama sırasında belirlenecekler
 
 Sınıf içi ayrıntılar, CSS görünümü, hata mesajlarının tam metni, seed verisindeki örnek isim ve başlıklar, rota adlarının tam biçimi (yukarıdakilerle çelişmemek kaydıyla).
 
-## 17. Kararlarım (Yusuf'un kontrol etmesi için)
+## 17. Alınan kararlar
 
 1. Giriş müşteri numarasıyla; numarayı sistem üretir (`M`, `P`, `Y` önekleri).
 2. Öncelik değerleri: Düşük, Normal, Yüksek, Acil; varsayılan SLA süreleri 24/16/8/4 iş saati.
