@@ -20,6 +20,12 @@ $root = dirname(__DIR__);
 foreach (glob($root . '/storage/data/*.{json,lock,tmp}', GLOB_BRACE) ?: [] as $file) {
     unlink($file);
 }
+// Önceki çalıştırmalardan kalan ek dosyalar (kaydı silinen) da temizlenir; .gitkeep kalır.
+foreach (glob($root . '/storage/uploads/*') ?: [] as $file) {
+    if (is_file($file)) {
+        unlink($file);
+    }
+}
 
 $clock = new FixedClock(new DateTimeImmutable('now', new DateTimeZone('Europe/Istanbul')));
 $seeder = new DemoSeeder(new Kernel($root, $clock, new ArraySession()), $clock);

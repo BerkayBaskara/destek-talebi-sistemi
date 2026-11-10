@@ -418,6 +418,21 @@ final class TicketServiceTest extends TestCase
         self::assertSame($agent->id, $ticket?->agentId);
     }
 
+    public function test_search_all_filters_for_admin(): void
+    {
+        $agent = $this->user('P000001', Role::Agent);
+        $this->create(['title' => 'Yazıcı arızası']);
+        $this->create(['title' => 'VPN bağlantısı yok', 'priority' => Priority::Urgent->value]);
+        $this->create(['title' => 'Başka müşterinin talebi'], $this->otherCustomer);
+
+        self::assertSame(3, $this->service->searchAll(null, null, null, '', 1)['total'], 'Yönetici tüm müşterilerin taleplerini görür.');
+        self::assertSame(['VPN bağlantısı yok'], array_map(static fn (Ticket $t): string => $t->title, $this->service->searchAll(null, Priority::Urgent, null, '', 1)['items']));
+        self::assertSame(3, $this->service->searchAll(TicketStatus::Taken, null, (int) $agent->id, '', 1)['total']);
+        self::assertSame(0, $this->service->searchAll(null, null, 999, '', 1)['total']);
+        self::assertSame(1, $this->service->searchAll(null, null, null, 'vpn', 1)['total']);
+        self::assertSame(3, $this->service->searchAll(null, null, null, '', 1)['items'][0]->id, 'Yeniden eskiye sıralı.');
+    }
+
     public function test_observer_receives_events(): void
     {
         $events = [];

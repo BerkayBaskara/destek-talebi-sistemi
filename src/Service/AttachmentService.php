@@ -31,8 +31,11 @@ final class AttachmentService
     private const MAX_WIDTH = 1920;
     private const MAX_HEIGHT = 1080;
 
-    /** GD görseli açarken piksel başına ~5 bayt kullanır; bunun üstü 128 MB bellek sınırını aşabilir. */
-    private const MAX_PIXELS = 24_000_000;
+    /**
+     * GD görseli açarken JPEG için piksel başına ~5, PNG için ~7 bayt kullanır; bu sınırların üstü
+     * 128 MB bellek sınırını aşabilir. (13 milyon piksel 12 MP'lik 4032x3024 telefon fotoğrafını kapsar.)
+     */
+    private const MAX_PIXELS = ['jpg' => 24_000_000, 'png' => 13_000_000];
 
     /** @var callable(string, string): bool */
     private $mover;
@@ -148,10 +151,11 @@ final class AttachmentService
         }
 
         // Görsel çözünürlüğü dosyayı açmadan, yalnız başlıktan okunur; talep kaydedilmeden önce reddedilir.
-        if ($extension === 'jpg' || $extension === 'png') {
+        if (isset(self::MAX_PIXELS[$extension])) {
+            $limit = self::MAX_PIXELS[$extension];
             $info = getimagesize($file['tmp_name']);
-            if ($info === false || $info[0] * $info[1] > self::MAX_PIXELS) {
-                throw new ValidationException(['ekler' => 'Görselin çözünürlüğü çok yüksek (en fazla 24 milyon piksel).']);
+            if ($info === false || $info[0] * $info[1] > $limit) {
+                throw new ValidationException(['ekler' => sprintf('Görselin çözünürlüğü çok yüksek (en fazla %d milyon piksel).', intdiv($limit, 1_000_000))]);
             }
         }
 

@@ -131,16 +131,56 @@ final class AttachmentServiceTest extends TestCase
 
     public function test_rejects_image_with_too_many_pixels_before_decoding(): void
     {
-        // Yalnız PNG başlığı: 6000x4500 = 27 milyon piksel diyor. Gerçekten açılsa GD belleği tüketirdi
+        // Yalnız JPEG başlığı (SOF0): 6000x4500 = 27 milyon piksel diyor. Gerçekten açılsa GD belleği tüketirdi
         // (bu testin ilk hali tam görseli üretmeye çalışınca PHPUnit'in kendisi bellekten düştü).
-        $ihdr = pack('NNCCCCC', 6000, 4500, 8, 2, 0, 0, 0);
-        $png = "\x89PNG\r\n\x1a\n" . pack('N', 13) . 'IHDR' . $ihdr . pack('N', crc32('IHDR' . $ihdr));
+        $jpeg = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+            . "\xFF\xC0\x00\x11\x08" . pack('nn', 4500, 6000) . "\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01"
+            . "\xFF\xD9";
         try {
-            $this->service(['max_upload_bytes' => 50 * 1024 * 1024])->validate($this->file('dev.png', $png));
+            $this->service(['max_upload_bytes' => 50 * 1024 * 1024])->validate($this->file('dev.jpg', $jpeg));
             self::fail('Çok yüksek çözünürlüklü görsel reddedilmeliydi.');
         } catch (ValidationException $e) {
             self::assertSame('Görselin çözünürlüğü çok yüksek (en fazla 24 milyon piksel).', $e->errors()['ekler']);
         }
+    }
+
+    private static function pngHeader(int $width, int $height): string
+    {
+        $ihdr = pack('NNCCCCC', $width, $height, 8, 6, 0, 0, 0);
+
+        return "\x89PNG\r\n\x1a\n" . pack('N', 13) . 'IHDR' . $ihdr . pack('N', crc32('IHDR' . $ihdr));
+    }
+
+    public function test_png_has_lower_pixel_limit_than_jpeg(): void
+    {
+        // PNG açmak piksel başına ~7 bayt ister (JPEG ~5): 5500x4000 = 22M px PNG 128 MB'ı aşıyordu.
+        $service = $this->service(['max_upload_bytes' => 50 * 1024 * 1024]);
+        try {
+            $service->validate($this->file('buyuk.png', self::pngHeader(5500, 4000)));
+            self::fail('22 milyon piksellik PNG reddedilmeliydi.');
+        } catch (ValidationException $e) {
+            self::assertSame('Görselin çözünürlüğü çok yüksek (en fazla 13 milyon piksel).', $e->errors()['ekler']);
+        }
+
+        self::assertSame('png', $service->validate($this->file('telefon.png', self::pngHeader(4032, 3024))), '12 MP telefon görüntüsü kabul edilmeli.');
+    }
+
+    public function test_accepts_mp4_and_webm_video(): void
+    {
+        $mp4 = "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom" . str_repeat("\x00", 64);
+        $webm = "\x1A\x45\xDF\xA3\x9F\x42\x86\x81\x01\x42\xF7\x81\x01\x42\xF2\x81\x04\x42\xF3\x81\x08\x42\x82\x84webm\x42\x87\x81\x04\x42\x85\x81\x02" . str_repeat("\x00", 64);
+
+        self::assertSame('mp4', $this->service()->validate($this->file('kayit.mp4', $mp4)));
+        self::assertSame('webm', $this->service()->validate($this->file('kayit.webm', $webm)));
+    }
+
+    public function test_video_over_video_limit_rejected(): void
+    {
+        $mp4 = "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom" . str_repeat("\x00", 200);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Video en fazla');
+        $this->service(['max_video_bytes' => 100])->validate($this->file('kayit.mp4', $mp4));
     }
 
     public function test_php_ini_size_error_says_file_is_too_big(): void
