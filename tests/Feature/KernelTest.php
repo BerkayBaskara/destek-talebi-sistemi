@@ -31,9 +31,9 @@ final class KernelTest extends FeatureTestCase
         self::assertFalse(json_decode($response->body, true)['ok']);
     }
 
-    public function test_home_renders_layout(): void
+    public function test_login_page_renders_layout(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/giris');
 
         self::assertSame(200, $response->status);
         self::assertStringContainsString('<title>Destek Talebi Sistemi', $response->body);
@@ -42,7 +42,7 @@ final class KernelTest extends FeatureTestCase
 
     public function test_html_responses_have_security_headers(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/giris');
 
         self::assertSame('nosniff', $response->headers['X-Content-Type-Options'] ?? null);
         self::assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);

@@ -70,6 +70,12 @@ abstract class FeatureTestCase extends TestCase
         return $this->kernel->handle(new Request('POST', $path, [], $data, $files));
     }
 
+    protected function loginAs(string $customerNo, string $password): void
+    {
+        $response = $this->post('/giris', ['customer_no' => $customerNo, 'password' => $password]);
+        self::assertSame(302, $response->status, 'Giriş başarısız: ' . $customerNo);
+    }
+
     /** @param array<string, mixed> $data */
     protected function postWithoutCsrf(string $path, array $data = []): Response
     {
