@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Controller\AgentController;
 use App\Controller\AttachmentController;
+use App\Controller\KanbanController;
 use App\Controller\AuthController;
 use App\Controller\HomeController;
 use App\Controller\TicketController;
@@ -45,7 +47,16 @@ return static function (Router $router, Kernel $kernel): void {
     $attachments = new AttachmentController($kernel, $kernel->attachmentService());
     $router->add('GET', '/ekler/{id}', static fn (Request $r, array $p): Response => $attachments->download((int) $p['id']));
 
+    // Personel: ortak havuz, atanan talepler, Kanban (AJAX)
+    $agent = new AgentController($kernel, $kernel->ticketService());
+    $kanban = new KanbanController($kernel, $kernel->ticketService());
+    $router->add('GET', '/havuz', static fn (Request $r, array $p): Response => $agent->pool());
+    $router->add('POST', '/havuz/{id}/al', static fn (Request $r, array $p): Response => $agent->take((int) $p['id']));
+    $router->add('GET', '/personel/talepler', static fn (Request $r, array $p): Response => $agent->myTickets());
+    $router->add('GET', '/kanban', static fn (Request $r, array $p): Response => $kanban->board());
+    $router->add('POST', '/api/talepler/{id}/durum', static fn (Request $r, array $p): Response => $kanban->move($r, (int) $p['id']));
+    $router->add('GET', '/api/sla', static fn (Request $r, array $p): Response => $kanban->sla($r));
+
     // Geçici paneller (sonraki dallarda gerçek ekranlarla değişecek)
-    $router->add('GET', '/kanban', static fn (Request $r, array $p): Response => $home->placeholder('Kanban', Role::Agent, Role::Admin));
     $router->add('GET', '/yonetici', static fn (Request $r, array $p): Response => $home->placeholder('Yönetici paneli', Role::Admin));
 };

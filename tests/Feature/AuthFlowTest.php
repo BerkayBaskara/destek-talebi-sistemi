@@ -112,6 +112,18 @@ final class AuthFlowTest extends FeatureTestCase
         self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
     }
 
+    public function test_login_form_posted_after_idle_expiry_still_logs_in(): void
+    {
+        $number = $this->registerCustomer();
+        $this->loginAs($number, 'gizliSifre1');
+        $this->clock->advance('+2 hours');
+
+        $response = $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1']);
+
+        self::assertSame('/', $response->headers['Location'] ?? null, 'Giriş formu süre dolduktan sonra da işlenmeli.');
+        self::assertSame(200, $this->get('/talepler')->status);
+    }
+
     public function test_logout_ends_session(): void
     {
         $this->loginAs($this->registerCustomer(), 'gizliSifre1');
