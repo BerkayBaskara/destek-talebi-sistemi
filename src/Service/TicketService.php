@@ -201,10 +201,57 @@ final class TicketService
                 throw new ValidationException(['action' => 'Bilinmeyen işlem.']);
         }
 
-        $this->tickets->save($ticket);
+        // Okuma ile yazma arasında başka bir istek talebi değiştirdiyse üzerine yazma (NFR-04 ruhu).
+        if (!$this->tickets->saveIfStatus($ticket, $old)) {
+            throw new ConflictException('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.');
+        }
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, ['old' => $old, 'new' => $ticket->status, 'actor_id' => (int) $actor->id]);
 
         return $ticket;
+    }
+
+    /**
+     * Ekranda gösterilecek eylem düğmeleri: kullanıcının yetkisi olan ve mevcut durumda State'in izin verdiği eylemler.
+     * Sunucu her eylemde perform() ile yine denetler; bu liste yalnız arayüz içindir.
+     *
+     * @return list<string> cancel | start_review | resolve | approve | reject
+     */
+    public function availableActions(Ticket $ticket, User $viewer): array
+    {
+        $isOwner = $ticket->creatorId === $viewer->id;
+        $isHandler = $viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id);
+        $state = $ticket->state();
+        $checks = [
+            'cancel' => [$isOwner, static fn () => $state->cancel($ticket)],
+            'start_review' => [$isHandler, static fn () => $state->startReview($ticket)],
+            'resolve' => [$isHandler, static fn () => $state->resolve($ticket)],
+            'approve' => [$isOwner, static fn () => $state->close($ticket)],
+            'reject' => [$isOwner, static fn () => $state->reject($ticket)],
+        ];
+
+        $actions = [];
+        foreach ($checks as $action => [$allowed, $try]) {
+            if (!$allowed) {
+                continue;
+            }
+            try {
+                $try();
+                $actions[] = $action;
+            } catch (InvalidTransitionException) {
+                // bu durumda izin yok
+            }
+        }
+
+        return $actions;
+    }
+
+    /** Yanıt yazabilir mi (arayüzde form gösterilsin mi). */
+    public function canReply(Ticket $ticket, User $viewer): bool
+    {
+        return !$ticket->status->isFinal()
+            && ($ticket->creatorId === $viewer->id
+                || $viewer->role === Role::Admin
+                || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id));
     }
 
     /** Kanban'da kartı sütuna taşıma: yalnız ileri geçişler (Alındı → İnceleniyor → Çözüldü). */
@@ -309,7 +356,7 @@ final class TicketService
             return true;
         }
 
-        return str_contains(Text::lower($ticket->title), Text::lower($query));
+        return str_contains(Text::fold($ticket->title), Text::fold($query));
     }
 
     public function mustFind(int $ticketId): Ticket

@@ -82,6 +82,11 @@ final class TicketServiceTest extends TestCase
         $this->admin = $this->user('Y000001', Role::Admin);
     }
 
+    private function tempStore(): \App\Core\Storage\JsonStore
+    {
+        return new \App\Core\Storage\JsonStore($this->tempDir);
+    }
+
     private static function at(string $s): DateTimeImmutable
     {
         return new DateTimeImmutable($s, new DateTimeZone('Europe/Istanbul'));
@@ -354,6 +359,63 @@ final class TicketServiceTest extends TestCase
         self::assertSame(6, $this->service->searchForCustomer($this->customer, null, 'internet', 1)['total']);
         self::assertSame(1, $this->service->searchForCustomer($this->customer, TicketStatus::Cancelled, '', 1)['total']);
         self::assertSame([7], array_map(static fn (Ticket $t): ?int => $t->id, $this->service->searchForCustomer($this->customer, null, '#7', 1)['items']));
+    }
+
+    public function test_search_folds_turkish_and_ascii_i(): void
+    {
+        $this->create(['title' => 'Internet yok']);
+        $this->create(['title' => 'IP adresi çakışıyor']);
+
+        self::assertSame(1, $this->service->searchForCustomer($this->customer, null, 'internet', 1)['total']);
+        self::assertSame(1, $this->service->searchForCustomer($this->customer, null, 'İNTERNET', 1)['total']);
+        self::assertSame(1, $this->service->searchForCustomer($this->customer, null, 'ip', 1)['total']);
+    }
+
+    public function test_perform_on_stale_ticket_conflicts_instead_of_overwriting(): void
+    {
+        $agent = $this->user('P000001', Role::Agent);
+        $this->tickets->save(new Ticket(null, (int) $this->customer->id, null, 1, 'Havuzdaki talep', TicketStatus::Pending,
+            Priority::Normal, Priority::Normal, 0, self::at('2026-11-13 10:00'), self::at('2026-11-14 10:00'), null));
+
+        // Müşteri iptal ekranını açtığında talep Bekleniyor'du; bu arada personel talebi aldı.
+        $stale = new class ($this->tickets) implements \App\Repository\TicketRepositoryInterface {
+            private ?Ticket $snapshot;
+
+            public function __construct(private readonly JsonTicketRepository $inner)
+            {
+                $this->snapshot = $inner->findById(1);
+            }
+
+            public function findById(int $id): ?Ticket
+            {
+                return $this->snapshot !== null ? clone $this->snapshot : null; // eski kopya
+            }
+
+            public function save(Ticket $ticket): Ticket { return $this->inner->save($ticket); }
+            public function saveIfStatus(Ticket $ticket, TicketStatus $expectedOld): bool { return $this->inner->saveIfStatus($ticket, $expectedOld); }
+            public function getPoolTickets(): array { return $this->inner->getPoolTickets(); }
+            public function findByCreator(int $creatorId): array { return $this->inner->findByCreator($creatorId); }
+            public function findByAgent(int $agentId): array { return $this->inner->findByAgent($agentId); }
+            public function findAll(): array { return $this->inner->findAll(); }
+            public function countActiveByAgent(): array { return $this->inner->countActiveByAgent(); }
+            public function assignIfUnassigned(int $ticketId, int $agentId): bool { return $this->inner->assignIfUnassigned($ticketId, $agentId); }
+        };
+        $this->tickets->assignIfUnassigned(1, (int) $agent->id);
+
+        $service = new TicketService($stale, $this->replies, new JsonCategoryRepository($this->tempStore()), new JsonSlaPolicyRepository($this->tempStore()),
+            new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json')), new PriorityDetector([]),
+            new AssignmentService($this->users, $this->tickets), $this->clock);
+
+        try {
+            $service->perform(1, $this->customer, 'cancel');
+            self::fail('Çakışma bekleniyordu.');
+        } catch (ConflictException $e) {
+            self::assertSame('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.', $e->getMessage());
+        }
+
+        $ticket = $this->tickets->findById(1);
+        self::assertSame(TicketStatus::Taken, $ticket?->status, 'Personelin alması silinmemeli.');
+        self::assertSame($agent->id, $ticket?->agentId);
     }
 
     public function test_observer_receives_events(): void

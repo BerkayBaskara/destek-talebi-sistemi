@@ -12,6 +12,13 @@ interface TicketRepositoryInterface
     /** id yoksa ekler, varsa günceller. */
     public function save(Ticket $ticket): Ticket;
 
+    /**
+     * Eşzamanlılık güvenli güncelleme: kayıttaki durum hâlâ $expectedOld ve atanan personel değişmemişse yazar,
+     * true döner; bu arada başka bir istek talebi değiştirdiyse hiçbir şey yazmaz, false döner.
+     * Aşama 3 karşılığı: UPDATE ... WHERE id = ? AND status = ? AND agent_id <=> ?
+     */
+    public function saveIfStatus(Ticket $ticket, \App\Model\Enum\TicketStatus $expectedOld): bool;
+
     public function findById(int $id): ?Ticket;
 
     /** @return list<Ticket> Ortak havuz: kimseye atanmamış, Bekleniyor durumundaki talepler (eskiden yeniye). */

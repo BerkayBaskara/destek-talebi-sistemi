@@ -32,6 +32,23 @@ final class JsonTicketRepository implements TicketRepositoryInterface
         return $ticket;
     }
 
+    public function saveIfStatus(Ticket $ticket, TicketStatus $expectedOld): bool
+    {
+        $id = (int) $ticket->id;
+
+        return (bool) $this->store->transaction([self::TABLE], function (JsonStore $store) use ($ticket, $id, $expectedOld): bool {
+            $row = $store->find(self::TABLE, $id);
+            if ($row === null || ($row['status'] ?? null) !== $expectedOld->value || ($row['agent_id'] ?? null) !== $ticket->agentId) {
+                return false; // bu arada başka bir istek talebi değiştirdi
+            }
+            $data = $ticket->toArray();
+            unset($data['id']);
+            $store->update(self::TABLE, $id, $data);
+
+            return true;
+        });
+    }
+
     public function findById(int $id): ?Ticket
     {
         $row = $this->store->find(self::TABLE, $id);

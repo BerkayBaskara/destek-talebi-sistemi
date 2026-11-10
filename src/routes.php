@@ -38,6 +38,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/talepler/yeni', static fn (Request $r, array $p): Response => $tickets->createForm());
     $router->add('POST', '/talepler', static fn (Request $r, array $p): Response => $tickets->store($r));
     $router->add('GET', '/talepler/{id}', static fn (Request $r, array $p): Response => $tickets->show((int) $p['id']));
+    $router->add('POST', '/talepler/{id}/yanit', static fn (Request $r, array $p): Response => $tickets->reply($r, (int) $p['id']));
     $router->add('POST', '/talepler/{id}/islem', static fn (Request $r, array $p): Response => $tickets->action($r, (int) $p['id']));
 
     // Ek dosyalar (yalnız yetkili kullanıcıya)

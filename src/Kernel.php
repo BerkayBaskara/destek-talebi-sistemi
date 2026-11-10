@@ -126,9 +126,15 @@ final class Kernel
     public function handle(Request $request): Response
     {
         try {
-            $this->enforceIdleTimeout();
+            $isWrite = in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true);
+            if ($this->enforceIdleTimeout() && $isWrite) {
+                // Süresi dolmuş oturumla gönderilen form "CSRF geçersiz" yerine girişe yönlendirilir.
+                return $request->isApi()
+                    ? Response::json(['ok' => false, 'error' => 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.'], 401)
+                    : Response::redirect('/giris');
+            }
 
-            if (in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            if ($isWrite) {
                 $token = $request->input('_csrf') ?? $request->header('X-CSRF-Token');
                 if (!$this->csrf->isValid(is_string($token) ? $token : null)) {
                     throw new HttpException(403, 'Güvenlik anahtarı (CSRF) eksik veya geçersiz. Sayfayı yenileyip tekrar deneyin.');
@@ -147,6 +153,11 @@ final class Kernel
         } catch (StorageException $e) {
             error_log($e->getMessage());
             $response = $this->error($request, 500, 'Veri okunamadı. Lütfen yöneticiye haber verin.');
+        } catch (Throwable $e) {
+            // Beklenmeyen her hata: ayrıntı yalnız sunucu günlüğüne; kullanıcıya genel mesaj
+            // (hata ayrıntısı ekrana basılırsa girilen şifre gibi bilgiler sızabilir).
+            error_log((string) $e);
+            $response = $this->error($request, 500, 'Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
         }
 
         return $response->withHeaders([
@@ -296,11 +307,11 @@ final class Kernel
         return $this->attachmentService;
     }
 
-    /** NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır. */
-    private function enforceIdleTimeout(): void
+    /** NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner. */
+    private function enforceIdleTimeout(): bool
     {
         if ($this->session->get('user_id') === null) {
-            return;
+            return false;
         }
 
         $now = $this->clock->now()->getTimestamp();
@@ -309,10 +320,12 @@ final class Kernel
             $this->session->destroy();
             $this->session->flash('error', 'Oturumunuz 30 dakika işlem yapılmadığı için sonlandırıldı. Lütfen tekrar giriş yapın.');
 
-            return;
+            return true;
         }
 
         $this->session->set('last_activity', $now);
+
+        return false;
     }
 
     private function error(Request $request, int $status, string $message): Response

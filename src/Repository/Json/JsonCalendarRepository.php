@@ -53,7 +53,9 @@ final class JsonCalendarRepository implements CalendarRepositoryInterface
             if (!is_file($this->path)) {
                 throw new InvalidArgumentException('dosya bulunamadı');
             }
-            $data = json_decode((string) file_get_contents($this->path), true, 512, JSON_THROW_ON_ERROR);
+            $content = (string) file_get_contents($this->path);
+            $content = str_starts_with($content, "\xEF\xBB\xBF") ? substr($content, 3) : $content; // BOM (Notepad/PowerShell)
+            $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($data)) {
                 throw new InvalidArgumentException('kök bir nesne olmalı');
             }

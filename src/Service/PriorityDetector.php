@@ -21,7 +21,7 @@ final class PriorityDetector
     public function __construct(array $keywords)
     {
         foreach ($keywords as $priority => $words) {
-            $this->keywords[(int) $priority] = array_map(static fn (string $w): string => Text::lower($w), $words);
+            $this->keywords[(int) $priority] = array_map(static fn (string $w): string => Text::fold($w), $words);
         }
         krsort($this->keywords); // en yüksek öncelik önce denenir
     }
@@ -47,7 +47,7 @@ final class PriorityDetector
     /** Metinde geçen en yüksek önceliğin kelimesi; hiçbiri yoksa null. */
     public function detect(string $text): ?Priority
     {
-        $text = Text::lower($text);
+        $text = Text::fold($text);
         foreach ($this->keywords as $priority => $words) {
             foreach ($words as $word) {
                 if ($word !== '' && str_contains($text, $word)) {

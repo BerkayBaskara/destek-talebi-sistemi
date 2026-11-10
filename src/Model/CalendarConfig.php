@@ -74,6 +74,10 @@ final class CalendarConfig
             $workDays[$day] = self::subtractBreaks($start, $end, $breaks);
         }
         ksort($workDays);
+        if (array_filter($workDays) === []) {
+            // Hiç çalışma saati yoksa SLA hiçbir zaman bitemez; varsayılan mesaiye dönülsün.
+            throw new InvalidArgumentException('Takvimde en az bir çalışma günü olmalı.');
+        }
 
         $holidays = [];
         foreach (is_array($data['holidays'] ?? null) ? $data['holidays'] : [] as $holiday) {

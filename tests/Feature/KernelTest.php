@@ -40,6 +40,18 @@ final class KernelTest extends FeatureTestCase
         self::assertStringContainsString('name="viewport"', $response->body);
     }
 
+    public function test_wrong_shaped_data_gives_friendly_500_without_leaking_input(): void
+    {
+        // Geçerli JSON ama yanlış değer: role büyük harfle yazılmış (ValueError).
+        file_put_contents($this->root . '/storage/data/users.json', '[{"id":1,"customer_no":"M100002","role":"Customer","password_hash":"x"}]');
+
+        $response = $this->post('/giris', ['customer_no' => 'M100002', 'password' => 'Gizli2026!']);
+
+        self::assertSame(500, $response->status);
+        self::assertStringContainsString('Beklenmeyen bir hata oluştu', $response->body);
+        self::assertStringNotContainsString('Gizli2026!', $response->body);
+    }
+
     public function test_html_responses_have_security_headers(): void
     {
         $response = $this->get('/giris');

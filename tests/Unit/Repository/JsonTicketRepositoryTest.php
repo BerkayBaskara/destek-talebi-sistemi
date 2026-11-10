@@ -99,6 +99,31 @@ final class JsonTicketRepositoryTest extends TestCase
         self::assertSame(TicketStatus::Taken, $ticket?->status);
     }
 
+    public function test_save_if_status_is_compare_and_set(): void
+    {
+        $ticket = $this->repo->save(self::newTicket(TicketStatus::Taken, 2));
+        $ticket->setStatus(TicketStatus::InReview);
+
+        self::assertTrue($this->repo->saveIfStatus($ticket, TicketStatus::Taken));
+        self::assertSame(TicketStatus::InReview, $this->repo->findById(1)?->status);
+
+        $ticket->setStatus(TicketStatus::Resolved);
+        self::assertFalse($this->repo->saveIfStatus($ticket, TicketStatus::Taken), 'Durum artık Taken değil; yazılmamalı.');
+        self::assertSame(TicketStatus::InReview, $this->repo->findById(1)?->status);
+    }
+
+    public function test_save_if_status_also_requires_same_agent(): void
+    {
+        $ticket = $this->repo->save(self::newTicket(TicketStatus::Pending));
+        $stale = $this->repo->findById(1);
+        $this->repo->assignIfUnassigned(1, 7);
+        self::assertNotNull($stale);
+
+        $stale->setStatus(TicketStatus::Cancelled);
+        self::assertFalse($this->repo->saveIfStatus($stale, TicketStatus::Pending), 'Talep bu arada atandı; eski kopya yazılmamalı.');
+        self::assertNotNull($ticket->id);
+    }
+
     public function test_assign_if_unassigned_rejects_cancelled_or_missing(): void
     {
         $this->repo->save(self::newTicket(TicketStatus::Cancelled));
