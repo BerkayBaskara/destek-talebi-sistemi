@@ -30,9 +30,11 @@ Proje, dinamik SLA (Hizmet Seviyesi Sözleşmesi) hesaplamaları, puanlama taban
 destek-talebi-sistemi/
 ├── database/          # Veritabanı dosyaları (Migration ve Seed betikleri)
 ├── docs/              # Dokümantasyon klasörü
+│   ├── asama-2/       # Aşama 2 tasarım belgesi ve uygulama planı
 │   ├── images/        # Proje içi kullanılan görseller
 │   ├── wireframes/    # Arayüz taslakları (Wireframe çizimleri)
 │   ├── ai-gunlugu.md  # Yapay zeka kullanım günlüğü
+│   ├── izlenebilirlik.md # Gereksinim → test tablosu
 │   ├── srs.md         # Yazılım Gereksinim Şartnamesi
 │   └── tasarim.md     # Tasarım ve mimari belgesi
 ├── public/            # Dışa açık klasör (index.php, CSS, JS, görseller)
@@ -61,7 +63,7 @@ Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her
 | Kayıt / giriş / gizli soruyla şifre sıfırlama, 3 rol, arama + filtre, Aşama 2 özet raporu | ✅ |
 | FR-08 eskalasyon, FR-10–18, FR-20–22, MySQL | Aşama 3 |
 
-Ayrıntılar: `docs/superpowers/specs/2026-11-09-asama-2-design.md` (tasarım), `docs/izlenebilirlik.md` (gereksinim → test).
+Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test).
 
 ## ⚙️ Kurulum
 

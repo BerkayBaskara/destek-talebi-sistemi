@@ -1,7 +1,6 @@
 vendor/
 .env
 .phpunit.cache/
-.superpowers/
 storage/data/*.json
 storage/data/*.lock
 storage/data/*.tmp
