@@ -12,6 +12,7 @@ use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\State\InvalidTransitionException;
+use App\Service\AttachmentService;
 use App\Service\TicketService;
 
 /**
@@ -57,8 +58,14 @@ final class TicketController
             'description' => $request->string('description'),
         ];
 
+        $attachments = $this->kernel->attachmentService();
         try {
+            // Önce dosyalar doğrulanır; geçersiz dosya yarım kalmış talep bırakmasın.
+            $files = $attachments->validateMany(AttachmentService::normalizeFiles($request->files['ekler'] ?? null));
             $ticket = $this->tickets->createTicket($customer, $old);
+            foreach ($files as $file) {
+                $attachments->store((int) $ticket->id, $customer, $file);
+            }
         } catch (ValidationException $e) {
             return $this->kernel->render('tickets/create', $this->formData($old, $e->errors()), 422);
         }
@@ -81,6 +88,7 @@ final class TicketController
             'category' => $this->kernel->categoryRepository()->findById($ticket->categoryId),
             'sla' => $this->kernel->slaStatusService()->forTicket($ticket),
             'replies' => $this->kernel->replyRepository()->findByTicket($id),
+            'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
         ]);
     }
 
@@ -115,6 +123,7 @@ final class TicketController
             'priorities' => Priority::cases(),
             'old' => $old,
             'errors' => $errors,
+            'maxFiles' => $this->kernel->attachmentService()->maxFiles(),
         ];
     }
 }

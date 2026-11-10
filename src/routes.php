@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controller\AttachmentController;
 use App\Controller\AuthController;
 use App\Controller\HomeController;
 use App\Controller\TicketController;
@@ -38,6 +39,10 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/talepler', static fn (Request $r, array $p): Response => $tickets->store($r));
     $router->add('GET', '/talepler/{id}', static fn (Request $r, array $p): Response => $tickets->show((int) $p['id']));
     $router->add('POST', '/talepler/{id}/islem', static fn (Request $r, array $p): Response => $tickets->action($r, (int) $p['id']));
+
+    // Ek dosyalar (yalnız yetkili kullanıcıya)
+    $attachments = new AttachmentController($kernel, $kernel->attachmentService());
+    $router->add('GET', '/ekler/{id}', static fn (Request $r, array $p): Response => $attachments->download((int) $p['id']));
 
     // Geçici paneller (sonraki dallarda gerçek ekranlarla değişecek)
     $router->add('GET', '/kanban', static fn (Request $r, array $p): Response => $home->placeholder('Kanban', Role::Agent, Role::Admin));
