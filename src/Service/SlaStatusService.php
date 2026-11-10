@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Clock\ClockInterface;
+use App\Model\Enum\TicketStatus;
 use App\Model\SlaStatus;
+use App\Model\Ticket;
 use DateTimeImmutable;
 
 /**
@@ -58,6 +60,19 @@ final class SlaStatusService
         $level = $percent >= self::WARNING_PERCENT ? 'warning' : 'normal';
 
         return new SlaStatus($level, $percent, $remaining, $this->formatMinutes($remaining) . ' kaldı');
+    }
+
+    /** Talebin kendi alanlarından gösterge: çözülmüş/kapalıysa sonucu, iptalse gösterge yok. */
+    public function forTicket(Ticket $ticket): SlaStatus
+    {
+        $resolved = in_array($ticket->status, [TicketStatus::Resolved, TicketStatus::Closed], true);
+
+        return $this->evaluate(
+            $ticket->createdAt,
+            $ticket->deadline,
+            $resolved ? $ticket->resolvedAt : null,
+            $ticket->status->isFinal() && $ticket->resolvedAt === null,
+        );
     }
 
     /** 45 → "45 dk", 120 → "2 sa", 200 → "3 sa 20 dk" */

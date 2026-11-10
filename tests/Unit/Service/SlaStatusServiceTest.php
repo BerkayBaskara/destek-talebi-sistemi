@@ -122,6 +122,29 @@ final class SlaStatusServiceTest extends TestCase
         self::assertSame('3 sa 30 dk kaldı', $status->label);
     }
 
+    public function test_cancelled_ticket_is_none(): void
+    {
+        $ticket = \Tests\Unit\Model\TicketStateTest::ticket(\App\Model\Enum\TicketStatus::Cancelled);
+
+        self::assertSame('none', $this->service->forTicket($ticket)->level);
+    }
+
+    public function test_closed_resolved_ticket_shows_met(): void
+    {
+        $ticket = \Tests\Unit\Model\TicketStateTest::ticket(\App\Model\Enum\TicketStatus::Closed);
+        $ticket->resolvedAt = self::at('2026-11-09 13:00');
+
+        self::assertSame('met', $this->service->forTicket($ticket)->level);
+    }
+
+    public function test_open_ticket_uses_clock(): void
+    {
+        $this->clock->set(self::at('2026-11-09 15:00'));
+        $ticket = \Tests\Unit\Model\TicketStateTest::ticket(\App\Model\Enum\TicketStatus::Taken);
+
+        self::assertSame('breached', $this->service->forTicket($ticket)->level);
+    }
+
     public function test_format_minutes(): void
     {
         self::assertSame('45 dk', $this->service->formatMinutes(45));
