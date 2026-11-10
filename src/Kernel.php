@@ -232,7 +232,12 @@ final class Kernel
         $this->view->share('csrfField', static fn (): string => '<input type="hidden" name="_csrf" value="' . e($token) . '">');
         $this->view->share('flashSuccess', $this->session->pullFlash('success'));
         $this->view->share('flashError', $this->session->pullFlash('error'));
-        $this->view->share('currentUser', $this->currentUser());
+        try {
+            $currentUser = $this->currentUser();
+        } catch (StorageException) {
+            $currentUser = null; // veri dosyası bozuksa hata sayfası yine de sayfa düzeniyle gösterilsin
+        }
+        $this->view->share('currentUser', $currentUser);
 
         return new Response($this->view->render($template, $data), $status, ['Content-Type' => 'text/html; charset=utf-8']);
     }

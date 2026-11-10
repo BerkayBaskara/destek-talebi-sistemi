@@ -32,15 +32,7 @@ final class AdminController
         $agentId = (int) $request->string('personel');
         $query = $request->string('q');
 
-        $items = array_values(array_filter(
-            $this->kernel->ticketRepository()->findAll(),
-            fn (Ticket $t): bool => ($status === null || $t->status === $status)
-                && ($priority === null || $t->priority === $priority)
-                && ($agentId === 0 || $t->agentId === $agentId)
-                && $this->tickets->matches($t, $query),
-        ));
-        usort($items, static fn (Ticket $a, Ticket $b): int => [$b->createdAt, $b->id] <=> [$a->createdAt, $a->id]);
-        $result = TicketService::paginate($items, max(1, (int) $request->string('sayfa')), 15);
+        $result = $this->tickets->searchAll($status, $priority, $agentId > 0 ? $agentId : null, $query, max(1, (int) $request->string('sayfa')));
 
         $sla = $this->kernel->slaStatusService();
         $users = $this->kernel->userRepository();

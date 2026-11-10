@@ -323,6 +323,25 @@ final class TicketService
     }
 
     /**
+     * Yönetici listesi: tüm talepler; durum, öncelik ve personel filtresi, başlık/numara araması, sayfalama.
+     *
+     * @return array{items: list<Ticket>, total: int, page: int, pages: int}
+     */
+    public function searchAll(?TicketStatus $status, ?Priority $priority, ?int $agentId, string $query, int $page, int $perPage = 15): array
+    {
+        $items = array_values(array_filter(
+            $this->tickets->findAll(),
+            fn (Ticket $t): bool => ($status === null || $t->status === $status)
+                && ($priority === null || $t->priority === $priority)
+                && ($agentId === null || $t->agentId === $agentId)
+                && $this->matches($t, $query),
+        ));
+        usort($items, static fn (Ticket $a, Ticket $b): int => [$b->createdAt, $b->id] <=> [$a->createdAt, $a->id]);
+
+        return self::paginate($items, $page, $perPage);
+    }
+
+    /**
      * Ortak sayfalama yardımcısı.
      *
      * @param list<Ticket> $items

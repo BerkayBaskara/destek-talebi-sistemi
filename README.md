@@ -4,6 +4,8 @@ Bu proje, Core PHP (OOP, PDO) kullanılarak dış bir framework'e (Laravel, Symf
 
 Proje, dinamik SLA (Hizmet Seviyesi Sözleşmesi) hesaplamaları, puanlama tabanlı personel metrikleri ve katı durum geçiş yönetimi sunar.
 
+> Aşağıdaki özellik listesi projenin **tamamını** (Aşama 3 dahil) anlatır. Şu an hangi özelliklerin çalıştığı için aşağıdaki **"Aşama 2 durumu"** tablosuna bakın; PDO/MySQL, puanlama, eskalasyon ve oto-kapanış Aşama 3'tedir.
+
 ## 🚀 Temel Özellikler
 
 - **Dinamik SLA Hesaplama:** Yöneticiler tarafından yüklenen JSON tabanlı tatil ve mesai saatleri dosyasına göre çalışma dışı saatleri atlayarak milisaniye hassasiyetinde SLA bitiş tarihi hesaplar.
@@ -82,7 +84,7 @@ php -d upload_max_filesize=50M -d post_max_size=160M -S localhost:8000 -t public
 
 Tarayıcıda `http://localhost:8000` açın. (`-d` ayarları, 5 MB görsel / 50 MB video yüklemesi içindir; PHP'nin varsayılanı 2 MB'tır.)
 
-**WAMP (Apache):** bir sanal host oluşturup `DocumentRoot`'u bu projenin `public/` klasörü yapın. `public/.htaccess` tüm istekleri `index.php`'ye yönlendirir ve yükleme sınırlarını ayarlar (mod_rewrite açık olmalı).
+**WAMP (Apache):** bir sanal host oluşturup `DocumentRoot`'u bu projenin `public/` klasörü yapın. `public/.htaccess` tüm istekleri `index.php`'ye yönlendirir ve yükleme sınırlarını ayarlar (mod_rewrite açık olmalı; sanal hostta `AllowOverride All` gerekir).
 
 ### Örnek hesaplar (şifre: `Destek2026!`)
 

@@ -9,7 +9,7 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ⏭ Aşama 3 (MySQ
 | Gereksinim | Açıklama | Test sınıfı :: metot | Durum |
 |---|---|---|---|
 | FR-01 | Kategori, öncelik, başlık, mesajlı talep formu | `TicketCreateTest::test_customer_creates_ticket_and_is_redirected`, `test_create_form_lists_categories_and_priorities`, `test_invalid_form_keeps_values_422`; `TicketServiceTest::test_create_validation_errors` | ✅ |
-| FR-02 | JPG/PNG/PDF + MP4/WebM, MIME ve boyut kontrolü | `AttachmentServiceTest::test_accepts_jpg_png_pdf`, `test_rejects_php_disguised_as_jpg`, `test_rejects_oversized_image`, `test_rejects_image_with_too_many_pixels_before_decoding`, `test_php_ini_size_error_says_file_is_too_big`, `test_validate_many_checks_count_and_skips_empty_slots`; `AttachmentAccessTest::test_broken_upload_rejected_before_ticket_is_created` | ✅ |
+| FR-02 | JPG/PNG/PDF + MP4/WebM, MIME ve boyut kontrolü | `AttachmentServiceTest::test_accepts_jpg_png_pdf`, `test_rejects_php_disguised_as_jpg`, `test_rejects_oversized_image`, `test_rejects_image_with_too_many_pixels_before_decoding`, `test_png_has_lower_pixel_limit_than_jpeg`, `test_accepts_mp4_and_webm_video`, `test_video_over_video_limit_rejected`, `test_php_ini_size_error_says_file_is_too_big`, `test_validate_many_checks_count_and_skips_empty_slots`; `AttachmentAccessTest::test_broken_upload_rejected_before_ticket_is_created` | ✅ |
 | FR-03 | Anahtar kelimeyle akıllı öncelik | `PriorityDetectorTest` (9 test, Türkçe büyük harf dahil); `TicketServiceTest::test_create_uses_keyword_priority`; `TicketDetailTest::test_priority_raised_note` | ✅ |
 | FR-04 | En az iş yüklü personele otomatik atama | `AssignmentServiceTest` (5 test); `TicketServiceTest::test_create_auto_assigns_least_loaded_and_logs`, `test_create_without_agents_stays_in_pool` | ✅ |
 | FR-05 | Mesai, öğle arası ve tatile duyarlı SLA bitişi (**çekirdek**) | `SlaCalculatorServiceTest::test_deadline_matches_case_table` (12 vaka: hocanın Cuma 17:30 örneği, öğle arası, molada/mesai öncesi/sonrası/hafta sonu/tatilde açılan, çok günlü), `test_corrupt_calendar_uses_default_hours`, `test_business_minutes_between_skips_break_and_weekend`; `TicketServiceTest::test_create_computes_deadline_with_policy`, `test_create_without_policy_uses_priority_default` | ✅ |
@@ -48,7 +48,7 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ⏭ Aşama 3 (MySQ
 | NFR-08 | Görseller en fazla 1920×1080'e küçültülür | `AttachmentServiceTest::test_large_png_is_downscaled_to_1920x1080`; tarayıcıda 2400×1600 → 1620×1080 | ✅ 👁 |
 | NFR-09 | PSR-12, PHPStan 0 hata | `php vendor/bin/phpstan analyse` (seviye 6) → `[OK] No errors` | ✅ |
 | NFR-10 | 30 dk hareketsizlikte oturum kapanır | `AuthFlowTest::test_idle_30_minutes_logs_out`, `test_idle_timeout_on_form_post_redirects_to_login_not_csrf_error`, `test_login_form_posted_after_idle_expiry_still_logs_in`; `KanbanApiTest::test_sla_polling_does_not_keep_session_alive` | ✅ |
-| NFR-11 | 50 MB video sınırı | `settings.json` `max_video_bytes`; `AttachmentService::validate` (video sınırı); `public/.htaccess` ve README'deki `-d` ayarları | ✅ (sınır kodda; büyük video elle denenmedi) |
+| NFR-11 | 50 MB video sınırı | `AttachmentServiceTest::test_accepts_mp4_and_webm_video`, `test_video_over_video_limit_rejected` (`settings.json` `max_video_bytes`); `public/.htaccess` ve README'deki `-d` ayarları PHP sınırını 50 MB'a çıkarır | ✅ (50 MB'lık gerçek video yüklemesi süre açısından elle ölçülmedi) |
 
 ## Güvenlik (hocanın ortak şartları)
 
@@ -59,5 +59,6 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ⏭ Aşama 3 (MySQ
 | `session_regenerate_id` | `AuthFlowTest::test_session_id_regenerated_on_login` |
 | Her işlemde yetki kontrolü | `AuthFlowTest::test_customer_cannot_open_admin_page`, `TicketDetailTest::test_other_customer_gets_403_and_no_content`, `test_other_agent_cannot_reply_or_act`, `PoolTest::test_customer_cannot_see_pool_or_take`, `AdminPagesTest::test_agent_and_customer_cannot_open_admin_pages` |
 | Güvenli dosya yükleme | `AttachmentServiceTest::test_rejects_php_disguised_as_jpg`, `test_stored_name_is_random_and_has_correct_extension` |
-| Beklenmeyen hata bilgi sızdırmaz | `KernelTest::test_wrong_shaped_data_gives_friendly_500_without_leaking_input` |
-| Örnek veri sunuma hazır | `SeedTest` (4 farklı anda: her durumdan ≥3, sarı ≥3, kırmızı ≥3, havuz ≥3) |
+| Beklenmeyen hata bilgi sızdırmaz; bozuk veride dostça 500 | `KernelTest::test_wrong_shaped_data_gives_friendly_500_without_leaking_input`, `test_logged_in_user_with_corrupt_data_sees_friendly_500_page` |
+| Örnek veri sunuma hazır | `SeedTest` (4 farklı anda: her durumdan ≥3, sarı ≥3 — 2 iş saati sonra da ≥3 —, kırmızı ≥3, havuz ≥3) |
+| Yönetici listesi filtre + arama | `TicketServiceTest::test_search_all_filters_for_admin`, `AdminPagesTest::test_admin_list_filters` |

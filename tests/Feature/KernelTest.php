@@ -62,6 +62,22 @@ final class KernelTest extends FeatureTestCase
         self::assertStringNotContainsString('CSRF', $response->body);
     }
 
+    public function test_logged_in_user_with_corrupt_data_sees_friendly_500_page(): void
+    {
+        $number = $this->kernel->authService()
+            ->register('Ahmet', 'Yılmaz', 'gizliSifre1', \App\Service\AuthService::SECRET_QUESTIONS[0], 'pamuk')->customerNo;
+        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1']);
+        $path = $this->root . '/storage/data/users.json';
+        file_put_contents($path, '[{"id":1,'); // yarım kalmış JSON
+
+        $response = $this->get('/talepler');
+
+        self::assertSame(500, $response->status);
+        self::assertStringContainsString('<title>Destek Talebi Sistemi', $response->body, 'Düz metin değil, sayfa düzeniyle gösterilmeli.');
+        self::assertStringContainsString('Veri okunamadı', $response->body);
+        self::assertSame('[{"id":1,', file_get_contents($path), 'Bozuk dosyanın üzerine yazılmamalı.');
+    }
+
     public function test_html_responses_have_security_headers(): void
     {
         $response = $this->get('/giris');

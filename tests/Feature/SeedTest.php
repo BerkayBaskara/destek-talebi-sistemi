@@ -55,6 +55,15 @@ final class SeedTest extends FeatureTestCase
             $levels[$level] = ($levels[$level] ?? 0) + 1;
         }
         self::assertGreaterThanOrEqual(3, $levels['warning'] ?? 0, 'En az 3 sarı (SLA %80+) talep.');
+
+        // Sunum seed'den sonra başlar: 2 iş saati sonra da en az 3 sarı örnek kalmalı.
+        $this->clock->set($this->kernel->slaCalculator()->calculateWithJson($started, 120));
+        $later = 0;
+        foreach ($tickets as $ticket) {
+            $later += $this->kernel->slaStatusService()->forTicket($ticket)->level === 'warning' ? 1 : 0;
+        }
+        self::assertGreaterThanOrEqual(3, $later, '2 iş saati sonra da en az 3 sarı talep olmalı.');
+        $this->clock->set($started);
         self::assertGreaterThanOrEqual(3, $levels['breached'] ?? 0, 'En az 3 kırmızı (SLA aşılmış) talep.');
         self::assertGreaterThanOrEqual(1, $levels['missed'] ?? 0, 'En az 1 geç çözülmüş talep.');
         self::assertGreaterThanOrEqual(3, count($this->kernel->ticketRepository()->getPoolTickets()), 'Havuzda en az 3 talep.');

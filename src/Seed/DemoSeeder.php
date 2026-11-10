@@ -199,11 +199,13 @@ final class DemoSeeder
             }
         }
 
-        // Sarı: SLA'nın %80'inden fazlası dolmuş, henüz aşılmamış aktif talepler
+        // Sarı: SLA'nın ~%82'si dolmuş aktif talepler. Uzun SLA'lı (16-24 iş saati) öncelikler seçildi ki
+        // sarı durum sunum boyunca birkaç iş saati sürsün (kısa SLA'lar dakikalar içinde kırmızıya döner).
+        // Açıklamalarda anahtar kelime yok; öncelik yükselip SLA kısalmasın.
         $warning = [
-            ['M100002', 3, Priority::Urgent, 'Kablosuz ağ kopuyor', 'Ofiste kablosuz ağ sık sık kopuyor.', true],
-            ['M100003', 4, Priority::High, 'Yeni personel hesabı', 'Yeni başlayan personel için hesap açılmalı.', false],
-            ['M100001', 1, Priority::Urgent, 'Sunucu odası klima arızası', 'Sunucu odasının kliması çalışmıyor, acil!', true],
+            ['M100002', 3, Priority::Normal, 'Kablosuz ağ kopuyor', 'Ofiste kablosuz ağ sık sık kopuyor.', true],
+            ['M100003', 4, Priority::Low, 'Yeni personel hesabı', 'Yeni başlayan personel için hesap açılmalı.', false],
+            ['M100001', 1, Priority::Normal, 'Sunucu odası kliması', 'Sunucu odasının kliması soğutmuyor, bakım gerekiyor.', true],
         ];
         foreach ($warning as [$customer, $category, $priority, $title, $description, $startReview]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $this->warningStart($now, $category, $priority));
@@ -266,13 +268,13 @@ final class DemoSeeder
     }
 
     /**
-     * SLA'sının ~%85-95'i dolmuş olacak açılış anı: şimdiden geriye, iş dakikasıyla, SLA süresinin %85'i kadar git.
+     * SLA'sının ~%82'si dolmuş olacak açılış anı: şimdiden geriye, iş dakikasıyla, SLA süresinin %82'si kadar git.
      * (Hafta sonu veya mesai dışında çalıştırılsa da iş saatine göre doğru sonuç verir.)
      */
     private function warningStart(DateTimeImmutable $now, int $category, Priority $priority): DateTimeImmutable
     {
         $hours = $this->kernel->slaPolicyRepository()->findFor($category, $priority)->durationHours ?? $priority->defaultSlaHours();
-        $target = (int) ceil($hours * 60 * 0.85);
+        $target = (int) ceil($hours * 60 * 0.82);
         $calculator = $this->kernel->slaCalculator();
 
         $start = $now;
