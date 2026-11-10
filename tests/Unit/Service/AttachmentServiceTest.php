@@ -129,10 +129,34 @@ final class AttachmentServiceTest extends TestCase
         self::assertSame(1080, $h);
     }
 
+    public function test_rejects_image_with_too_many_pixels_before_decoding(): void
+    {
+        // Yalnız PNG başlığı: 6000x4500 = 27 milyon piksel diyor. Gerçekten açılsa GD belleği tüketirdi
+        // (bu testin ilk hali tam görseli üretmeye çalışınca PHPUnit'in kendisi bellekten düştü).
+        $ihdr = pack('NNCCCCC', 6000, 4500, 8, 2, 0, 0, 0);
+        $png = "\x89PNG\r\n\x1a\n" . pack('N', 13) . 'IHDR' . $ihdr . pack('N', crc32('IHDR' . $ihdr));
+        try {
+            $this->service(['max_upload_bytes' => 50 * 1024 * 1024])->validate($this->file('dev.png', $png));
+            self::fail('Çok yüksek çözünürlüklü görsel reddedilmeliydi.');
+        } catch (ValidationException $e) {
+            self::assertSame('Görselin çözünürlüğü çok yüksek (en fazla 24 milyon piksel).', $e->errors()['ekler']);
+        }
+    }
+
+    public function test_php_ini_size_error_says_file_is_too_big(): void
+    {
+        $file = $this->file('video.mp4', 'x');
+        $file['error'] = UPLOAD_ERR_INI_SIZE;
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Dosya, sunucunun izin verdiği boyutu aşıyor');
+        $this->service()->validate($file);
+    }
+
     public function test_upload_error_code_message(): void
     {
         $file = $this->file('foto.png', self::image('png'));
-        $file['error'] = UPLOAD_ERR_INI_SIZE;
+        $file['error'] = UPLOAD_ERR_PARTIAL;
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Dosya yüklenemedi');

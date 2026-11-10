@@ -133,6 +133,16 @@ button.linklike { background: none; border: 0; padding: 0; font: inherit; cursor
 .row-breached td { background: var(--danger-bg); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
+/* Özet rapor */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.stat { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
+.stat-value { font-size: 1.8rem; font-weight: 700; margin: 4px 0; }
+.stat-warning { border-color: #e0b400; }
+.stat-danger { border-color: var(--danger); }
+.stat-danger .stat-value { color: var(--danger); }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 20px; }
+ul.plain { padding-left: 18px; margin: 0; }
+
 .narrow { max-width: 480px; margin-left: auto; margin-right: auto; }
 .big-number { font-size: 2rem; font-weight: 700; letter-spacing: 2px; margin: 8px 0 16px; }
 .who { opacity: 0.85; font-size: 0.95em; }

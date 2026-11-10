@@ -133,9 +133,17 @@ final class Kernel
             $publicForm = in_array($request->path, self::PUBLIC_FORMS, true);
             if ($this->enforceIdleTimeout($request) && $isWrite && !$publicForm) {
                 // Süresi dolmuş oturumla gönderilen form "CSRF geçersiz" yerine girişe yönlendirilir.
-                return $request->isApi()
-                    ? Response::json(['ok' => false, 'error' => 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.'], 401)
-                    : Response::redirect('/giris');
+                throw new RedirectException('/giris');
+            }
+
+            if ($request->isApi() && $this->session->get('user_id') === null) {
+                // Tüm API uçları giriş ister; oturum yoksa CSRF hatası yerine net 401 dön.
+                throw new RedirectException('/giris');
+            }
+
+            if ($isWrite && $request->post === [] && $request->files === [] && (int) $request->header('Content-Length') > self::postMaxBytes()) {
+                // post_max_size aşılınca PHP tüm formu atar; CSRF anahtarı da gelmez. Doğru nedeni söyle.
+                throw new HttpException(413, 'Gönderilen dosyalar toplamda çok büyük. Daha küçük dosyalarla tekrar deneyin.');
             }
 
             if ($isWrite) {
@@ -148,7 +156,7 @@ final class Kernel
             $response = $this->router->dispatch($request);
         } catch (RedirectException $e) {
             $response = $request->isApi()
-                ? Response::json(['ok' => false, 'error' => 'Oturum açmanız gerekiyor.'], 401)
+                ? Response::json(['ok' => false, 'error' => 'Oturumunuz yok veya sona erdi. Lütfen tekrar giriş yapın.'], 401)
                 : Response::redirect($e->url);
         } catch (HttpException $e) {
             $response = $this->error($request, $e->status, $e->getMessage());
@@ -202,6 +210,7 @@ final class Kernel
     public function logIn(User $user): void
     {
         $this->session->regenerate();
+        $this->session->remove('_csrf'); // girişten önce bilinen anahtar girişten sonra geçmesin
         $this->session->set('user_id', $user->id);
         $this->session->set('last_activity', $this->clock->now()->getTimestamp());
     }
@@ -339,6 +348,13 @@ final class Kernel
         }
 
         return false;
+    }
+
+    private static function postMaxBytes(): int
+    {
+        $limit = AttachmentService::iniBytes((string) ini_get('post_max_size'));
+
+        return $limit > 0 ? $limit : PHP_INT_MAX;
     }
 
     private function error(Request $request, int $status, string $message): Response

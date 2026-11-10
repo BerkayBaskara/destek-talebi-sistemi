@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controller\AdminController;
 use App\Controller\AgentController;
 use App\Controller\AttachmentController;
 use App\Controller\KanbanController;
@@ -12,7 +13,7 @@ use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Core\Http\Router;
 use App\Kernel;
-use App\Model\Enum\Role;
+use App\Service\ReportService;
 
 /**
  * Rota tablosu: hangi adres hangi controller metoduna gider.
@@ -57,6 +58,13 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/api/talepler/{id}/durum', static fn (Request $r, array $p): Response => $kanban->move($r, (int) $p['id']));
     $router->add('GET', '/api/sla', static fn (Request $r, array $p): Response => $kanban->sla($r));
 
-    // Geçici paneller (sonraki dallarda gerçek ekranlarla değişecek)
-    $router->add('GET', '/yonetici', static fn (Request $r, array $p): Response => $home->placeholder('Yönetici paneli', Role::Admin));
+    // Yönetici: tüm talepler ve Aşama 2 özet raporu
+    $admin = new AdminController($kernel, $kernel->ticketService(), new ReportService(
+        $kernel->ticketRepository(),
+        $kernel->userRepository(),
+        $kernel->slaStatusService(),
+        $kernel->slaCalculator(),
+    ));
+    $router->add('GET', '/yonetici', static fn (Request $r, array $p): Response => $admin->tickets($r));
+    $router->add('GET', '/yonetici/ozet', static fn (Request $r, array $p): Response => $admin->summary());
 };

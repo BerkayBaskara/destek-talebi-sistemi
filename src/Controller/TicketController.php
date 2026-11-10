@@ -64,14 +64,19 @@ final class TicketController
             // Önce dosyalar doğrulanır; geçersiz dosya yarım kalmış talep bırakmasın.
             $files = $attachments->validateMany(AttachmentService::normalizeFiles($request->files['ekler'] ?? null));
             $ticket = $this->tickets->createTicket($customer, $old);
-            foreach ($files as $file) {
-                $attachments->store((int) $ticket->id, $customer, $file);
-            }
         } catch (ValidationException $e) {
             return $this->kernel->render('tickets/create', $this->formData($old, $e->errors()), 422);
         }
 
         $this->kernel->session()->flash('success', 'Talebiniz alındı. Talep no: #' . $ticket->id);
+        foreach ($files as $file) {
+            try {
+                $attachments->store((int) $ticket->id, $customer, $file);
+            } catch (ValidationException $e) {
+                // Talep kaydedildi; formu yeniden göstermek tekrar gönderimde çift talep açardı.
+                $this->kernel->session()->flash('error', 'Talep açıldı ancak bir ek kaydedilemedi: ' . $e->getMessage());
+            }
+        }
 
         return Response::redirect('/talepler/' . $ticket->id);
     }

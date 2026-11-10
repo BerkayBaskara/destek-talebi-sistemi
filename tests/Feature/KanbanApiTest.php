@@ -120,6 +120,16 @@ final class KanbanApiTest extends FeatureTestCase
         self::assertSame(302, $this->get('/kanban')->status, 'NFR-10: yalnız otomatik yoklama varsa oturum 30 dakikada kapanmalı.');
     }
 
+    public function test_api_post_after_logout_returns_401_not_csrf_error(): void
+    {
+        $token = $this->kernel->csrf()->token(); // sayfa açıkken alınmış anahtar
+        $this->post('/cikis');
+
+        $response = $this->kernel->handle(new Request('POST', '/api/talepler/1/durum', [], [], [], ['X-CSRF-Token' => $token], '{"status":"in_review"}'));
+
+        self::assertSame(401, $response->status);
+    }
+
     public function test_api_without_session_returns_401_json(): void
     {
         $this->post('/cikis');

@@ -45,6 +45,9 @@ final class Request
                 $headers[$name] = $value;
             }
         }
+        if (isset($_SERVER['CONTENT_LENGTH']) && is_scalar($_SERVER['CONTENT_LENGTH'])) {
+            $headers['Content-Length'] = (string) $_SERVER['CONTENT_LENGTH']; // HTTP_ öneki olmadan gelir
+        }
         $uri = is_string($_SERVER['REQUEST_URI'] ?? null) ? $_SERVER['REQUEST_URI'] : '/';
         $method = is_string($_SERVER['REQUEST_METHOD'] ?? null) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 

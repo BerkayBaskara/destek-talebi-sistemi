@@ -28,12 +28,4 @@ final class HomeController
             Role::Admin => '/yonetici',
         });
     }
-
-    /** Henüz yapılmamış paneller için geçici sayfa (sonraki dallarda gerçek ekranlarla değişecek). */
-    public function placeholder(string $title, Role ...$roles): Response
-    {
-        $this->kernel->requireRole(...$roles);
-
-        return $this->kernel->render('placeholder', ['title' => $title]);
-    }
 }

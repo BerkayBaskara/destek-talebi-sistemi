@@ -25,7 +25,15 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
       body: JSON.stringify({ status: targetStatus })
     })
-      .then(function (response) { return response.json(); })
+      .then(function (response) {
+        if (response.status === 401) {
+          window.location.href = '/giris'; // oturum süresi doldu
+          throw new Error('Oturumunuz sona erdi. Giriş sayfasına yönlendiriliyorsunuz.');
+        }
+        return response.json().catch(function () {
+          throw new Error('Sunucudan beklenmeyen yanıt geldi. Sayfayı yenileyip tekrar deneyin.');
+        });
+      })
       .then(function (data) {
         if (!data.ok) {
           throw new Error(data.error || 'İşlem yapılamadı.');
@@ -54,6 +62,7 @@
     });
     card.addEventListener('dragend', function () {
       card.classList.remove('dragging');
+      dragged = null; // sonraki ilgisiz bir bırakma eski kartı taşımasın
     });
 
     // Mobil / klavye yedeği: açılır menüden durum seçimi
