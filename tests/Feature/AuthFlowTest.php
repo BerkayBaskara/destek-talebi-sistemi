@@ -9,13 +9,6 @@ use App\Service\AuthService;
 
 final class AuthFlowTest extends FeatureTestCase
 {
-    private function registerCustomer(string $answer = 'Pamuk'): string
-    {
-        return $this->kernel->authService()
-            ->register('Ahmet', 'Yılmaz', 'gizliSifre1', AuthService::SECRET_QUESTIONS[0], $answer)
-            ->customerNo;
-    }
-
     public function test_register_shows_customer_number_then_login_works(): void
     {
         $response = $this->post('/kayit', [
@@ -117,7 +110,7 @@ final class AuthFlowTest extends FeatureTestCase
 
     public function test_forgot_password_flow(): void
     {
-        $number = $this->registerCustomer('Pamuk');
+        $number = $this->registerCustomer();
 
         $step1 = $this->post('/sifre-sifirla', ['customer_no' => $number]);
         self::assertSame(200, $step1->status);

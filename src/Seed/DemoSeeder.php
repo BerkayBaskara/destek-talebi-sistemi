@@ -6,7 +6,10 @@ namespace App\Seed;
 
 use App\Core\Clock\FixedClock;
 use App\Kernel;
+use App\Model\Category;
+use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
+use App\Model\SlaPolicy;
 use App\Model\User;
 use App\Service\AuthService;
 
@@ -32,11 +35,32 @@ final class DemoSeeder
     /** @return list<array{rol: string, numara: string, ad: string}> oluşturulan giriş bilgileri */
     public function run(): array
     {
-        return $this->seedUsers();
+        $accounts = $this->seedUsers();
+        $this->seedCatalog();
+
+        return $accounts;
+    }
+
+    /**
+     * Kategoriler ve kategori × öncelik SLA kuralları. Varsayılan süreler Priority::defaultSlaHours();
+     * Ağ / Erişim kesintisi işi durdurduğu için Acil kuralı 2 saat.
+     */
+    public function seedCatalog(): void
+    {
+        $categories = $this->kernel->categoryRepository();
+        $policies = $this->kernel->slaPolicyRepository();
+
+        foreach (['Donanım', 'Yazılım', 'Ağ / Erişim', 'Hesap'] as $name) {
+            $category = $categories->save(new Category(null, $name));
+            foreach (Priority::cases() as $priority) {
+                $hours = $name === 'Ağ / Erişim' && $priority === Priority::Urgent ? 2 : $priority->defaultSlaHours();
+                $policies->save(new SlaPolicy(null, (int) $category->id, $priority, $hours));
+            }
+        }
     }
 
     /** @return list<array{rol: string, numara: string, ad: string}> */
-    private function seedUsers(): array
+    public function seedUsers(): array
     {
         $people = [
             [Role::Admin, 'Y000001', 'Selin', 'Arslan'],
