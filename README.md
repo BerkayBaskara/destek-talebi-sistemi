@@ -36,6 +36,7 @@ destek-talebi-sistemi/
 │   ├── ai-gunlugu.md  # Yapay zeka kullanım günlüğü
 │   ├── izlenebilirlik.md # Gereksinim → test tablosu
 │   ├── srs.md         # Yazılım Gereksinim Şartnamesi
+│   ├── surec-raporu.md # Aşama 2 süreç raporu
 │   └── tasarim.md     # Tasarım ve mimari belgesi
 ├── public/            # Dışa açık klasör (index.php, CSS, JS, görseller)
 ├── src/               # Uygulama kaynak kodları
