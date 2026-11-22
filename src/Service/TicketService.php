@@ -52,6 +52,7 @@ final class TicketService
         private readonly AssignmentService $assignment,
         private readonly ClockInterface $clock,
         private readonly ?CategoryFieldRepositoryInterface $fields = null,
+        private readonly ?ExtraSlaPolicy $extraSla = null,
     ) {
     }
 
@@ -167,6 +168,26 @@ final class TicketService
         return $values;
     }
 
+    /**
+     * Havuzda beklerken süresi geçmiş talep personele verildiğinde ek SLA alır; aksi hâlde SLA denetimi talebi
+     * atandıktan hemen sonra aşım nedeniyle geri alırdı.
+     */
+    public function extendIfOverdue(Ticket $ticket, int $actorId): Ticket
+    {
+        $now = $this->clock->now();
+        if ($this->extraSla === null || $ticket->deadline > $now) {
+            return $ticket;
+        }
+        $ticket->deadline = $this->extraSla->extendedDeadline($ticket, $now);
+        if ($this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            $this->notifyObservers($ticket, 'sla_extended', [
+                'actor_id' => $actorId, 'activity' => 'sla_extended', 'note' => $ticket->deadline->format('d.m.Y H:i'),
+            ]);
+        }
+
+        return $this->mustFind((int) $ticket->id);
+    }
+
     /** Kullanılmamış 6 karakterli talep kodu (çakışma olasılığı çok düşük; yine de denetlenir). */
     private function newCode(): string
     {
@@ -209,6 +230,7 @@ final class TicketService
 
         $ticket = $this->mustFind((int) $ticket->id);
         $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id]);
+        $ticket = $this->extendIfOverdue($ticket, TicketLog::SYSTEM_USER);
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
             'old' => TicketStatus::Pending,
             'new' => TicketStatus::Taken,
@@ -243,6 +265,7 @@ final class TicketService
 
         $ticket = $this->mustFind($ticketId);
         $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id, 'actor_id' => (int) $agent->id]);
+        $ticket = $this->extendIfOverdue($ticket, (int) $agent->id);
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
             'old' => TicketStatus::Pending,
             'new' => TicketStatus::Taken,
@@ -268,6 +291,8 @@ final class TicketService
             case 'cancel':
                 $this->authorize($isOwner);
                 $ticket->setStatus($state->cancel($ticket));
+                $ticket->holdUntil = null; // iptal edilen talep için karar ya da eskalasyon beklenmez
+                $ticket->awaitingAdmin = false;
                 break;
             case 'approve':
                 $this->authorize($isOwner);

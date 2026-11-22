@@ -164,10 +164,8 @@ final class TicketController
         $this->tickets->findVisible($id, $customer);
 
         try {
-            $ticket = $this->kernel->escalationService()->decide($id, $customer, $request->string('karar'));
-            $this->kernel->session()->flash('success', $ticket->status === TicketStatus::Closed
-                ? 'Talebiniz "sorun çözüldü" olarak kapatıldı.'
-                : 'Talebiniz aynı personelle devam ediyor. Yeni bitiş: ' . $ticket->deadline->format('d.m.Y H:i') . '.');
+            $result = $this->kernel->escalationService()->decide($id, $customer, $request->string('karar'));
+            $this->kernel->session()->flash('success', $result['message']);
         } catch (ValidationException $e) {
             $this->kernel->session()->flash('error', $e->getMessage());
         }

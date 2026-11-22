@@ -78,7 +78,7 @@ final class ReportController
                 $t->createdAt->format('d.m.Y H:i'),
                 $t->deadline->format('d.m.Y H:i'),
                 $t->resolvedAt?->format('d.m.Y H:i') ?? '',
-                $t->resolvedAt === null ? '' : ($t->resolvedAt <= $t->deadline ? 'Süre içinde' : 'Süre aşıldı'),
+                $t->resolvedAt === null ? '' : (\App\Service\DetailedReportService::metFirstDeadline($t) ? 'Süre içinde' : 'Süre aşıldı'),
                 self::CLOSURES[$t->closureReason ?? ''] ?? '',
             ];
         }

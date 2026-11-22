@@ -69,7 +69,7 @@ $closureReasons = [
         </dl>
     </div>
 
-    <?php if ($ticket->holdUntil !== null && $viewer->id === $ticket->creatorId): ?>
+    <?php if ($ticket->holdUntil !== null && $ticket->status === TicketStatus::Pending && $viewer->id === $ticket->creatorId): ?>
         <div class="decision-box" role="region" aria-label="Karar bekleniyor">
             <h2>Talebinizin çözüm süresi aşıldı</h2>
             <p>Ne yapmak istersiniz? <?= e($ticket->holdUntil->format('d.m.Y H:i')) ?> tarihine kadar seçim yapmazsanız talebiniz üst seviye personele aktarılır.</p>
@@ -198,7 +198,9 @@ $closureReasons = [
         $text = match ($activity->action) {
             'assigned' => 'Atama: ' . $target,
             'replied' => 'Yanıt yazıldı',
-            'escalated' => 'Eskalasyon: ' . $target . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
+            'escalated' => $viewer->role === Role::Customer
+                ? 'Üst seviye personele aktarıldı' // personelin iç gerekçesi müşteriye gösterilmez
+                : 'Eskalasyon: ' . $target . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
             'returned_to_pool' => 'Görev Havuzu\'na alındı' . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
             'sla_extended' => 'Ek SLA: yeni bitiş ' . ($activity->note ?? ''),
             'closed' => 'Kapanış: ' . ($activity->note ?? ''),

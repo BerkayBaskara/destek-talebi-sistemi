@@ -181,4 +181,23 @@ final class ResolutionTest extends FeatureTestCase
         self::assertStringContainsString('Çözülemedi', $this->get('/talepler/1')->body);
         self::assertStringContainsString('Donanım üretimden kalktı', $this->get('/talepler/1')->body);
     }
+
+    public function test_customer_does_not_see_internal_escalation_reason(): void
+    {
+        $this->as($this->junior->customerNo);
+        $this->post('/talepler/1/eskale', ['gerekce' => 'Bu müşteri çok zor']);
+        self::assertStringContainsString('Bu müşteri çok zor', $this->get('/talepler/1')->body === '' ? '' : $this->adminView());
+
+        $this->as($this->customerNo);
+        $body = $this->get('/talepler/1')->body;
+        self::assertStringNotContainsString('Bu müşteri çok zor', $body);
+        self::assertStringContainsString('Üst seviye personele aktarıldı', $body);
+    }
+
+    private function adminView(): string
+    {
+        $this->as($this->admin->customerNo);
+
+        return $this->get('/talepler/1')->body;
+    }
 }

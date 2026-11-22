@@ -60,7 +60,7 @@ final class DetailedReportService
         foreach ($this->users->findByRole(Role::Agent) as $agent) {
             $own = array_filter($tickets, static fn (Ticket $t): bool => $t->agentId === $agent->id);
             $resolved = array_filter($own, static fn (Ticket $t): bool => $t->resolvedAt !== null);
-            $met = array_filter($resolved, static fn (Ticket $t): bool => $t->resolvedAt <= $t->deadline);
+            $met = array_filter($resolved, static fn (Ticket $t): bool => self::metFirstDeadline($t));
             $minutes = array_map(fn (Ticket $t): int => $this->calculator->businessMinutesBetween($t->createdAt, $t->resolvedAt ?? $t->createdAt), $resolved);
             $rows[] = [
                 'agent' => $agent,
@@ -72,6 +72,12 @@ final class DetailedReportService
         }
 
         return $rows;
+    }
+
+    /** SLA uyumu ilk SLA bitişine göre (ek SLA ile uzayan bitiş "süresinde" sayılmaz). */
+    public static function metFirstDeadline(Ticket $ticket): bool
+    {
+        return $ticket->resolvedAt !== null && $ticket->resolvedAt <= $ticket->firstDeadline();
     }
 
     /**

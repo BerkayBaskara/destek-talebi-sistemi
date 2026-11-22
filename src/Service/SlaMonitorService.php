@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Clock\ClockInterface;
+use App\Model\Enum\TicketStatus;
 use App\Model\TicketLog;
 use App\Repository\RuntimeStateRepositoryInterface;
 use App\Repository\TicketRepositoryInterface;
@@ -22,6 +23,7 @@ final class SlaMonitorService
     public function __construct(
         private readonly TicketRepositoryInterface $tickets,
         private readonly EscalationService $escalation,
+        private readonly TicketService $ticketService,
         private readonly RuntimeStateRepositoryInterface $state,
         private readonly ClockInterface $clock,
     ) {
@@ -42,7 +44,8 @@ final class SlaMonitorService
         $result = ['breaches' => 0, 'escalations' => 0, 'completed' => 0];
 
         foreach ($this->tickets->findAll() as $ticket) {
-            if ($ticket->holdUntil !== null && $now >= $ticket->holdUntil) {
+            if ($ticket->holdUntil !== null && $now >= $ticket->holdUntil
+                && $ticket->status === TicketStatus::Pending && $ticket->agentId === null) {
                 $this->escalation->escalate($ticket, EscalationService::REASON_NO_RESPONSE, TicketLog::SYSTEM_USER, 'SLA aşımında müşteri yanıt vermedi');
                 $result['escalations']++;
             } elseif ($this->escalation->handleBreach($ticket)) {
@@ -50,6 +53,10 @@ final class SlaMonitorService
             } elseif ($this->escalation->autoComplete($ticket)) {
                 $result['completed']++;
             }
+        }
+
+        if ($result['breaches'] + $result['escalations'] + $result['completed'] > 0) {
+            $this->ticketService->fillFromPool(); // personelden alınan talepler yer açtı
         }
 
         return $result;

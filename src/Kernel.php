@@ -185,6 +185,7 @@ final class Kernel
             $this->assignmentService = new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService, $this->hierarchyRepository, $this->leaveRepository, $this->clock),
             $this->clock,
             $this->categoryFieldRepository,
+            new \App\Service\ExtraSlaPolicy($this->slaCalculator, $this->settingsService),
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
         $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);
@@ -204,7 +205,7 @@ final class Kernel
             $this->clock,
         );
         $this->ticketService->attachObserver(new EscalationObserver($this->escalationService));
-        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, new JsonRuntimeStateRepository($this->store), $this->clock);
+        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, $this->ticketService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
 

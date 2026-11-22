@@ -30,6 +30,7 @@ final class EscalationService
     public const REASON_NO_RESPONSE = 'sla_no_response';
     public const REASON_MANUAL = 'manual';
     public const REASON_REJECTED = 'rejected_limit';
+    public const REASON_PREVIOUS_UNAVAILABLE = 'previous_unavailable';
 
     public const CLOSED_BY_CUSTOMER = 'customer_resolved';
     public const CLOSED_AUTOMATICALLY = 'auto_closed';
@@ -95,22 +96,33 @@ final class EscalationService
 
     /**
      * Müşterinin aşım sonrası kararı: "devam" (aynı personel, ek SLA) ya da "cozuldu" (kapanış).
+     * Önceki personel artık çalışmıyorsa (pasif ya da izinde) "devam" talebi üst seviyeye aktarır.
      *
+     * @return array{ticket: Ticket, message: string}
      * @throws ValidationException
      */
-    public function decide(int $ticketId, User $customer, string $decision): Ticket
+    public function decide(int $ticketId, User $customer, string $decision): array
     {
         $ticket = $this->tickets->findById($ticketId) ?? throw new NotFoundException('Talep bulunamadı.');
         if ($ticket->creatorId !== $customer->id) {
             throw new AuthorizationException('Bu talep için karar veremezsiniz.');
         }
-        if ($ticket->holdUntil === null) {
+        if ($ticket->holdUntil === null || $ticket->status !== TicketStatus::Pending) {
             throw new ValidationException(['karar' => 'Bu talep için şu anda karar beklenmiyor.']);
         }
 
         $now = $this->clock->now();
         $previous = $ticket->previousAgentId;
         $code = $ticket->displayCode();
+
+        if ($decision === 'devam' && $previous !== null && !$this->assignment->isAvailable($previous)) {
+            $target = $this->escalate($ticket, self::REASON_PREVIOUS_UNAVAILABLE, (int) $customer->id, 'Önceki personel şu anda çalışmıyor');
+            $this->ticketService->fillFromPool();
+
+            return ['ticket' => $ticket, 'message' => $target !== null
+                ? 'Önceki personel şu anda çalışmadığı için talebiniz üst seviye personele aktarıldı.'
+                : 'Önceki personel şu anda çalışmadığı için talebiniz yönetici tarafından bir personele atanacak.'];
+        }
 
         if ($decision === 'devam' && $previous !== null) {
             $ticket->agentId = $previous;
@@ -126,7 +138,7 @@ final class EscalationService
                 [$previous, 'Müşteri ' . $code . ' talebinde sizinle devam etmek istedi. Ek SLA ile yeni bitiş: ' . $ticket->deadline->format('d.m.Y H:i') . '.', 'continue'],
             ]);
 
-            return $ticket;
+            return ['ticket' => $ticket, 'message' => 'Talebiniz aynı personelle devam ediyor. Yeni bitiş: ' . $ticket->deadline->format('d.m.Y H:i') . '.'];
         }
 
         if ($decision === 'cozuldu') {
@@ -146,7 +158,7 @@ final class EscalationService
             ]);
             $this->ticketService->fillFromPool();
 
-            return $ticket;
+            return ['ticket' => $ticket, 'message' => 'Talebiniz "sorun çözüldü" olarak kapatıldı.'];
         }
 
         throw new ValidationException(['karar' => 'Geçerli bir seçim yapın.']);
@@ -158,6 +170,9 @@ final class EscalationService
      */
     public function escalate(Ticket $ticket, string $reason, int $actorId, string $note): ?int
     {
+        if ($ticket->status->isFinal() || $ticket->status === TicketStatus::Resolved) {
+            return null; // kapanmış, iptal edilmiş ya da çözülmüş talep aktarılmaz
+        }
         $now = $this->clock->now();
         $old = $ticket->status;
         $oldAgent = $ticket->agentId;
@@ -227,6 +242,7 @@ final class EscalationService
         }
         if ($ticket->attemptCount >= self::REJECTION_LIMIT) {
             $this->escalate($ticket, self::REASON_REJECTED, $actorId, 'Müşteri çözümü ' . self::REJECTION_LIMIT . ' kez reddetti');
+            $this->ticketService->fillFromPool();
 
             return;
         }
@@ -279,7 +295,10 @@ final class EscalationService
             throw new ValidationException(['gerekce' => 'Yalnız Atandı ya da İnceleniyor durumundaki talep aktarılabilir.']);
         }
 
-        return $this->escalate($ticket, self::REASON_MANUAL, (int) $actor->id, self::reason($reason));
+        $target = $this->escalate($ticket, self::REASON_MANUAL, (int) $actor->id, self::reason($reason));
+        $this->ticketService->fillFromPool(); // aktaran personelde yer açıldı
+
+        return $target;
     }
 
     /**
@@ -310,6 +329,10 @@ final class EscalationService
         $ticket->holdUntil = null;
         $ticket->awaitingAdmin = false;
         $ticket->status = TicketStatus::Taken;
+        $extended = $ticket->deadline <= $this->clock->now();
+        if ($extended) {
+            $ticket->deadline = $this->extendedDeadline($ticket, $this->clock->now()); // süresi geçmiş talebe ek SLA
+        }
         if (!$this->tickets->saveIfUnchanged($ticket, TicketStatus::Pending, null)) {
             throw new ValidationException(['personel' => 'Talep az önce değişti. Sayfayı yenileyip tekrar deneyin.']);
         }
@@ -317,6 +340,9 @@ final class EscalationService
             'agent_id' => $agentId, 'actor_id' => (int) $admin->id, 'note' => $reason !== '' ? mb_substr($reason, 0, 300) : null,
         ]);
         $this->statusChanged($ticket, TicketStatus::Pending, (int) $admin->id);
+        if ($extended) {
+            $this->deadlineExtended($ticket, (int) $admin->id, []);
+        }
 
         return $ticket;
     }
@@ -376,10 +402,7 @@ final class EscalationService
     /** Ek SLA (FR-14): ilk SLA süresinin ayardaki oranı kadar iş dakikası, şu andan itibaren. */
     public function extendedDeadline(Ticket $ticket, DateTimeImmutable $from): DateTimeImmutable
     {
-        $first = $this->sla->businessMinutesBetween($ticket->createdAt, $ticket->firstDeadline());
-        $extra = (int) ceil($first * $this->settings->int('sla.extra_percent') / 100);
-
-        return $this->sla->calculateWithJson($from, max(1, $extra));
+        return (new ExtraSlaPolicy($this->sla, $this->settings))->extendedDeadline($ticket, $from);
     }
 
     private function statusChanged(Ticket $ticket, TicketStatus $old, int $actorId): void

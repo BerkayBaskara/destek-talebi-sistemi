@@ -89,6 +89,16 @@ final class AssignmentService
         return $agent !== null && $agent->id !== $failingAgentId ? $agent : null;
     }
 
+    /** Personel bugün iş alabilir mi: aktif personel ve izinde değil (kapasiteye bakılmaz). */
+    public function isAvailable(int $userId): bool
+    {
+        $user = $this->users->findById($userId);
+        $today = $this->clock?->now()->format('Y-m-d');
+
+        return $user !== null && $user->role === Role::Agent && $user->active
+            && !($today !== null && $this->leaves?->isOnLeave($userId, $today) === true);
+    }
+
     /** Personelin kategorideki seviyesi; hiyerarşide yoksa null. */
     public function levelOf(int $categoryId, int $userId): ?int
     {

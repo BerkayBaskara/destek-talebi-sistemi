@@ -204,4 +204,97 @@ final class EscalationTest extends FeatureTestCase
         $settings = $this->kernel->settingsService();
         self::assertSame([2, 50, 5], [$settings->int('sla.breach_wait_days'), $settings->int('sla.extra_percent'), $settings->int('sla.auto_close_days')]);
     }
+
+    private function setAgent(User $agent, ?bool $active = null, ?int $capacity = null): void
+    {
+        $user = $this->kernel->userRepository()->findById((int) $agent->id);
+        self::assertNotNull($user);
+        if ($active !== null) {
+            $user->active = $active;
+        }
+        if ($capacity !== null) {
+            $user->capacity = $capacity;
+        }
+        $this->kernel->userRepository()->save($user);
+    }
+
+    public function test_cancelled_ticket_on_hold_is_not_revived(): void
+    {
+        $this->breach();
+        $this->post('/talepler/1/islem', ['islem' => 'cancel']);
+        self::assertSame(TicketStatus::Cancelled, $this->ticket()->status);
+
+        $this->at('2026-11-12 11:05');
+        $this->loginAs($this->customerNo, self::PASSWORD);
+
+        $ticket = $this->ticket();
+        self::assertSame(TicketStatus::Cancelled, $ticket->status);
+        self::assertNull($ticket->agentId);
+        self::assertNull($ticket->holdUntil);
+        self::assertSame([], $this->kernel->escalationRepository()->findByTicket(1));
+        self::assertStringNotContainsString('Aynı personelle devam et', $this->get('/talepler/1')->body);
+    }
+
+    public function test_overdue_pool_ticket_gets_extra_sla_when_assigned_and_is_not_pulled_back(): void
+    {
+        $this->setAgent($this->junior, active: false);
+        $this->setAgent($this->senior, active: false);
+        $this->post('/talepler', ['category_id' => '1', 'priority' => '2', 'title' => 'Havuzda bekleyen', 'description' => 'Personel yokken açılan talep.']);
+        self::assertNull($this->kernel->ticketRepository()->findById(2)?->agentId);
+
+        $this->at('2026-11-11 11:00'); // talep 2'nin bitişi (Çar 10:00) geçti
+        $this->setAgent($this->junior, active: true);
+        $this->kernel->ticketService()->fillFromPool();
+
+        $ticket = $this->kernel->ticketRepository()->findById(2);
+        self::assertSame($this->junior->id, $ticket?->agentId);
+        self::assertSame('2026-11-11 17:17', $ticket?->deadline->format('Y-m-d H:i'), 'Süresi geçmiş talep atanınca ek SLA alır.');
+
+        $this->clock->advance('+2 minutes');
+        $this->kernel->slaMonitor()->run();
+        self::assertSame($this->junior->id, $this->kernel->ticketRepository()->findById(2)?->agentId, 'Atandıktan hemen sonra geri alınmaz.');
+    }
+
+    public function test_hold_frees_capacity_and_waiting_pool_ticket_is_assigned(): void
+    {
+        $this->setAgent($this->junior, capacity: 1);
+        $this->setAgent($this->senior, active: false);
+        $this->post('/talepler', ['category_id' => '1', 'priority' => '2', 'title' => 'Havuzda bekleyen', 'description' => 'Kapasite doluyken açılan talep.']);
+        self::assertNull($this->kernel->ticketRepository()->findById(2)?->agentId);
+
+        $this->breach(); // talep 1 personelden alınır → Zeynep'te yer açılır
+
+        self::assertSame($this->junior->id, $this->kernel->ticketRepository()->findById(2)?->agentId);
+    }
+
+    public function test_continue_with_unavailable_agent_goes_to_upper_level(): void
+    {
+        $this->breach();
+        $this->setAgent($this->junior, active: false);
+
+        $this->post('/talepler/1/karar', ['karar' => 'devam']);
+
+        self::assertSame($this->senior->id, $this->ticket()->agentId);
+        self::assertSame('previous_unavailable', $this->kernel->escalationRepository()->findByTicket(1)[0]['reason']);
+        self::assertStringContainsString('Önceki personel şu anda çalışmadığı için talebiniz üst seviye personele aktarıldı.', $this->get('/talepler/1')->body);
+    }
+
+    public function test_admin_assigning_overdue_ticket_gives_extra_sla(): void
+    {
+        $this->kernel->hierarchyRepository()->setLevel(1, (int) $this->senior->id, null);
+        $this->kernel->settingsService()->update($this->admin, ['sla.breach_wait_days' => '0']);
+        $this->breach(); // üst seviye yok → yönetici müdahalesi
+        self::assertTrue($this->ticket()->awaitingAdmin);
+
+        $this->post('/cikis');
+        $this->loginAs($this->admin->customerNo, self::PASSWORD);
+        $this->post('/talepler/1/ata', ['personel' => (string) $this->senior->id, 'gerekce' => '']);
+
+        $ticket = $this->ticket();
+        self::assertSame($this->senior->id, $ticket->agentId);
+        self::assertSame('2026-11-11 17:17', $ticket->deadline->format('Y-m-d H:i'));
+        $this->clock->advance('+2 minutes');
+        $this->kernel->slaMonitor()->run();
+        self::assertSame($this->senior->id, $this->ticket()->agentId);
+    }
 }
