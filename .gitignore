@@ -8,3 +8,4 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 public/branding/*
 !public/branding/.gitkeep
+storage/backups/*

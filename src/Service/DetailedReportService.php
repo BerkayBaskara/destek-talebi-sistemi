@@ -22,7 +22,44 @@ final class DetailedReportService
         private readonly TicketRepositoryInterface $tickets,
         private readonly UserRepositoryInterface $users,
         private readonly SlaCalculatorService $calculator,
+        private readonly ?\App\Repository\EscalationRepositoryInterface $escalations = null,
+        private readonly ?SettingsService $settings = null,
     ) {
+    }
+
+    /** Çözüm denemesine göre puan oranı: 1. deneme %100, 2. %70, 3. %40, sonrası 0 (FR-15). */
+    private const ATTEMPT_FACTORS = [1.0, 0.7, 0.4];
+
+    /** Eskalasyonla devralınan talebi çözen personele zorluk bonusu (%20). */
+    private const ESCALATION_BONUS = 1.2;
+
+    /**
+     * FR-15: personelin tamamladığı (Tamamlandı ve çözülmüş) taleplerden performans puanı.
+     *
+     * @param list<Ticket> $own
+     */
+    private function score(User $agent, array $own): int
+    {
+        $base = $this->settings?->int('score.base') ?? 100;
+        $received = [];
+        foreach ($this->escalations?->all() ?? [] as $escalation) {
+            if ($escalation['to_agent_id'] === $agent->id) {
+                $received[$escalation['ticket_id']] = true;
+            }
+        }
+        $total = 0;
+        foreach ($own as $ticket) {
+            if ($ticket->status !== TicketStatus::Closed || $ticket->resolvedAt === null) {
+                continue;
+            }
+            $factor = self::ATTEMPT_FACTORS[$ticket->attemptCount] ?? 0.0;
+            if (isset($received[(int) $ticket->id])) {
+                $factor *= self::ESCALATION_BONUS;
+            }
+            $total += (int) round($base * $factor);
+        }
+
+        return $total;
     }
 
     /**
@@ -52,7 +89,7 @@ final class DetailedReportService
      * Personel bazında: üzerindeki talep, çözülen, SLA içinde çözülme oranı, ortalama çözüm süresi (iş dakikası).
      *
      * @param list<Ticket> $tickets
-     * @return list<array{agent: User, total: int, resolved: int, metPercent: ?int, avgMinutes: ?int}>
+     * @return list<array{agent: User, total: int, resolved: int, metPercent: ?int, avgMinutes: ?int, score: int}>
      */
     public function perAgent(array $tickets): array
     {
@@ -68,6 +105,7 @@ final class DetailedReportService
                 'resolved' => count($resolved),
                 'metPercent' => $resolved !== [] ? (int) round(count($met) * 100 / count($resolved)) : null,
                 'avgMinutes' => $minutes !== [] ? (int) round(array_sum($minutes) / count($minutes)) : null,
+                'score' => $this->score($agent, array_values($own)),
             ];
         }
 

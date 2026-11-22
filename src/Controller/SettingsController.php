@@ -241,7 +241,21 @@ final class SettingsController
     {
         $this->kernel->requireRole(Role::Admin);
 
-        return $this->kernel->render('admin/config/backup', ['title' => 'Veri Yedeği']);
+        return $this->kernel->render('admin/config/backup', ['title' => 'Veri Yedeği', 'errors' => []]);
+    }
+
+    public function restore(Request $request): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $file = $request->files['yedek'] ?? [];
+        try {
+            $auto = $this->kernel->backupService()->restore($admin, is_array($file) ? $file : []);
+        } catch (ValidationException $e) {
+            return $this->kernel->render('admin/config/backup', ['title' => 'Veri Yedeği', 'errors' => $e->errors()], 422);
+        }
+        $this->kernel->session()->flash('success', 'Yedek geri yüklendi. Önceki veri storage/backups/' . $auto . ' dosyasına yedeklendi.');
+
+        return Response::redirect('/yonetici/yedek');
     }
 
     public function backupDownload(): Response

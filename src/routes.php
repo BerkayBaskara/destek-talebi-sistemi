@@ -104,6 +104,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/yonetici/denetim', static fn (Request $r, array $p): Response => $settings->audit());
     $router->add('GET', '/yonetici/yedek', static fn (Request $r, array $p): Response => $settings->backupPage());
     $router->add('POST', '/yonetici/yedek/indir', static fn (Request $r, array $p): Response => $settings->backupDownload());
+    $router->add('POST', '/yonetici/yedek/geri-yukle', static fn (Request $r, array $p): Response => $settings->restore($r));
 
     $report = new ReportController($kernel);
     $router->add('GET', '/yonetici/rapor', static fn (Request $r, array $p): Response => $report->page($r));

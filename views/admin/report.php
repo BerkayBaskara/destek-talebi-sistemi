@@ -3,7 +3,7 @@
 /** @var list<\App\Model\Ticket> $tickets */
 /** @var int $total */
 /** @var array<string, int> $byStatus */
-/** @var list<array{agent: \App\Model\User, total: int, resolved: int, metPercent: ?int, avgMinutes: ?int}> $perAgent */
+/** @var list<array{agent: \App\Model\User, total: int, resolved: int, metPercent: ?int, avgMinutes: ?int, score: int}> $perAgent */
 /** @var list<\App\Model\Category> $categories */
 /** @var list<\App\Model\Priority> $priorities */
 /** @var list<\App\Model\User> $agents */
@@ -69,7 +69,7 @@ $f = static fn (string $key): string => is_string($filters[$key] ?? null) ? $fil
     <h2>Personel Performansı</h2>
     <div class="table-wrap">
         <table class="table">
-            <thead><tr><th>Personel</th><th>Talep</th><th>Çözülen</th><th>SLA uyumu</th><th>Ortalama çözüm süresi</th></tr></thead>
+            <thead><tr><th>Personel</th><th>Talep</th><th>Çözülen</th><th>SLA uyumu</th><th>Ortalama çözüm süresi</th><th>Performans puanı</th></tr></thead>
             <tbody>
             <?php foreach ($perAgent as $row): ?>
                 <tr>
@@ -78,6 +78,7 @@ $f = static fn (string $key): string => is_string($filters[$key] ?? null) ? $fil
                     <td data-label="Çözülen"><?= e($row['resolved']) ?></td>
                     <td data-label="SLA uyumu"><?= $row['metPercent'] !== null ? '%' . e($row['metPercent']) : '-' ?></td>
                     <td data-label="Ortalama çözüm"><?= $row['avgMinutes'] !== null ? e($format($row['avgMinutes'])) : '-' ?></td>
+                    <td data-label="Performans puanı"><?= e($row['score']) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

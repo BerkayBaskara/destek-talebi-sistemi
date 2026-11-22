@@ -83,6 +83,11 @@ $ruleError = static fn (string $f): string => isset($ruleErrors[$f]) ? '<div cla
             <input type="number" id="question_reply_hours" name="question_reply_hours" min="1" max="168" value="<?= e($rules['question_reply_hours']) ?>">
             <?= $ruleError('question_reply_hours') ?>
         </div>
+        <div>
+            <label for="score_base">Performans puanı: talep başına taban puan (1. denemede tam, 2. %70, 3. %40; eskalasyonla devralana +%20)</label>
+            <input type="number" id="score_base" name="score_base" min="1" max="1000" value="<?= e($rules['score_base']) ?>">
+            <?= $ruleError('score_base') ?>
+        </div>
         <div><button type="submit" class="btn">Kuralları kaydet</button></div>
     </form>
 </section>

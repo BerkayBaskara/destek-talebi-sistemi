@@ -474,7 +474,7 @@ final class Kernel
 
     public function detailedReportService(): DetailedReportService
     {
-        return new DetailedReportService($this->ticketRepository, $this->userRepository, $this->slaCalculator);
+        return new DetailedReportService($this->ticketRepository, $this->userRepository, $this->slaCalculator, $this->escalationRepository, $this->settingsService);
     }
 
     public function backupService(): BackupService

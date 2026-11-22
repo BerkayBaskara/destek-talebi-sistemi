@@ -185,6 +185,7 @@ final class CatalogController
         'auto_close_days' => 'sla.auto_close_days',
         'max_questions' => 'tickets.max_questions',
         'question_reply_hours' => 'tickets.question_reply_hours',
+        'score_base' => 'score.base',
     ];
 
     private function saved(string $url): Response
