@@ -50,6 +50,7 @@ use App\Service\AssignmentService;
 use App\Service\AuditLogger;
 use App\Service\AuthService;
 use App\Service\SettingsService;
+use App\Service\StaffService;
 use App\Service\Observer\TicketLogObserver;
 use App\Service\PriorityService;
 use App\Service\SlaCalculatorService;
@@ -83,6 +84,7 @@ final class Kernel
     private readonly WorkCalendarRepositoryInterface $workCalendarRepository;
     private readonly CalendarService $calendarService;
     private readonly CatalogService $catalogService;
+    private readonly StaffService $staffService;
     private readonly UserRepositoryInterface $userRepository;
     private readonly AuthService $authService;
     private readonly TicketRepositoryInterface $ticketRepository;
@@ -114,6 +116,7 @@ final class Kernel
 
         $this->userRepository = new JsonUserRepository($this->store);
         $this->authService = new AuthService($this->userRepository);
+        $this->staffService = new StaffService($this->userRepository, $this->authService, $this->settingsService, $this->auditLogger);
 
         // Aşama 2: tüm depolar JSON. Aşama 3'te yalnız bu satırlar MySql* sınıflarıyla değişir.
         $this->ticketRepository = new JsonTicketRepository($this->store);
@@ -213,8 +216,15 @@ final class Kernel
     public function currentUser(): ?User
     {
         $id = $this->session->get('user_id');
+        $user = is_int($id) ? $this->userRepository->findById($id) : null;
+        if ($user !== null && !$user->active) {
+            // Yönetici hesabı pasif yaptıysa açık oturum bir sonraki istekte kapanır.
+            $this->session->destroy();
 
-        return is_int($id) ? $this->userRepository->findById($id) : null;
+            return null;
+        }
+
+        return $user;
     }
 
     /**
@@ -349,6 +359,11 @@ final class Kernel
     public function catalogService(): CatalogService
     {
         return $this->catalogService;
+    }
+
+    public function staffService(): StaffService
+    {
+        return $this->staffService;
     }
 
     public function settingsService(): SettingsService

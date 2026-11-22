@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Text;
+use App\Exception\AuthorizationException;
 use App\Exception\ValidationException;
 use App\Model\Enum\Role;
 use App\Model\User;
@@ -23,8 +24,6 @@ final class AuthService
         'İlkokul öğretmeninizin soyadı nedir?',
         'En sevdiğiniz yemek nedir?',
     ];
-
-    private const MIN_PASSWORD = 8;
 
     public function __construct(private readonly UserRepositoryInterface $users)
     {
@@ -47,8 +46,9 @@ final class AuthService
         if (Text::length($surname) < 2 || Text::length($surname) > 100) {
             $errors['surname'] = 'Soyad en az 2 karakter olmalı.';
         }
-        if (Text::length($password) < self::MIN_PASSWORD) {
-            $errors['password'] = 'Şifre en az 8 karakter olmalı.';
+        $passwordError = PasswordPolicy::validate($password);
+        if ($passwordError !== null) {
+            $errors['password'] = $passwordError;
         }
         if (!in_array($secretQuestion, self::SECRET_QUESTIONS, true)) {
             $errors['secret_question'] = 'Listeden bir gizli soru seçin.';
@@ -78,6 +78,9 @@ final class AuthService
         if ($user === null || !password_verify($password, $user->passwordHash)) {
             return null;
         }
+        if (!$user->active) {
+            throw new AuthorizationException('Hesabınız pasif durumda. Lütfen yöneticinize başvurun.');
+        }
 
         return $user;
     }
@@ -94,8 +97,9 @@ final class AuthService
         #[\SensitiveParameter] string $newPassword,
     ): bool
     {
-        if (Text::length($newPassword) < self::MIN_PASSWORD) {
-            throw new ValidationException(['password' => 'Şifre en az 8 karakter olmalı.']);
+        $passwordError = PasswordPolicy::validate($newPassword);
+        if ($passwordError !== null) {
+            throw new ValidationException(['password' => $passwordError]);
         }
 
         $user = $this->users->findByCustomerNo(self::normalizeNumber($customerNo));
@@ -109,16 +113,31 @@ final class AuthService
         return true;
     }
 
-    /** Personel/yönetici hesabı (örnek veri için). */
-    public function createStaff(Role $role, string $name, string $surname, string $password): User
+    /** Personel/yönetici hesabı (yönetici ekranı, yönetici komutu ve örnek veri). */
+    public function createStaff(Role $role, string $name, string $surname, #[\SensitiveParameter] string $password): User
     {
+        $errors = [];
+        if (Text::length(trim($name)) < 2 || Text::length(trim($name)) > 100) {
+            $errors['name'] = 'Ad en az 2 karakter olmalı.';
+        }
+        if (Text::length(trim($surname)) < 2 || Text::length(trim($surname)) > 100) {
+            $errors['surname'] = 'Soyad en az 2 karakter olmalı.';
+        }
+        $passwordError = PasswordPolicy::validate($password);
+        if ($passwordError !== null) {
+            $errors['password'] = $passwordError;
+        }
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
+
         return $this->users->save(new User(
             null,
             $this->newCustomerNumber($role),
             password_hash($password, PASSWORD_DEFAULT),
             $role,
-            $name,
-            $surname,
+            trim($name),
+            trim($surname),
             self::SECRET_QUESTIONS[0],
             password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT),
         ));

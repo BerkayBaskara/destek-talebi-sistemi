@@ -70,7 +70,7 @@ abstract class FeatureTestCase extends TestCase
         return $this->kernel->handle(new Request('POST', $path, [], $data, $files));
     }
 
-    protected const PASSWORD = 'gizliSifre1';
+    protected const PASSWORD = 'gizliSifre1!';
 
     /** Yeni müşteri kaydeder, müşteri numarasını döner (şifre: self::PASSWORD). */
     protected function registerCustomer(string $name = 'Ahmet'): string

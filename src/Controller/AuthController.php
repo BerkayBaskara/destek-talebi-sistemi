@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Exception\AuthorizationException;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Exception\ValidationException;
@@ -25,12 +26,18 @@ final class AuthController
     public function login(Request $request): Response
     {
         $customerNo = $request->string('customer_no');
-        $user = $this->auth->login($customerNo, (string) $request->input('password', ''));
+        try {
+            $user = $this->auth->login($customerNo, (string) $request->input('password', ''));
+            $error = $user === null ? 'Müşteri numarası veya şifre hatalı.' : null;
+        } catch (AuthorizationException $e) {
+            $user = null;
+            $error = $e->getMessage();
+        }
 
         if ($user === null) {
             return $this->kernel->render('auth/login', [
                 'title' => 'Giriş',
-                'error' => 'Müşteri numarası veya şifre hatalı.',
+                'error' => $error,
                 'old' => ['customer_no' => $customerNo],
             ], 422);
         }

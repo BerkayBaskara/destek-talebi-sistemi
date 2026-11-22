@@ -8,7 +8,8 @@ use App\Model\Enum\Role;
 
 /**
  * Kullanıcı (müşteri, personel veya yönetici). Alan adları ER diyagramındaki users tablosuyla aynı;
- * `surname` Aşama 2'de eklendi (kayıtta ad ve soyad ayrı alınıyor).
+ * `surname` Aşama 2'de eklendi (kayıtta ad ve soyad ayrı alınıyor). `active`: pasif kullanıcı giriş yapamaz ve
+ * talep atanmaz; `capacity`: personelin aynı anda üstlenebileceği aktif talep sayısı (boş = genel varsayılan).
  */
 final class User
 {
@@ -22,6 +23,8 @@ final class User
         public string $secretQuestion,
         public string $secretAnswerHash,
         public int $totalPoints = 0,
+        public bool $active = true,
+        public ?int $capacity = null,
     ) {
     }
 
@@ -43,6 +46,8 @@ final class User
             (string) ($row['secret_question'] ?? ''),
             (string) ($row['secret_answer_hash'] ?? ''),
             (int) ($row['total_points'] ?? 0),
+            (bool) ($row['active'] ?? true),
+            isset($row['capacity']) ? (int) $row['capacity'] : null,
         );
     }
 
@@ -59,6 +64,8 @@ final class User
             'secret_question' => $this->secretQuestion,
             'secret_answer_hash' => $this->secretAnswerHash,
             'total_points' => $this->totalPoints,
+            'active' => $this->active,
+            'capacity' => $this->capacity,
         ];
     }
 }

@@ -3,6 +3,7 @@
 /** @var array<string, string> $errors */
 /** @var list<string> $questions */
 /** @var callable $csrfField */
+/** @var \App\Core\View $view */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
 ?>
 <section class="card narrow">
@@ -21,7 +22,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <?= $fieldError('surname') ?>
         </div>
         <div class="form-row">
-            <label for="password">Şifre (en az 8 karakter)</label>
+            <label for="password">Şifre</label>
             <input type="password" id="password" name="password" autocomplete="new-password" required>
             <?= $fieldError('password') ?>
         </div>
@@ -30,6 +31,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <input type="password" id="password_confirm" name="password_confirm" autocomplete="new-password" required>
             <?= $fieldError('password_confirm') ?>
         </div>
+        <?= $view->partial('partials/password_rules') ?>
         <div class="form-row">
             <label for="secret_question">Gizli soru (şifrenizi unutursanız sorulacak)</label>
             <select id="secret_question" name="secret_question" required>

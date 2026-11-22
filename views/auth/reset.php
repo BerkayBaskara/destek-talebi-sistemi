@@ -3,6 +3,7 @@
 /** @var string $question */
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
+/** @var \App\Core\View $view */
 ?>
 <section class="card narrow">
     <h1>Yeni şifre belirleyin</h1>
@@ -15,10 +16,11 @@
             <?php if (isset($errors['secret_answer'])): ?><div class="field-error"><?= e($errors['secret_answer']) ?></div><?php endif; ?>
         </div>
         <div class="form-row">
-            <label for="password">Yeni şifre (en az 8 karakter)</label>
+            <label for="password">Yeni şifre</label>
             <input type="password" id="password" name="password" autocomplete="new-password" required>
             <?php if (isset($errors['password'])): ?><div class="field-error"><?= e($errors['password']) ?></div><?php endif; ?>
         </div>
+        <?= $view->partial('partials/password_rules') ?>
         <button type="submit" class="btn">Şifreyi değiştir</button>
     </form>
 </section>

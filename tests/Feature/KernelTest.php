@@ -65,8 +65,8 @@ final class KernelTest extends FeatureTestCase
     public function test_logged_in_user_with_corrupt_data_sees_friendly_500_page(): void
     {
         $number = $this->kernel->authService()
-            ->register('Ahmet', 'Yılmaz', 'gizliSifre1', \App\Service\AuthService::SECRET_QUESTIONS[0], 'pamuk')->customerNo;
-        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1']);
+            ->register('Ahmet', 'Yılmaz', 'gizliSifre1!', \App\Service\AuthService::SECRET_QUESTIONS[0], 'pamuk')->customerNo;
+        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1!']);
         $path = $this->root . '/storage/data/users.json';
         file_put_contents($path, '[{"id":1,'); // yarım kalmış JSON
 
