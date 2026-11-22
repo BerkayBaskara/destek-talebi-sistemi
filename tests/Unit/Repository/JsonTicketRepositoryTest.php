@@ -98,6 +98,18 @@ final class JsonTicketRepositoryTest extends TestCase
         self::assertSame(TicketStatus::Taken, $ticket?->status);
     }
 
+    public function test_concurrent_assign_cannot_exceed_capacity(): void
+    {
+        $this->repo->save(self::newTicket());
+        $this->repo->save(self::newTicket());
+        $other = new JsonTicketRepository(new \App\Core\Storage\JsonStore($this->tempDir)); // ikinci istek
+
+        self::assertTrue($this->repo->assignIfUnassigned(1, 2, 1));
+        self::assertFalse($other->assignIfUnassigned(2, 2, 1), 'Kapasitesi 1 olan personele ikinci talep atanmamalı.');
+        self::assertNull($this->repo->findById(2)?->agentId);
+        self::assertTrue($other->assignIfUnassigned(2, 3, 1));
+    }
+
     public function test_save_if_status_is_compare_and_set(): void
     {
         $ticket = $this->repo->save(self::newTicket(TicketStatus::Taken, 2));

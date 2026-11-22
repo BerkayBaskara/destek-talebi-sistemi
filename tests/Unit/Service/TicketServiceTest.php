@@ -402,7 +402,7 @@ final class TicketServiceTest extends TestCase
             public function findByAgent(int $agentId): array { return $this->inner->findByAgent($agentId); }
             public function findAll(): array { return $this->inner->findAll(); }
             public function countActiveByAgent(): array { return $this->inner->countActiveByAgent(); }
-            public function assignIfUnassigned(int $ticketId, int $agentId): bool { return $this->inner->assignIfUnassigned($ticketId, $agentId); }
+            public function assignIfUnassigned(int $ticketId, int $agentId, int $capacity = PHP_INT_MAX): bool { return $this->inner->assignIfUnassigned($ticketId, $agentId, $capacity); }
         };
         $this->tickets->assignIfUnassigned(1, (int) $agent->id);
 
@@ -456,5 +456,91 @@ final class TicketServiceTest extends TestCase
         $this->create();
 
         self::assertSame([TicketService::EVENT_CREATED, TicketService::EVENT_ASSIGNED, TicketService::EVENT_STATUS_CHANGED], $events);
+    }
+
+    /** Kapasite kuralıyla çalışan servis (setUp'taki servis sınırsız kapasiteyle çalışır). */
+    private function capacityService(): TicketService
+    {
+        $store = $this->tempStore();
+        $logger = new \App\Service\AuditLogger(new \App\Repository\Json\JsonAuditLogRepository($store), $this->clock);
+        $staff = new \App\Service\StaffService($this->users, new \App\Service\AuthService($this->users),
+            new \App\Service\SettingsService(new \App\Repository\Json\JsonSettingsRepository($store), $logger), $logger);
+        $service = new TicketService($this->tickets, $this->replies, new JsonCategoryRepository($store), new JsonSlaPolicyRepository($store),
+            new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json')), new JsonPriorityRepository($store),
+            new AssignmentService($this->users, $this->tickets, $staff), $this->clock);
+        $service->attachObserver(new TicketLogObserver($this->logs, $this->clock));
+
+        return $service;
+    }
+
+    private function agentWithCapacity(string $no, int $capacity): User
+    {
+        $agent = $this->user($no, Role::Agent);
+        $agent->capacity = $capacity;
+
+        return $this->users->save($agent);
+    }
+
+    /** @param array<string, mixed> $override */
+    private function openWith(TicketService $service, string $title): Ticket
+    {
+        return $service->createTicket($this->customer, ['category_id' => 1, 'priority' => 2, 'title' => $title, 'description' => $title . ' açıklaması burada.']);
+    }
+
+    public function test_resolving_a_ticket_pulls_oldest_pool_ticket(): void
+    {
+        $service = $this->capacityService();
+        $p1 = $this->agentWithCapacity('P000001', 1);
+        $first = $this->openWith($service, 'Birinci talep');
+        $this->clock->advance('+1 minute');
+        $older = $this->openWith($service, 'İkinci talep');
+        $this->clock->advance('+1 minute');
+        $newer = $this->openWith($service, 'Üçüncü talep');
+
+        self::assertSame($p1->id, $first->agentId);
+        self::assertNull($older->agentId, 'Kapasite doluyken talep havuzda beklemeli.');
+        self::assertNull($newer->agentId);
+
+        $service->perform((int) $first->id, $p1, 'start_review');
+        $service->perform((int) $first->id, $p1, 'resolve');
+
+        self::assertSame($p1->id, $service->mustFind((int) $older->id)->agentId, 'Yer açılınca en eski havuz talebi atanmalı.');
+        self::assertSame(TicketStatus::Taken, $service->mustFind((int) $older->id)->status);
+        self::assertNull($service->mustFind((int) $newer->id)->agentId);
+        $logs = $this->logs->findByTicket((int) $older->id);
+        self::assertSame(TicketStatus::Taken, end($logs)->newStatus);
+    }
+
+    public function test_activating_agent_fills_pool(): void
+    {
+        $service = $this->capacityService();
+        $p1 = $this->user('P000001', Role::Agent);
+        $p1->active = false;
+        $this->users->save($p1);
+        $ticket = $this->openWith($service, 'Havuz talebi');
+        self::assertNull($ticket->agentId);
+
+        $p1->active = true;
+        $this->users->save($p1);
+
+        self::assertSame(1, $service->fillFromPool());
+        self::assertSame($p1->id, $service->mustFind((int) $ticket->id)->agentId);
+        self::assertSame(0, $service->fillFromPool());
+    }
+
+    public function test_take_respects_capacity(): void
+    {
+        $service = $this->capacityService();
+        $p1 = $this->agentWithCapacity('P000001', 1);
+        $this->openWith($service, 'Birinci talep');
+        $p1->active = false; // ikinci talep havuza düşsün
+        $this->users->save($p1);
+        $pool = $this->openWith($service, 'Havuz talebi');
+        $p1->active = true;
+        $this->users->save($p1);
+
+        $this->expectException(ConflictException::class);
+        $this->expectExceptionMessage('Kapasiteniz dolu; yeni talep alamazsınız.');
+        $service->take((int) $pool->id, $p1);
     }
 }

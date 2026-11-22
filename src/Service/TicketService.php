@@ -123,16 +123,41 @@ final class TicketService
         $this->replies->save(new Reply(null, (int) $ticket->id, (int) $creator->id, $description, $now));
         $this->notifyObservers($ticket, self::EVENT_CREATED, ['actor_id' => (int) $creator->id]);
 
-        $agent = $this->assignment->pickAgent();
-        if ($agent !== null && $this->tickets->assignIfUnassigned((int) $ticket->id, (int) $agent->id)) {
-            $ticket = $this->mustFind((int) $ticket->id);
-            $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id]);
-            $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
-                'old' => TicketStatus::Pending,
-                'new' => TicketStatus::Taken,
-                'actor_id' => TicketLog::SYSTEM_USER,
-            ]);
+        return $this->autoAssign($ticket) ?? $ticket;
+    }
+
+    /**
+     * Havuzdaki talepleri eskiden yeniye uygun personele atar (yer açılınca çağrılır).
+     * Uygun personel kalmayınca durur. Atanan talep sayısını döner.
+     */
+    public function fillFromPool(): int
+    {
+        $assigned = 0;
+        foreach ($this->tickets->getPoolTickets() as $ticket) {
+            if ($this->autoAssign($ticket) === null) {
+                break;
+            }
+            $assigned++;
         }
+
+        return $assigned;
+    }
+
+    /** Sistem atamasi: uygun personel varsa talebi kilit içinde ona verir; yoksa null. */
+    private function autoAssign(Ticket $ticket): ?Ticket
+    {
+        $agent = $this->assignment->pickAgent();
+        if ($agent === null || !$this->tickets->assignIfUnassigned((int) $ticket->id, (int) $agent->id, $this->assignment->capacityOf($agent))) {
+            return null;
+        }
+
+        $ticket = $this->mustFind((int) $ticket->id);
+        $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id]);
+        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
+            'old' => TicketStatus::Pending,
+            'new' => TicketStatus::Taken,
+            'actor_id' => TicketLog::SYSTEM_USER,
+        ]);
 
         return $ticket;
     }
@@ -149,7 +174,11 @@ final class TicketService
         }
 
         // Kontrol ile atama arasında başka biri alabilir; asıl karar kilit içindeki koşullu atamada.
-        if ($ticket->agentId !== null || !$this->tickets->assignIfUnassigned($ticketId, (int) $agent->id)) {
+        if ($ticket->agentId !== null || !$this->tickets->assignIfUnassigned($ticketId, (int) $agent->id, $this->assignment->capacityOf($agent))) {
+            $fresh = $this->mustFind($ticketId);
+            if ($fresh->agentId === null && $fresh->status === TicketStatus::Pending) {
+                throw new ConflictException('Kapasiteniz dolu; yeni talep alamazsınız.');
+            }
             throw new ConflictException('Bu talep az önce başka bir personel tarafından alındı.');
         }
 
@@ -209,6 +238,10 @@ final class TicketService
             throw new ConflictException('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.');
         }
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, ['old' => $old, 'new' => $ticket->status, 'actor_id' => (int) $actor->id]);
+
+        if (in_array($ticket->status, [TicketStatus::Resolved, TicketStatus::Closed, TicketStatus::Cancelled], true)) {
+            $this->fillFromPool(); // personelde yer açıldı; havuzda bekleyen talep varsa atanır
+        }
 
         return $ticket;
     }

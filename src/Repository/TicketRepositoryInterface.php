@@ -38,8 +38,9 @@ interface TicketRepositoryInterface
 
     /**
      * Eşzamanlılık güvenli atama (NFR-04): talep hâlâ Bekleniyor ve sahipsizse personele atar ve
-     * Alındı yapar, true döner; başka biri önce aldıysa false. Tek kilit içinde yapılır.
+     * Alındı yapar, true döner; başka biri önce aldıysa ya da personelin aktif talep sayısı $capacity'ye
+     * ulaştıysa false. Tek kilit içinde yapılır; böylece iki eşzamanlı istek aynı boş kapasiteyi kullanamaz.
      * Aşama 3 karşılığı: UPDATE ... WHERE agent_id IS NULL AND status = 'pending' (veya SELECT ... FOR UPDATE).
      */
-    public function assignIfUnassigned(int $ticketId, int $agentId): bool;
+    public function assignIfUnassigned(int $ticketId, int $agentId, int $capacity = PHP_INT_MAX): bool;
 }

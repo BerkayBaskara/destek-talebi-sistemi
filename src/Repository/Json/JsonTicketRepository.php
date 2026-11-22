@@ -95,12 +95,22 @@ final class JsonTicketRepository implements TicketRepositoryInterface
         return $counts;
     }
 
-    public function assignIfUnassigned(int $ticketId, int $agentId): bool
+    public function assignIfUnassigned(int $ticketId, int $agentId, int $capacity = PHP_INT_MAX): bool
     {
-        return (bool) $this->store->transaction([self::TABLE], function (JsonStore $store) use ($ticketId, $agentId): bool {
+        return (bool) $this->store->transaction([self::TABLE], function (JsonStore $store) use ($ticketId, $agentId, $capacity): bool {
             $row = $store->find(self::TABLE, $ticketId);
             if ($row === null || ($row['agent_id'] ?? null) !== null || ($row['status'] ?? null) !== TicketStatus::Pending->value) {
                 return false; // başka biri önce aldı, iptal edildi ya da talep yok
+            }
+            $active = 0;
+            foreach ($store->all(self::TABLE) as $other) {
+                if (($other['agent_id'] ?? null) === $agentId
+                    && in_array($other['status'] ?? null, [TicketStatus::Taken->value, TicketStatus::InReview->value], true)) {
+                    $active++;
+                }
+            }
+            if ($active >= $capacity) {
+                return false; // personelin kapasitesi dolu
             }
             $store->update(self::TABLE, $ticketId, ['agent_id' => $agentId, 'status' => TicketStatus::Taken->value]);
 

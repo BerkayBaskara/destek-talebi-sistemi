@@ -140,7 +140,7 @@ final class Kernel
             $this->slaPolicyRepository,
             $this->slaCalculator,
             $this->priorityRepository,
-            new AssignmentService($this->userRepository, $this->ticketRepository),
+            new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService),
             $this->clock,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));

@@ -62,8 +62,8 @@ final class DemoSeeder
         ]);
         $this->seedCatalog();
 
-        // Personel yokken açılan talepler ortak havuzda kalır (ve bir kısmı müşterice iptal edilir).
-        $this->seedPoolAndCancelled($now);
+        // Personel yokken açılan ve müşterice iptal edilen talepler.
+        $this->seedCancelled($now);
 
         $accounts = array_merge($accounts, $this->seedUsers([
             [Role::Agent, 'P000001', 'Zeynep', 'Kaya'],
@@ -71,6 +71,11 @@ final class DemoSeeder
             [Role::Agent, 'P000003', 'Elif', 'Şahin'],
         ]));
         $this->seedWorkedTickets($now);
+
+        // Her personelin kapasitesi elindeki aktif talep sayısına eşitlenir; böylece sonra açılan talepler
+        // uygun personel bulamaz ve Talep Havuzu'nda bekler (yer açılınca otomatik atanır).
+        $this->fillCapacities();
+        $this->seedPool($now);
 
         $this->clock->set($now);
 
@@ -132,7 +137,17 @@ final class DemoSeeder
         return $created;
     }
 
-    private function seedPoolAndCancelled(DateTimeImmutable $now): void
+    private function fillCapacities(): void
+    {
+        $load = $this->kernel->ticketRepository()->countActiveByAgent();
+        $repo = $this->kernel->userRepository();
+        foreach ($repo->findByRole(Role::Agent) as $agent) {
+            $agent->capacity = max(1, $load[(int) $agent->id] ?? 0);
+            $repo->save($agent);
+        }
+    }
+
+    private function seedPool(DateTimeImmutable $now): void
     {
         $pool = [
             ['M100003', 1, self::LOW, 'Ek monitör talebi', 'Çift ekranla çalışmak için ikinci bir monitör istiyoruz.', '-2 hours'],
@@ -144,7 +159,10 @@ final class DemoSeeder
         foreach ($pool as [$customer, $category, $priority, $title, $description, $ago]) {
             $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
         }
+    }
 
+    private function seedCancelled(DateTimeImmutable $now): void
+    {
         $cancelled = [
             ['M100001', 2, self::NORMAL, 'Excel açılmıyor', 'Excel her açılışta donuyor. (Sonradan kendim çözdüm.)', '-2 days'],
             ['M100003', 1, self::LOW, 'Fare tekerleği', 'Fare tekerleği takılıyor.', '-3 days'],

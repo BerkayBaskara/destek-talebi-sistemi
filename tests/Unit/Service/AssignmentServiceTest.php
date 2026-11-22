@@ -23,10 +23,12 @@ final class AssignmentServiceTest extends TestCase
     private JsonUserRepository $users;
     private JsonTicketRepository $tickets;
     private AssignmentService $service;
+    private \App\Core\Storage\JsonStore $store;
 
     protected function setUp(): void
     {
         $store = $this->makeStore();
+        $this->store = $store;
         $this->users = new JsonUserRepository($store);
         $this->tickets = new JsonTicketRepository($store);
         $this->service = new AssignmentService($this->users, $this->tickets);
@@ -92,5 +94,46 @@ final class AssignmentServiceTest extends TestCase
         $this->giveTickets($p2, 1);
 
         self::assertSame($p1, $this->service->pickAgent()?->id);
+    }
+
+    private function capacityService(): AssignmentService
+    {
+        $logger = new \App\Service\AuditLogger(new \App\Repository\Json\JsonAuditLogRepository($this->store), new \App\Core\Clock\FixedClock(new DateTimeImmutable('2026-11-24 10:00')));
+        $settings = new \App\Service\SettingsService(new \App\Repository\Json\JsonSettingsRepository($this->store), $logger);
+        $staff = new \App\Service\StaffService($this->users, new \App\Service\AuthService($this->users), $settings, $logger);
+
+        return new AssignmentService($this->users, $this->tickets, $staff);
+    }
+
+    public function test_inactive_and_full_agents_are_skipped(): void
+    {
+        $p1 = $this->agent('P000001');
+        $p2 = $this->agent('P000002');
+        $p3 = $this->agent('P000003');
+        $inactive = $this->users->findById($p1);
+        self::assertNotNull($inactive);
+        $inactive->active = false;
+        $this->users->save($inactive);
+        $full = $this->users->findById($p2);
+        self::assertNotNull($full);
+        $full->capacity = 1;
+        $this->users->save($full);
+        $this->giveTickets($p2, 1);
+        $this->giveTickets($p3, 3);
+
+        self::assertSame($p3, $this->capacityService()->pickAgent()?->id);
+    }
+
+    public function test_all_full_leaves_ticket_in_pool(): void
+    {
+        $p1 = $this->agent('P000001');
+        $agent = $this->users->findById($p1);
+        self::assertNotNull($agent);
+        $agent->capacity = 2;
+        $this->users->save($agent);
+        $this->giveTickets($p1, 2, TicketStatus::InReview);
+
+        self::assertNull($this->capacityService()->pickAgent());
+        self::assertSame(2, $this->capacityService()->capacityOf($agent));
     }
 }
