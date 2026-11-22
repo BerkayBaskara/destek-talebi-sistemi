@@ -7,6 +7,7 @@ namespace App\Seed;
 use App\Core\Clock\FixedClock;
 use App\Kernel;
 use App\Model\Category;
+use App\Service\CalendarService;
 use App\Service\PriorityService;
 use App\Model\Enum\Role;
 use App\Model\SlaPolicy;
@@ -82,6 +83,9 @@ final class DemoSeeder
      */
     public function seedCatalog(): void
     {
+        ['days' => $days, 'holidays' => $holidays] = CalendarService::readLegacyFile($this->kernel->rootDir() . '/storage/config/calendar.json');
+        $this->kernel->workCalendarRepository()->replaceAll($days, $holidays);
+
         $priorities = $this->kernel->priorityRepository();
         foreach (PriorityService::defaults() as $priority) {
             $priorities->save($priority);

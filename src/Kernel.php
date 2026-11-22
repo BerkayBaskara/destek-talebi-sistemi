@@ -26,6 +26,10 @@ use App\Repository\AuditLogRepositoryInterface;
 use App\Repository\Json\JsonAuditLogRepository;
 use App\Repository\Json\JsonSettingsRepository;
 use App\Repository\Json\JsonPriorityRepository;
+use App\Repository\Json\JsonWorkCalendarRepository;
+use App\Repository\WorkCalendarRepositoryInterface;
+use App\Service\CalendarService;
+use App\Service\CatalogService;
 use App\Repository\PriorityRepositoryInterface;
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\Json\JsonAttachmentRepository;
@@ -76,6 +80,9 @@ final class Kernel
     private readonly SettingsService $settingsService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
+    private readonly WorkCalendarRepositoryInterface $workCalendarRepository;
+    private readonly CalendarService $calendarService;
+    private readonly CatalogService $catalogService;
     private readonly UserRepositoryInterface $userRepository;
     private readonly AuthService $authService;
     private readonly TicketRepositoryInterface $ticketRepository;
@@ -118,7 +125,10 @@ final class Kernel
         $this->ticketLogRepository = new JsonTicketLogRepository($this->store);
 
         $config = $this->rootDir . '/storage/config';
-        $this->slaCalculator = new SlaCalculatorService(new JsonCalendarRepository($config . '/calendar.json'));
+        $this->workCalendarRepository = new JsonWorkCalendarRepository($this->store, null, new JsonCalendarRepository($config . '/calendar.json'));
+        $this->calendarService = new CalendarService($this->workCalendarRepository, $this->auditLogger);
+        $this->catalogService = new CatalogService($this->categoryRepository, $this->priorityRepository, $this->slaPolicyRepository, $this->auditLogger);
+        $this->slaCalculator = new SlaCalculatorService($this->workCalendarRepository);
         $this->slaStatusService = new SlaStatusService($this->slaCalculator, $this->clock);
         $this->ticketService = new TicketService(
             $this->ticketRepository,
@@ -324,6 +334,21 @@ final class Kernel
     public function priorityService(): PriorityService
     {
         return $this->priorityService;
+    }
+
+    public function workCalendarRepository(): WorkCalendarRepositoryInterface
+    {
+        return $this->workCalendarRepository;
+    }
+
+    public function calendarService(): CalendarService
+    {
+        return $this->calendarService;
+    }
+
+    public function catalogService(): CatalogService
+    {
+        return $this->catalogService;
     }
 
     public function settingsService(): SettingsService
