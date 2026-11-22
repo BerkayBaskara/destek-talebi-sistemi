@@ -22,6 +22,11 @@ final class JsonCategoryRepository implements CategoryRepositoryInterface
         return array_map(static fn (array $row): Category => Category::fromArray($row), $this->store->all(self::TABLE));
     }
 
+    public function findActive(): array
+    {
+        return array_values(array_filter($this->findAll(), static fn (Category $c): bool => $c->active));
+    }
+
     public function findById(int $id): ?Category
     {
         $row = $this->store->find(self::TABLE, $id);

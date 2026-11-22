@@ -153,7 +153,7 @@ final class TicketController
     {
         return [
             'title' => 'Yeni destek talebi',
-            'categories' => $this->kernel->categoryRepository()->findAll(),
+            'categories' => $this->kernel->categoryRepository()->findActive(),
             'priorities' => $this->kernel->priorityRepository()->findActive(),
             'old' => $old,
             'errors' => $errors,

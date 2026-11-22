@@ -86,7 +86,7 @@ final class TicketService
         }
 
         $errors = [];
-        if ($this->categories->findById($categoryId) === null) {
+        if (!($this->categories->findById($categoryId)->active ?? false)) {
             $errors['category_id'] = 'Geçerli bir kategori seçin.';
         }
         if ($chosen === null) {
