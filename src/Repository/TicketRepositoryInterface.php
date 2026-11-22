@@ -21,7 +21,7 @@ interface TicketRepositoryInterface
 
     public function findById(int $id): ?Ticket;
 
-    /** @return list<Ticket> Talep Havuzu: kimseye atanmamış, Beklemede durumundaki talepler (eskiden yeniye). */
+    /** @return list<Ticket> Görev Havuzu: kimseye atanmamış, Beklemede durumundaki talepler (eskiden yeniye). */
     public function getPoolTickets(): array;
 
     /** @return list<Ticket> */

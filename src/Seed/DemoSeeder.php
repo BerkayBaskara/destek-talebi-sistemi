@@ -73,7 +73,7 @@ final class DemoSeeder
         $this->seedWorkedTickets($now);
 
         // Her personelin kapasitesi elindeki aktif talep sayısına eşitlenir; böylece sonra açılan talepler
-        // uygun personel bulamaz ve Talep Havuzu'nda bekler (yer açılınca otomatik atanır).
+        // uygun personel bulamaz ve Görev Havuzu'nda bekler (yer açılınca otomatik atanır).
         $this->fillCapacities();
         $this->seedPool($now);
 

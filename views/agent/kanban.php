@@ -8,7 +8,7 @@ use App\Controller\KanbanController;
 <section class="card">
     <div class="card-head">
         <h1>Kanban</h1>
-        <a class="btn btn-light" href="/havuz">Talep Havuzu</a>
+        <a class="btn btn-light" href="/havuz">Görev Havuzu</a>
     </div>
     <div id="kanban-error" class="alert alert-error" role="alert" hidden></div>
     <div class="kanban">

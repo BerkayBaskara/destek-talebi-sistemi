@@ -12,7 +12,7 @@ use App\Model\State\InvalidTransitionException;
 use App\Model\Ticket;
 use App\Service\TicketService;
 
-/** Personel ekranları: Talep Havuzu ("üzerime al") ve Görevlerim (personele atanan talepler). */
+/** Personel ekranları: Görev Havuzu ("üzerime al") ve Görevlerim (personele atanan talepler). */
 final class AgentController
 {
     public function __construct(private readonly Kernel $kernel, private readonly TicketService $tickets)
@@ -24,7 +24,7 @@ final class AgentController
         $this->kernel->requireRole(Role::Agent, Role::Admin);
 
         return $this->kernel->render('agent/pool', [
-            'title' => 'Talep Havuzu',
+            'title' => 'Görev Havuzu',
             'rows' => $this->rows($this->kernel->ticketRepository()->getPoolTickets()),
         ]);
     }

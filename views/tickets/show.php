@@ -43,7 +43,7 @@ $date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
         </dl>
         <dl class="detail-list">
             <div><dt>Durum</dt><dd><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></dd></div>
-            <div><dt>Atanan Personel</dt><dd><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></dd></div>
+            <div><dt>Atanan Personel</dt><dd><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Görev Havuzu') ?></dd></div>
             <div><dt>Bitiş Tarihi</dt><dd><?= e($date($ticket->deadline)) ?></dd></div>
             <div><dt>Kalan Süre</dt><dd><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></dd></div>
             <?php if ($ticket->attemptCount > 0): ?>

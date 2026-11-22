@@ -73,13 +73,13 @@ final class UiTest extends FeatureTestCase
         $this->loginAs($agent->customerNo, self::PASSWORD);
 
         $tasks = $this->get('/personel/talepler')->body;
-        self::assertStringContainsString('<a href="/havuz">Talep Havuzu</a>', $tasks);
+        self::assertStringContainsString('<a href="/havuz">Görev Havuzu</a>', $tasks);
         self::assertStringContainsString('<a href="/personel/talepler">Görevlerim</a>', $tasks);
         self::assertStringContainsString('<h1>Görevlerim</h1>', $tasks);
         self::assertStringNotContainsString('Bana Atanan', $tasks);
         self::assertStringNotContainsString('Ortak Havuz', $tasks);
 
-        self::assertStringContainsString('<h1>Talep Havuzu</h1>', $this->get('/havuz')->body);
+        self::assertStringContainsString('<h1>Görev Havuzu</h1>', $this->get('/havuz')->body);
         self::assertStringNotContainsString('Kartı sürükleyip', $this->get('/kanban')->body);
     }
 

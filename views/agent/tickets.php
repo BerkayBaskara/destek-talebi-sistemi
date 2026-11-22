@@ -8,7 +8,7 @@
         <a class="btn btn-light" href="/kanban">Kanban görünümü</a>
     </div>
     <?php if ($rows === []): ?>
-        <p class="muted">Size atanmış talep yok. <a href="/havuz">Talep Havuzu</a> sayfasına bakabilirsiniz.</p>
+        <p class="muted">Size atanmış talep yok. <a href="/havuz">Görev Havuzu</a> sayfasına bakabilirsiniz.</p>
     <?php else: ?>
         <table class="table">
             <thead><tr><th>ID</th><th>Konu Başlığı</th><th>Öncelik</th><th>Durum</th><th>SLA Kalan Süre</th></tr></thead>

@@ -288,7 +288,7 @@ Ekip içi gözden geçirmeden sonra Aşama 2 aşağıdaki değişikliklerle geni
 **Değişen kurallar:**
 
 - Öncelikler ve anahtar kelimeler yönetici ekranından yönetilir (`storage/config/priority_keywords.json` kaldırıldı). Yükseltilen öncelik, adın sağ üstünde yıldız ve "Öncelik seviyesi yükseltildi" bilgi kutusuyla gösterilir.
-- Otomatik atama yalnız aktif ve kapasitesi dolmamış personeli seçer. Uygun personel yoksa talep Talep Havuzu'nda bekler; bir talep çözülünce, kapanınca ya da iptal edilince, yönetici kapasiteyi artırınca veya personeli aktif yapınca en eski talepten başlanarak atanır. Kapasite kontrolü atama ile aynı kilit içinde yapılır.
+- Otomatik atama yalnız aktif ve kapasitesi dolmamış personeli seçer. Uygun personel yoksa talep Görev Havuzu'nda bekler; bir talep çözülünce, kapanınca ya da iptal edilince, yönetici kapasiteyi artırınca veya personeli aktif yapınca en eski talepten başlanarak atanır. Kapasite kontrolü atama ile aynı kilit içinde yapılır.
 - Personel hesapları yönetici ekranından açılır; yönetici hesabı yalnız `php bin/create-admin.php` ile. Pasif kullanıcı giriş yapamaz, açık oturumu bir sonraki istekte sonlanır.
 - Şifre kuralı: en az 8 karakter, en az bir harf, bir rakam ve bir noktalama işareti.
 - Çözüldü durumundaki talebe personel ve yönetici yanıt yazamaz (müşterinin onayı ya da reddi beklenir); SLA süresi aşılmış talebe yazmak serbesttir.

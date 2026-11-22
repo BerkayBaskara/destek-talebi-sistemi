@@ -4,7 +4,7 @@
 /** @var \App\Core\View $view */
 ?>
 <section class="card">
-    <h1>Talep Havuzu</h1>
+    <h1>Görev Havuzu</h1>
     <p class="muted">Henüz hiçbir personele atanmamış talepler. Üzerinize aldığınız talep size atanır; aynı talebi iki kişi alamaz.</p>
     <?php if ($rows === []): ?>
         <p class="muted">Havuzda bekleyen talep yok.</p>

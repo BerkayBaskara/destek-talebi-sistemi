@@ -11,7 +11,7 @@ Proje, dinamik SLA (Hizmet Seviyesi Sözleşmesi) hesaplamaları, puanlama taban
 - **Dinamik SLA Hesaplama:** Yöneticiler tarafından yüklenen JSON tabanlı tatil ve mesai saatleri dosyasına göre çalışma dışı saatleri atlayarak milisaniye hassasiyetinde SLA bitiş tarihi hesaplar.
 - **Puanlama:** Personel talepleri tek seferde çözdüğünde tam puan, 2. ve 3. denemelerde azalan puanlar alır. Eskalasyon devirlerinde asıl personel puan kaybederken, devralan personel %20 bonus zorluk puanı kazanır.
 - **State ve Observer Desenleri:** Biletlerin durum geçişleri (Bekleniyor -> İşlemde -> Çözüldü -> Kapalı) State deseni ile korunur. SLA süre bitimleri veya yönetici izin girişleri Observer deseni ile dinlenerek anında otomatik eskalasyon tetikler.
-- **Havuz ve İzin Yönetimi (Smart Dispatch):** Uygun personel bulunamayan biletler Talep Havuzu'na düşer ve personelde yer açılınca otomatik atanır. İzni olan personeller havuza dahil edilmez. Aynı bileti iki personelin almasını engellemek için veritabanında satır kilidi kullanılır.
+- **Havuz ve İzin Yönetimi (Smart Dispatch):** Uygun personel bulunamayan biletler Görev Havuzu'na düşer ve personelde yer açılınca otomatik atanır. İzni olan personeller havuza dahil edilmez. Aynı bileti iki personelin almasını engellemek için veritabanında satır kilidi kullanılır.
 - **Sorgulama Hakkı ve Oto-Kapanış:** Personelin çözüme ulaşmak için SLA süresini dondurmadan müşteriye en fazla 2 soru sorma hakkı vardır. Çözülen talepler 3 iş günü içinde müşteri yanıtı almazsa otomatik olarak kapanır.
 - **Üst Düzey Güvenlik:** Tüm formlarda CSRF Token, PDO ile SQL Injection koruması, XSS çıktı kaçışları (escaping) ve N-2 tarayıcı desteği mevcuttur. Müşteriler şifrelerini "Gizli Soru" mantığıyla sıfırlayabilir.
 
@@ -64,7 +64,7 @@ Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her
 | FR-01 talep formu, FR-02 ek dosya, FR-03 akıllı öncelik, FR-04 otomatik atama, FR-05 SLA hesabı, FR-06 State, FR-07 %80/%100 uyarı, FR-09 AJAX Kanban, FR-19 durum geçmişi | ✅ |
 | Kayıt / giriş / gizli soruyla şifre sıfırlama, 3 rol, arama + filtre, Aşama 2 özet raporu | ✅ |
 | Sistem Yapılandırması: site ayarları ve logo, kategoriler, öncelik seviyeleri ve anahtar kelimeler, SLA tablosu (FR-10), çalışma takvimi ve tatiller (FR-11, FR-13), personel hesapları, aktif/pasif durum ve kapasite, denetim kaydı | ✅ |
-| Talep Havuzu: uygun personel yoksa talep bekler, yer açılınca otomatik atanır; "Üzerime Al" kapasiteye uyar | ✅ |
+| Görev Havuzu: uygun personel yoksa talep bekler, yer açılınca otomatik atanır; "Üzerime Al" kapasiteye uyar | ✅ |
 | FR-08 eskalasyon, FR-12, FR-14–18, FR-20–22, MySQL | Aşama 3 |
 
 Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test).
@@ -78,7 +78,7 @@ composer install
 php bin/seed.php
 ```
 
-`php bin/seed.php` örnek veriyi sıfırdan üretir (storage/data içindeki tüm veriyi siler). Sarı/kırmızı SLA örnekleri seed'in çalıştığı ana göre ayarlanır; **sunumdan hemen önce yeniden çalıştırın**. Örnek veride her personelin kapasitesi elindeki talep sayısına eşittir; bu yüzden birkaç talep Talep Havuzu'nda bekler. Yönetici bir personelin kapasitesini artırınca ya da bir talep çözülünce bu talepler otomatik atanır.
+`php bin/seed.php` örnek veriyi sıfırdan üretir (storage/data içindeki tüm veriyi siler). Sarı/kırmızı SLA örnekleri seed'in çalıştığı ana göre ayarlanır; **sunumdan hemen önce yeniden çalıştırın**. Örnek veride her personelin kapasitesi elindeki talep sayısına eşittir; bu yüzden birkaç talep Görev Havuzu'nda bekler. Yönetici bir personelin kapasitesini artırınca ya da bir talep çözülünce bu talepler otomatik atanır.
 
 **Yönetici hesabı** web'den açılamaz; yalnız sunucuda komut satırından oluşturulur:
 

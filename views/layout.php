@@ -44,12 +44,12 @@ use App\Model\Enum\Role;
                     <a href="/talepler/yeni">Yeni Talep</a>
                 <?php elseif ($currentUser->role === Role::Agent): ?>
                     <a href="/kanban">Kanban</a>
-                    <a href="/havuz">Talep Havuzu</a>
+                    <a href="/havuz">Görev Havuzu</a>
                     <a href="/personel/talepler">Görevlerim</a>
                 <?php else: ?>
                     <a href="/yonetici">Tüm Talepler</a>
                     <a href="/yonetici/ozet">Özet Rapor</a>
-                    <a href="/havuz">Talep Havuzu</a>
+                    <a href="/havuz">Görev Havuzu</a>
                     <a href="/yonetici/ayarlar">Sistem Yapılandırması</a>
                 <?php endif; ?>
                 <span class="who"><?= e($currentUser->fullName()) ?> (<?= e($currentUser->role->label()) ?>)</span>
