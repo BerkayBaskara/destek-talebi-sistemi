@@ -51,6 +51,8 @@ final class Ticket
         public ?DateTimeImmutable $pausedAt = null,
         /** Müşterinin soruyu yanıtlaması gereken an; geçerse SLA kendiliğinden devam eder. */
         public ?DateTimeImmutable $questionDueAt = null,
+        /** %80 uyarısı gönderilen bitiş zamanı (aynı bitiş için bir kez uyarılır). */
+        public ?DateTimeImmutable $warnedAt = null,
     ) {
     }
 
@@ -122,6 +124,7 @@ final class Ticket
             self::stringMap($row['extra_fields'] ?? null),
             self::date($row['paused_at'] ?? null),
             self::date($row['question_due_at'] ?? null),
+            self::date($row['warned_at'] ?? null),
         );
     }
 
@@ -153,6 +156,7 @@ final class Ticket
             'extra_fields' => $this->extraFields,
             'paused_at' => $this->pausedAt?->format(DATE_ATOM),
             'question_due_at' => $this->questionDueAt?->format(DATE_ATOM),
+            'warned_at' => $this->warnedAt?->format(DATE_ATOM),
         ];
     }
 

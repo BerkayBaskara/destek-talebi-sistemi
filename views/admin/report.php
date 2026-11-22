@@ -10,6 +10,7 @@
 /** @var array<int, string> $names */
 /** @var callable(int): string $format */
 /** @var string $query */
+/** @var list<array{at: string, code: string, ticketId: int, transfer: string, reason: string, note: string}> $escalations */
 /** @var \App\Core\View $view */
 
 use App\Model\Enum\TicketStatus;
@@ -108,3 +109,27 @@ $f = static fn (string $key): string => is_string($filters[$key] ?? null) ? $fil
         </div>
     <?php endif; ?>
 </section>
+<section class="card">
+    <h2>Eskalasyon Kayıtları</h2>
+    <?php if ($escalations === []): ?>
+        <p class="muted">Bu süzgece uyan eskalasyon yok.</p>
+    <?php else: ?>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Tarih</th><th>Talep</th><th>Devir</th><th>Neden</th><th>Not</th></tr></thead>
+                <tbody>
+                <?php foreach ($escalations as $row): ?>
+                    <tr>
+                        <td data-label="Tarih"><?= e(\App\Model\Ticket::date($row['at'])?->format('d.m.Y H:i') ?? '') ?></td>
+                        <td data-label="Talep"><a href="/talepler/<?= e($row['ticketId']) ?>"><?= e($row['code']) ?></a></td>
+                        <td data-label="Devir"><?= e($row['transfer']) ?></td>
+                        <td data-label="Neden"><?= e($row['reason']) ?></td>
+                        <td data-label="Not"><?= e($row['note']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>
+

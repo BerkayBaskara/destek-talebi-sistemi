@@ -66,6 +66,18 @@ final class JsonNotificationRepository implements NotificationRepositoryInterfac
         return Notification::fromArray($row);
     }
 
+    public function markUnread(int $userId, int $id): bool
+    {
+        $row = $this->store->find(self::TABLE, $id);
+        if ($row === null || ($row['user_id'] ?? null) !== $userId) {
+            return false;
+        }
+        $row['read_at'] = null;
+        $this->store->update(self::TABLE, $id, $row);
+
+        return true;
+    }
+
     public function markAllRead(int $userId, DateTimeImmutable $at): void
     {
         $this->store->transaction([self::TABLE], function (JsonStore $store) use ($userId, $at): void {

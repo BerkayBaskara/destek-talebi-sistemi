@@ -27,6 +27,7 @@ final class NotificationService
         'continue' => 'Müşteri aynı personelle devam etti',
         'closed' => 'Talep kapatıldı',
         'staff_deactivated' => 'Hareketsiz personel pasif yapıldı (yöneticiye)',
+        'sla_warning' => "SLA süresinin %80'i doldu (personele)",
     ];
 
     public function __construct(
@@ -46,8 +47,8 @@ final class NotificationService
 
     public function notify(int $userId, string $type, ?int $ticketId, string $message): void
     {
-        if ($userId <= 0 || !$this->isEnabled($type)) {
-            return;
+        if ($userId <= 0 || !$this->isEnabled($type) || $this->users->findById($userId) === null) {
+            return; // kapalı tür ya da var olmayan kullanıcı: bildirim oluşturulmaz
         }
         $this->notifications->add(new Notification(null, $userId, $type, $ticketId, $message, $this->clock->now()));
     }

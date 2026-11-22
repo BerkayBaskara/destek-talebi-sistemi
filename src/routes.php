@@ -61,6 +61,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/bildirimler', static fn (Request $r, array $p): Response => $notifications->index());
     $router->add('POST', '/bildirimler/okundu', static fn (Request $r, array $p): Response => $notifications->markAllRead());
     $router->add('GET', '/bildirimler/{id}', static fn (Request $r, array $p): Response => $notifications->open((int) $p['id']));
+    $router->add('POST', '/bildirimler/{id}/okunmadi', static fn (Request $r, array $p): Response => $notifications->markUnread((int) $p['id']));
     $router->add('GET', '/api/bildirimler/sayi', static fn (Request $r, array $p): Response => $notifications->count());
 
     // Ek dosyalar (yalnız yetkili kullanıcıya)

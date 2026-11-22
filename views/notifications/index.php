@@ -19,7 +19,14 @@
             <?php foreach ($notifications as $n): ?>
                 <li class="<?= $n->readAt === null ? 'unread' : '' ?>">
                     <a href="/bildirimler/<?= e($n->id) ?>"><?= e($n->message) ?></a>
-                    <span class="muted"><?= e($n->createdAt->format('d.m.Y H:i')) ?><?= $n->readAt === null ? ' · yeni' : '' ?></span>
+                    <span class="muted"><?= e($n->createdAt->format('d.m.Y H:i')) ?><?= $n->readAt === null ? ' · yeni' : '' ?>
+                        <?php if ($n->readAt !== null): ?>
+                            <form method="post" action="/bildirimler/<?= e($n->id) ?>/okunmadi" class="inline-form">
+                                <?= $csrfField() ?>
+                                <button type="submit" class="linklike link-small">Okunmadı yap</button>
+                            </form>
+                        <?php endif; ?>
+                    </span>
                 </li>
             <?php endforeach; ?>
         </ul>

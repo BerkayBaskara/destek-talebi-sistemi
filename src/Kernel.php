@@ -206,7 +206,7 @@ final class Kernel
             $this->clock,
         );
         $this->ticketService->attachObserver(new EscalationObserver($this->escalationService));
-        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, $this->ticketService, $this->staffService, $this->notificationService, new JsonRuntimeStateRepository($this->store), $this->clock);
+        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, $this->ticketService, $this->staffService, $this->notificationService, $this->slaStatusService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
 

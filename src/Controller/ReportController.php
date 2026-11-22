@@ -47,6 +47,7 @@ final class ReportController
             'agents' => $this->kernel->userRepository()->findByRole(Role::Agent),
             'names' => $this->names(),
             'format' => fn (int $minutes): string => $this->kernel->slaStatusService()->formatMinutes($minutes),
+            'escalations' => $this->escalations($tickets),
             'query' => http_build_query(array_filter($request->query, static fn ($v): bool => is_string($v) && $v !== '')),
         ]);
     }
@@ -102,6 +103,49 @@ final class ReportController
             'category' => (int) $request->string('kategori'),
             'agent' => (int) $request->string('personel'),
         ];
+    }
+
+    private const REASONS = [
+        'sla_breach' => 'SLA aşıldı (beklemeden)',
+        'sla_no_response' => 'SLA aşımında müşteri yanıt vermedi',
+        'manual' => 'Manuel (personel)',
+        'rejected_limit' => 'Çözüm 3 kez reddedildi',
+        'previous_unavailable' => 'Önceki personel uygun değil',
+    ];
+
+    /**
+     * RPT-011: süzülen taleplerin eskalasyon (devir) kayıtları, en yeni önce.
+     *
+     * @param list<Ticket> $tickets
+     * @return list<array{at: string, code: string, ticketId: int, transfer: string, reason: string, note: string}>
+     */
+    private function escalations(array $tickets): array
+    {
+        $byId = [];
+        foreach ($tickets as $ticket) {
+            $byId[(int) $ticket->id] = $ticket;
+        }
+        $names = $this->names();
+        $rows = [];
+        foreach ($this->kernel->escalationRepository()->all() as $e) {
+            $ticket = $byId[$e['ticket_id']] ?? null;
+            if ($ticket === null) {
+                continue;
+            }
+            $from = $e['from_agent_id'] !== null ? ($names[$e['from_agent_id']] ?? '-') : '-';
+            $to = $e['to_agent_id'] !== null ? ($names[$e['to_agent_id']] ?? '-') : 'Yönetici müdahalesi';
+            $rows[] = [
+                'at' => $e['created_at'],
+                'code' => $ticket->displayCode(),
+                'ticketId' => (int) $ticket->id,
+                'transfer' => $from . ' → ' . $to,
+                'reason' => self::REASONS[$e['reason']] ?? $e['reason'],
+                'note' => (string) $e['note'],
+            ];
+        }
+        usort($rows, static fn (array $a, array $b): int => $b['at'] <=> $a['at']);
+
+        return $rows;
     }
 
     /** @return array<int, string> */

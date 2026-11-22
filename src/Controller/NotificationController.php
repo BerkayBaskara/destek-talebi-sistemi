@@ -36,6 +36,16 @@ final class NotificationController
         return Response::redirect($notification->ticketId !== null ? '/talepler/' . $notification->ticketId : '/bildirimler');
     }
 
+    public function markUnread(int $id): Response
+    {
+        $user = $this->kernel->requireRole();
+        if (!$this->kernel->notificationRepository()->markUnread((int) $user->id, $id)) {
+            throw new NotFoundException('Bildirim bulunamadı.');
+        }
+
+        return Response::redirect('/bildirimler');
+    }
+
     public function markAllRead(): Response
     {
         $user = $this->kernel->requireRole();

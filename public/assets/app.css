@@ -289,4 +289,5 @@ input.input-name[type="text"] { max-width: 140px; padding: 6px 8px; margin-botto
 .day-off { background: #eef1f4; color: var(--muted); }
 .month-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-size: 0.85em; }
 .legend { padding: 2px 8px; border-radius: 6px; }
+.link-small { font-size: 0.85em; color: var(--link); text-decoration: underline; }
 

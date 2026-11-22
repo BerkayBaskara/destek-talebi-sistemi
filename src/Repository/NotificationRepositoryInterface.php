@@ -20,4 +20,7 @@ interface NotificationRepositoryInterface
     public function markRead(int $userId, int $id, DateTimeImmutable $at): ?Notification;
 
     public function markAllRead(int $userId, DateTimeImmutable $at): void;
+
+    /** Bildirim bu kullanıcıya aitse okunmadı yapar ve true döner. */
+    public function markUnread(int $userId, int $id): bool;
 }

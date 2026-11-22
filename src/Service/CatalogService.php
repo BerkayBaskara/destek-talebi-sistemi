@@ -61,6 +61,11 @@ final class CatalogService
         if (!isset(self::FIELD_TYPES[$type])) {
             $errors['field_type'] = 'Geçerli bir alan türü seçin.';
         }
+        foreach ($this->fields?->forCategory($categoryId) ?? [] as $existing) {
+            if (!isset($errors['field_label']) && Text::fold($existing['label']) === Text::fold($label)) {
+                $errors['field_label'] = 'Bu kategoride aynı adlı bir alan zaten var.';
+            }
+        }
         $choices = array_values(array_unique(array_filter(array_map('trim', explode(',', $options)), static fn (string $o): bool => $o !== '')));
         if ($type === 'select' && $choices === []) {
             $errors['field_options'] = 'Seçim alanı için en az bir seçenek yazın.';

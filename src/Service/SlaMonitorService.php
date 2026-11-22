@@ -26,6 +26,7 @@ final class SlaMonitorService
         private readonly TicketService $ticketService,
         private readonly StaffService $staff,
         private readonly NotificationService $notifications,
+        private readonly SlaStatusService $slaStatus,
         private readonly RuntimeStateRepositoryInterface $state,
         private readonly ClockInterface $clock,
     ) {
@@ -37,6 +38,27 @@ final class SlaMonitorService
         if ($this->state->claim(self::KEY, $this->clock->now()->getTimestamp(), self::INTERVAL_SECONDS)) {
             $this->run();
         }
+    }
+
+    /** NOT-010, FR-07: SLA'nın %80'i dolan etkin talep için personele bir kez uyarı bildirimi. */
+    private function warn(\App\Model\Ticket $ticket): bool
+    {
+        if (!in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true) || $ticket->agentId === null
+            || $ticket->isOnHold() || $ticket->pausedAt !== null
+            || $ticket->warnedAt?->getTimestamp() === $ticket->deadline->getTimestamp()) {
+            return false;
+        }
+        $status = $this->slaStatus->forTicket($ticket);
+        if ($status->level !== 'warning') {
+            return false;
+        }
+        $ticket->warnedAt = $ticket->deadline;
+        if (!$this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            return false;
+        }
+        $this->notifications->notify($ticket->agentId, 'sla_warning', (int) $ticket->id, $ticket->displayCode() . " talebinde SLA süresinin %80'i doldu; kalan süre: " . $this->slaStatus->formatMinutes($status->remainingMinutes) . '.');
+
+        return true;
     }
 
     /** @return array{breaches: int, escalations: int, completed: int} */
@@ -56,6 +78,8 @@ final class SlaMonitorService
                 && $ticket->status === TicketStatus::Pending && $ticket->agentId === null) {
                 $this->escalation->escalate($ticket, EscalationService::REASON_NO_RESPONSE, TicketLog::SYSTEM_USER, 'SLA aşımında müşteri yanıt vermedi');
                 $result['escalations']++;
+            } elseif ($this->warn($ticket)) {
+                // %80 uyarısı gönderildi
             } elseif ($this->escalation->handleBreach($ticket)) {
                 $result['breaches']++;
             } elseif ($this->escalation->autoComplete($ticket)) {
