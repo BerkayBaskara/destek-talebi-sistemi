@@ -27,10 +27,29 @@ final class AuthService
         'En sevdiğiniz yemek nedir?',
     ];
 
-    /** Şifre sıfırlamada izin verilen hatalı cevap sayısı ve süresi (FR-31). */
-    public const RESET_ATTEMPTS = 5;
-    public const RESET_WINDOW_SECONDS = 900;
-    public const RESET_BLOCKED = 'Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin.';
+    /** Giriş ve şifre sıfırlamada hatalı deneme sınırı (FR-31, NFR-19); değerler yönetici ayarından. */
+    private function attemptLimit(): int
+    {
+        return $this->settings?->int('auth.max_attempts') ?? 5;
+    }
+
+    private function lockMinutes(): int
+    {
+        return $this->settings?->int('auth.lock_minutes') ?? 5;
+    }
+
+    /** Bu anahtarda engel varsa nedenini atar. @throws AuthorizationException */
+    private function assertNotLocked(string $key, int $now): void
+    {
+        if ($this->attempts !== null && $this->attempts->countSince($key, $now - $this->lockMinutes() * 60) >= $this->attemptLimit()) {
+            throw new AuthorizationException('Çok fazla hatalı deneme yapıldı. ' . $this->lockMinutes() . ' dakika sonra tekrar deneyin.');
+        }
+    }
+
+    private function now(): int
+    {
+        return $this->clock?->now()->getTimestamp() ?? time();
+    }
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
@@ -103,12 +122,24 @@ final class AuthService
 
     public function login(string $customerNo, #[\SensitiveParameter] string $password): ?User
     {
-        $user = $this->users->findByCustomerNo(self::normalizeNumber($customerNo));
+        $number = self::normalizeNumber($customerNo);
+        $key = 'login:' . $number;
+        $now = $this->now();
+        $this->assertNotLocked($key, $now);
+
+        $user = $this->users->findByCustomerNo($number);
         if ($user === null || !password_verify($password, $user->passwordHash)) {
+            $this->attempts?->record($key, $now);
+
             return null;
         }
+        $this->attempts?->clear($key);
         if (!$user->active) {
             throw new AuthorizationException('Hesabınız pasif durumda. Lütfen yöneticinize başvurun.');
+        }
+        if ($this->clock !== null) {
+            $user->lastLoginAt = $this->clock->now();
+            $this->users->save($user);
         }
 
         return $user;
@@ -133,9 +164,11 @@ final class AuthService
 
         $number = self::normalizeNumber($customerNo);
         $key = 'reset:' . $number;
-        $now = $this->clock?->now()->getTimestamp() ?? time();
-        if ($this->attempts !== null && $this->attempts->countSince($key, $now - self::RESET_WINDOW_SECONDS) >= self::RESET_ATTEMPTS) {
-            throw new ValidationException(['secret_answer' => self::RESET_BLOCKED]);
+        $now = $this->now();
+        try {
+            $this->assertNotLocked($key, $now);
+        } catch (AuthorizationException $e) {
+            throw new ValidationException(['secret_answer' => $e->getMessage()]);
         }
 
         $user = $this->users->findByCustomerNo($number);

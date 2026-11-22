@@ -96,6 +96,11 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/yonetici/ayarlar/logo', static fn (Request $r, array $p): Response => $settings->uploadLogo($r));
     $router->add('POST', '/yonetici/ayarlar/dosya', static fn (Request $r, array $p): Response => $settings->saveFiles($r));
     $router->add('POST', '/yonetici/ayarlar/sorular', static fn (Request $r, array $p): Response => $settings->saveQuestions($r));
+    $router->add('GET', '/yonetici/ayarlar/guvenlik', static fn (Request $r, array $p): Response => $settings->securityPage());
+    $router->add('POST', '/yonetici/ayarlar/guvenlik', static fn (Request $r, array $p): Response => $settings->saveSecurity($r));
+    $router->add('POST', '/yonetici/ayarlar/bildirimler', static fn (Request $r, array $p): Response => $settings->saveNotifications($r));
+    $router->add('POST', '/yonetici/ayarlar/ana-gorsel', static fn (Request $r, array $p): Response => $settings->uploadHomeImage($r));
+    $router->add('POST', '/yonetici/ayarlar/ana-gorsel/kaldir', static fn (Request $r, array $p): Response => $settings->removeHomeImage());
     $router->add('GET', '/yonetici/denetim', static fn (Request $r, array $p): Response => $settings->audit());
     $router->add('GET', '/yonetici/yedek', static fn (Request $r, array $p): Response => $settings->backupPage());
     $router->add('POST', '/yonetici/yedek/indir', static fn (Request $r, array $p): Response => $settings->backupDownload());

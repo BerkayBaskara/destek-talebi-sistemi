@@ -25,6 +25,7 @@ final class HomeController
                 'title' => 'Ana Sayfa',
                 'heading' => $settings->string('site.home_heading'),
                 'text' => $settings->string('site.home_text'),
+                'image' => $settings->string('site.home_image'),
             ]);
         }
 

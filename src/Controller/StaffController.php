@@ -51,11 +51,14 @@ final class StaffController
 
         $before = $this->kernel->userRepository()->findById($id);
         try {
+            if ($request->input('name') !== null) {
+                $staff->rename($admin, $id, $request->string('name'), $request->string('surname'));
+            }
             $capacity = $staff->parseCapacity($capacityInput);
             $agent = $staff->setCapacity($admin, $id, $capacity);
             $agent = $staff->setActive($admin, $id, $active);
         } catch (ValidationException $e) {
-            return $this->view([], [], $id, ['capacity' => $capacityInput, 'active' => $active ? '1' : ''], $e->errors(), 422);
+            return $this->view([], [], $id, ['capacity' => $capacityInput, 'active' => $active ? '1' : '', 'name' => $request->string('name'), 'surname' => $request->string('surname')], $e->errors(), 422);
         }
 
         $message = SettingsController::SAVED;

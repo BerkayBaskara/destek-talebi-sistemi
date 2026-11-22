@@ -24,6 +24,8 @@ final class SlaMonitorService
         private readonly TicketRepositoryInterface $tickets,
         private readonly EscalationService $escalation,
         private readonly TicketService $ticketService,
+        private readonly StaffService $staff,
+        private readonly NotificationService $notifications,
         private readonly RuntimeStateRepositoryInterface $state,
         private readonly ClockInterface $clock,
     ) {
@@ -53,6 +55,11 @@ final class SlaMonitorService
             } elseif ($this->escalation->autoComplete($ticket)) {
                 $result['completed']++;
             }
+        }
+
+        // FR-49: uzun süre giriş yapmayan personel pasif yapılır; yöneticiye bildirilir.
+        foreach ($this->staff->deactivateInactive($now) as $agent) {
+            $this->notifications->notifyAdmins('staff_deactivated', null, $agent->fullName() . ' (' . $agent->customerNo . ') uzun süre giriş yapmadığı için pasif yapıldı.');
         }
 
         if ($result['breaches'] + $result['escalations'] + $result['completed'] > 0) {

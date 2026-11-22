@@ -7,6 +7,8 @@
 /** @var int $maxFiles */
 /** @var list<array{id: int, category_id: int, label: string, type: string, required: bool}> $extraFields */
 /** @var array<mixed> $oldExtra */
+/** @var list<\App\Model\User> $customers */
+/** @var string $oldCustomer */
 /** @var int $maxImageMb */
 /** @var int $maxVideoMb */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
@@ -18,6 +20,17 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
     <?php endif; ?>
     <form method="post" action="/talepler" enctype="multipart/form-data" novalidate>
         <?= $csrfField() ?>
+        <?php if ($customers !== []): ?>
+            <div class="form-row">
+                <label for="customer_id">Müşteri adına (boş bırakılırsa talep kendi hesabınızla açılır)</label>
+                <select id="customer_id" name="customer_id">
+                    <option value="">Kendi adıma / işletme adına</option>
+                    <?php foreach ($customers as $c): ?>
+                        <option value="<?= e($c->id) ?>"<?= $oldCustomer === (string) $c->id ? ' selected' : '' ?>><?= e($c->fullName() . ' (' . $c->customerNo . ')') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        <?php endif; ?>
         <div class="form-row">
             <label for="category_id">Kategori</label>
             <select id="category_id" name="category_id" required>

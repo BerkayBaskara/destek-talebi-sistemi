@@ -99,6 +99,59 @@ final class SettingsController
         return Response::redirect('/yonetici/ayarlar/site');
     }
 
+    /** Giriş/sıfırlama deneme sınırı ve oturum süresi (FR-31, NFR-19, NFR-10); hareketsizlik süresi (FR-49). */
+    public function saveSecurity(Request $request): Response
+    {
+        return $this->saveGroup($request, [
+            'max_attempts' => 'auth.max_attempts',
+            'lock_minutes' => 'auth.lock_minutes',
+            'idle_minutes' => 'auth.idle_minutes',
+            'inactivity_days' => 'staff.inactivity_days',
+        ], true);
+    }
+
+    /** Açık olan bildirim türleri (US-45); işaretlenmeyenler kapatılır. */
+    public function saveNotifications(Request $request): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $enabled = $request->input('enabled', []);
+        $enabled = is_array($enabled) ? array_map('strval', $enabled) : [];
+        $disabled = array_values(array_diff(array_keys(\App\Service\NotificationService::TYPES), $enabled));
+        $this->kernel->settingsService()->update($admin, ['notify.disabled' => implode(',', $disabled)]);
+        $this->kernel->session()->flash('success', self::SAVED);
+
+        return Response::redirect('/yonetici/ayarlar/site');
+    }
+
+    public function uploadHomeImage(Request $request): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $file = $request->files['home_image'] ?? [];
+        try {
+            $this->kernel->brandingService()->storeImage($admin, is_array($file) ? $file : [], 'site.home_image');
+        } catch (ValidationException $e) {
+            $settings = $this->kernel->settingsService();
+            $values = [];
+            foreach (self::SITE_FIELDS as $field => $key) {
+                $values[$field] = $settings->string($key);
+            }
+
+            return $this->siteView($values, $e->errors(), 422);
+        }
+        $this->kernel->session()->flash('success', self::SAVED);
+
+        return Response::redirect('/yonetici/ayarlar/site');
+    }
+
+    public function removeHomeImage(): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $this->kernel->brandingService()->removeImage($admin, 'site.home_image');
+        $this->kernel->session()->flash('success', self::SAVED);
+
+        return Response::redirect('/yonetici/ayarlar/site');
+    }
+
     /** Dosya sınırları (görsel/PDF MB, video MB, dosya sayısı). */
     public function saveFiles(Request $request): Response
     {
@@ -120,12 +173,15 @@ final class SettingsController
      *
      * @param array<string, string> $fields form alanı → ayar anahtarı
      */
-    private function saveGroup(Request $request, array $fields): Response
+    private function saveGroup(Request $request, array $fields, bool $security = false): Response
     {
         $admin = $this->kernel->requireRole(Role::Admin);
         $values = [];
         $old = [];
         foreach ($fields as $field => $key) {
+            if ($request->input($field) === null) {
+                continue; // formda olmayan alan değiştirilmez
+            }
             $old[$field] = $request->string($field);
             $values[$key] = $field === 'questions' ? $old[$field] : trim($old[$field]);
         }
@@ -135,6 +191,9 @@ final class SettingsController
             $errors = [];
             foreach ($e->errors() as $key => $message) {
                 $errors[(string) array_search($key, $fields, true)] = $message;
+            }
+            if ($security) {
+                return $this->securityView($old, $errors, 422);
             }
             $settings = $this->kernel->settingsService();
             $siteValues = [];
@@ -146,7 +205,36 @@ final class SettingsController
         }
         $this->kernel->session()->flash('success', self::SAVED);
 
-        return Response::redirect('/yonetici/ayarlar/site');
+        return Response::redirect($security ? '/yonetici/ayarlar/guvenlik' : '/yonetici/ayarlar/site');
+    }
+
+    /** Güvenlik ve oturum ayarları sayfası. */
+    public function securityPage(): Response
+    {
+        $this->kernel->requireRole(Role::Admin);
+
+        return $this->securityView([], []);
+    }
+
+    /**
+     * @param array<string, string> $old
+     * @param array<string, string> $errors
+     */
+    private function securityView(array $old, array $errors, int $status = 200): Response
+    {
+        $settings = $this->kernel->settingsService();
+        $values = [
+            'max_attempts' => $settings->string('auth.max_attempts'),
+            'lock_minutes' => $settings->string('auth.lock_minutes'),
+            'idle_minutes' => $settings->string('auth.idle_minutes'),
+            'inactivity_days' => $settings->string('staff.inactivity_days'),
+        ];
+
+        return $this->kernel->render('admin/config/security', [
+            'title' => 'Güvenlik ve Oturum',
+            'values' => $old + $values,
+            'errors' => $errors,
+        ], $status);
     }
 
     public function backupPage(): Response
@@ -205,8 +293,13 @@ final class SettingsController
             'questions' => $settings->string('auth.security_questions'),
         ];
 
+        $disabled = array_filter(explode(',', $settings->string('notify.disabled')));
+
         return $this->kernel->render('admin/config/site', [
             'groups' => $groupOld + $groups,
+            'homeImage' => $settings->string('site.home_image'),
+            'notificationTypes' => \App\Service\NotificationService::TYPES,
+            'disabledNotifications' => $disabled,
             'title' => 'Site Ayarları',
             'values' => $values,
             'errors' => $errors,

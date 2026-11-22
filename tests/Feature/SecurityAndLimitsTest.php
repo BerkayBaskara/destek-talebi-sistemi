@@ -74,7 +74,7 @@ final class SecurityAndLimitsTest extends FeatureTestCase
         self::assertStringContainsString('Kendi sorunuz 5-150 karakter olmalı.', $short->body);
     }
 
-    public function test_reset_is_blocked_after_five_wrong_answers_for_fifteen_minutes(): void
+    public function test_reset_is_blocked_after_five_wrong_answers_for_configured_minutes(): void
     {
         $customerNo = $this->registerCustomer(); // cevap: Pamuk
         for ($i = 0; $i < 5; $i++) {
@@ -84,9 +84,9 @@ final class SecurityAndLimitsTest extends FeatureTestCase
 
         $blocked = $this->post('/sifre-sifirla/yeni', ['customer_no' => $customerNo, 'secret_answer' => 'Pamuk', 'password' => 'YeniSifre1!']);
         self::assertSame(422, $blocked->status);
-        self::assertStringContainsString('Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin.', $blocked->body);
+        self::assertStringContainsString('Çok fazla hatalı deneme yapıldı. 5 dakika sonra tekrar deneyin.', $blocked->body);
 
-        $this->clock->advance('+16 minutes');
+        $this->clock->advance('+6 minutes');
         $ok = $this->post('/sifre-sifirla/yeni', ['customer_no' => $customerNo, 'secret_answer' => 'Pamuk', 'password' => 'YeniSifre1!']);
         self::assertSame('/giris', $ok->headers['Location'] ?? null);
     }

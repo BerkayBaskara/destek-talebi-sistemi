@@ -5,6 +5,9 @@
 /** @var int $maxLogoBytes */
 /** @var callable $csrfField */
 /** @var array<string, string> $groups */
+/** @var string $homeImage */
+/** @var array<string, string> $notificationTypes */
+/** @var list<string> $disabledNotifications */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
 ?>
 <p><a href="/yonetici/ayarlar">← Sistem Yapılandırması</a></p>
@@ -89,6 +92,38 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <textarea id="questions" name="questions" rows="6"><?= e($groups['questions']) ?></textarea>
             <?= $fieldError('questions') ?>
         </div>
+        <button type="submit" class="btn">Kaydet</button>
+    </form>
+</section>
+<section class="card narrow-wide">
+    <h2>Ana sayfa görseli</h2>
+    <?php if ($homeImage !== ''): ?>
+        <p><img src="<?= e($homeImage) ?>" alt="Ana sayfa görseli" class="logo-preview"></p>
+        <form method="post" action="/yonetici/ayarlar/ana-gorsel/kaldir" data-confirm="Ana sayfa görseli kaldırılsın mı?">
+            <?= $csrfField() ?>
+            <button type="submit" class="btn btn-light">Görseli kaldır</button>
+        </form>
+    <?php else: ?>
+        <p class="muted">Ana sayfada görsel yok.</p>
+    <?php endif; ?>
+    <form method="post" action="/yonetici/ayarlar/ana-gorsel" enctype="multipart/form-data" novalidate>
+        <?= $csrfField() ?>
+        <div class="form-row">
+            <label for="home_image">Yeni görsel (PNG ya da JPG, en fazla 1 MB)</label>
+            <input type="file" id="home_image" name="home_image" accept=".png,.jpg,.jpeg,image/png,image/jpeg" required>
+            <?= $fieldError('home_image') ?>
+        </div>
+        <button type="submit" class="btn">Görseli yükle</button>
+    </form>
+</section>
+<section class="card narrow-wide">
+    <h2>Bildirim türleri</h2>
+    <p class="muted">İşaretli olmayan türlerde uygulama içi bildirim gönderilmez.</p>
+    <form method="post" action="/yonetici/ayarlar/bildirimler">
+        <?= $csrfField() ?>
+        <?php foreach ($notificationTypes as $type => $label): ?>
+            <div><label class="inline-check"><input type="checkbox" name="enabled[]" value="<?= e($type) ?>"<?= in_array($type, $disabledNotifications, true) ? '' : ' checked' ?>> <?= e($label) ?></label></div>
+        <?php endforeach; ?>
         <button type="submit" class="btn">Kaydet</button>
     </form>
 </section>

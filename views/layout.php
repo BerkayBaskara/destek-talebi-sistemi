@@ -49,6 +49,7 @@ use App\Model\Enum\Role;
                     <a href="/personel/talepler">Görevlerim</a>
                 <?php else: ?>
                     <a href="/yonetici">Tüm Talepler</a>
+                    <a href="/talepler/yeni">Yeni Talep</a>
                     <a href="/yonetici/ozet">Özet Rapor</a>
                     <a href="/yonetici/rapor">Ayrıntılı Rapor</a>
                     <a href="/havuz">Görev Havuzu</a>

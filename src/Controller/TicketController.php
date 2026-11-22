@@ -43,14 +43,23 @@ final class TicketController
 
     public function createForm(): Response
     {
-        $this->kernel->requireRole(Role::Customer);
+        $this->kernel->requireRole(Role::Customer, Role::Admin);
 
         return $this->kernel->render('tickets/create', $this->formData([], []));
     }
 
     public function store(Request $request): Response
     {
-        $customer = $this->kernel->requireRole(Role::Customer);
+        $user = $this->kernel->requireRole(Role::Customer, Role::Admin);
+        // Yönetici kendi adına ya da seçtiği müşteri adına talep açabilir (FR-16, US-39).
+        $customer = $user;
+        if ($user->role === Role::Admin && (int) $request->string('customer_id') > 0) {
+            $chosen = $this->kernel->userRepository()->findById((int) $request->string('customer_id'));
+            if ($chosen === null || $chosen->role !== Role::Customer) {
+                throw new \App\Exception\NotFoundException('Müşteri bulunamadı.');
+            }
+            $customer = $chosen;
+        }
         $old = [
             'category_id' => $request->string('category_id'),
             'priority' => $request->string('priority'),
@@ -66,7 +75,7 @@ final class TicketController
             $files = $attachments->validateMany(AttachmentService::normalizeFiles($request->files['ekler'] ?? null));
             $ticket = $this->tickets->createTicket($customer, $old + ['extra' => $extra]);
         } catch (ValidationException $e) {
-            return $this->kernel->render('tickets/create', $this->formData($old, $e->errors(), $extra), 422);
+            return $this->kernel->render('tickets/create', $this->formData($old + ['customer_id' => $request->string('customer_id')], $e->errors(), $extra), 422);
         }
 
         foreach ($files as $file) {
@@ -76,6 +85,12 @@ final class TicketController
                 // Talep kaydedildi; formu yeniden göstermek tekrar gönderimde çift talep açardı.
                 $this->kernel->session()->flash('error', 'Talep açıldı ancak bir ek kaydedilemedi: ' . $e->getMessage());
             }
+        }
+
+        if ($user->role === Role::Admin) {
+            $this->kernel->session()->flash('success', 'Talep açıldı: ' . $ticket->displayCode());
+
+            return Response::redirect('/talepler/' . $ticket->id);
         }
 
         return Response::redirect('/talepler/' . $ticket->id . '/olusturuldu');
@@ -265,7 +280,11 @@ final class TicketController
             $fields[] = $field;
         }
 
+        $customers = $this->kernel->currentUser()?->role === Role::Admin ? $this->kernel->userRepository()->findByRole(Role::Customer) : [];
+
         return [
+            'customers' => $customers,
+            'oldCustomer' => $old['customer_id'] ?? '',
             'extraFields' => $fields,
             'oldExtra' => $oldExtra,
             'title' => 'Yeni destek talebi',

@@ -25,6 +25,8 @@ final class User
         public int $totalPoints = 0,
         public bool $active = true,
         public ?int $capacity = null,
+        /** Son başarılı giriş (FR-49 hareketsizlik denetimi için). */
+        public ?\DateTimeImmutable $lastLoginAt = null,
     ) {
     }
 
@@ -48,6 +50,7 @@ final class User
             (int) ($row['total_points'] ?? 0),
             (bool) ($row['active'] ?? true),
             isset($row['capacity']) ? (int) $row['capacity'] : null,
+            Ticket::date($row['last_login_at'] ?? null),
         );
     }
 
@@ -66,6 +69,7 @@ final class User
             'total_points' => $this->totalPoints,
             'active' => $this->active,
             'capacity' => $this->capacity,
+            'last_login_at' => $this->lastLoginAt?->format(DATE_ATOM),
         ];
     }
 }

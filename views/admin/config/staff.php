@@ -33,7 +33,10 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
                     <tr<?= $warn ? ' class="row-warning"' : '' ?>>
                         <td data-label="Numara"><?= e($agent->customerNo) ?></td>
                         <td data-label="Ad Soyad">
-                            <?= e($agent->fullName()) ?>
+                            <label class="sr-only" for="<?= e($form) ?>-name"><?= e($agent->fullName()) ?> adı</label>
+                            <input type="text" id="<?= e($form) ?>-name" name="name" maxlength="100" class="input-name" form="<?= e($form) ?>" value="<?= e($isRow ? ($rowOld['name'] ?? '') : $agent->name) ?>">
+                            <label class="sr-only" for="<?= e($form) ?>-surname"><?= e($agent->fullName()) ?> soyadı</label>
+                            <input type="text" id="<?= e($form) ?>-surname" name="surname" maxlength="100" class="input-name" form="<?= e($form) ?>" value="<?= e($isRow ? ($rowOld['surname'] ?? '') : $agent->surname) ?>">
                             <?php if ($warn): ?>
                                 <div class="field-warning">Bu personelin <?= e($row['active']) ?> açık talebi var; talepler şimdilik onun üzerinde kalıyor.</div>
                             <?php endif; ?>

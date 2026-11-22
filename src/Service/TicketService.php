@@ -77,8 +77,8 @@ final class TicketService
      */
     public function createTicket(User $creator, array $data): Ticket
     {
-        if ($creator->role !== Role::Customer) {
-            throw new AuthorizationException('Talep yalnız müşteri hesabıyla açılabilir.');
+        if ($creator->role === Role::Agent) {
+            throw new AuthorizationException('Talep yalnız müşteri ya da yönetici hesabıyla açılabilir.');
         }
 
         $title = trim(is_string($data['title'] ?? null) ? $data['title'] : '');

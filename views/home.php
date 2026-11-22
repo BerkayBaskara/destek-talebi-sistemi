@@ -1,8 +1,12 @@
 <?php
 /** @var string $heading */
 /** @var string $text */
+/** @var string $image */
 ?>
 <section class="hero">
+    <?php if ($image !== ''): ?>
+        <img src="<?= e($image) ?>" alt="" class="hero-image">
+    <?php endif; ?>
     <h1><?= e($heading) ?></h1>
     <?php if (trim($text) !== ''): ?>
         <p class="hero-text"><?= nl2br(e($text)) ?></p>

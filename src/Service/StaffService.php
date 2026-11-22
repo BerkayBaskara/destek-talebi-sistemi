@@ -92,6 +92,66 @@ final class StaffService
         return (int) $value;
     }
 
+    /** Personelin adını ve soyadını düzenler (US-26). @throws ValidationException */
+    public function rename(User $admin, int $userId, string $name, string $surname): User
+    {
+        $name = trim($name);
+        $surname = trim($surname);
+        $errors = [];
+        if (mb_strlen($name) < 2 || mb_strlen($name) > 100) {
+            $errors['name'] = 'Ad en az 2 karakter olmalı.';
+        }
+        if (mb_strlen($surname) < 2 || mb_strlen($surname) > 100) {
+            $errors['surname'] = 'Soyad en az 2 karakter olmalı.';
+        }
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
+        $user = $this->agent($userId);
+        if ($user->name === $name && $user->surname === $surname) {
+            return $user;
+        }
+        $old = ['name' => $user->name, 'surname' => $user->surname];
+        $user->name = $name;
+        $user->surname = $surname;
+        $this->users->save($user);
+        $this->audit->record($admin, 'update', 'staff', $userId, $old, ['name' => $name, 'surname' => $surname]);
+
+        return $user;
+    }
+
+    /**
+     * FR-49: ayardaki gün sayısı boyunca giriş yapmayan personeli pasif yapar (0 = kapalı).
+     * Hiç giriş yapmamış personelde sayım ilk denetimde başlar. Pasif yapılanların listesini döner.
+     *
+     * @return list<User>
+     */
+    public function deactivateInactive(\DateTimeImmutable $now): array
+    {
+        $days = $this->settings->int('staff.inactivity_days');
+        if ($days <= 0) {
+            return [];
+        }
+        $deactivated = [];
+        foreach ($this->users->findByRole(Role::Agent) as $agent) {
+            if (!$agent->active) {
+                continue;
+            }
+            if ($agent->lastLoginAt === null) {
+                $agent->lastLoginAt = $now; // sayım bugünden başlar
+                $this->users->save($agent);
+                continue;
+            }
+            if ($agent->lastLoginAt->modify('+' . $days . ' days') < $now) {
+                $agent->active = false;
+                $this->users->save($agent);
+                $deactivated[] = $agent;
+            }
+        }
+
+        return $deactivated;
+    }
+
     /** Yalnız personel hesapları yönetilir; yönetici kendi hesabını pasif yapamaz. */
     private function agent(int $userId): User
     {

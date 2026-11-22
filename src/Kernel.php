@@ -191,7 +191,7 @@ final class Kernel
         $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);
         $this->ticketService->attachObserver(new TicketActivityObserver($this->ticketActivityRepository, $this->clock));
         $this->notificationRepository = new JsonNotificationRepository($this->store);
-        $this->notificationService = new NotificationService($this->notificationRepository, $this->userRepository, $this->clock);
+        $this->notificationService = new NotificationService($this->notificationRepository, $this->userRepository, $this->clock, $this->settingsService);
         $this->ticketService->attachObserver(new NotificationObserver($this->notificationService));
         $this->escalationRepository = new JsonEscalationRepository($this->store);
         $this->escalationService = new EscalationService(
@@ -205,7 +205,7 @@ final class Kernel
             $this->clock,
         );
         $this->ticketService->attachObserver(new EscalationObserver($this->escalationService));
-        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, $this->ticketService, new JsonRuntimeStateRepository($this->store), $this->clock);
+        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, $this->ticketService, $this->staffService, $this->notificationService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
 
@@ -585,6 +585,16 @@ final class Kernel
      * NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner.
      * Sayfanın kendi kendine yaptığı SLA yoklaması (/api/sla) kullanıcı etkinliği sayılmaz.
      */
+    /** Oturum zaman aşımı yönetici ayarından (NFR-10); ayar okunamazsa 30 dakika. */
+    private function idleTimeoutSeconds(): int
+    {
+        try {
+            return $this->settingsService->int('auth.idle_minutes') * 60;
+        } catch (StorageException) {
+            return self::IDLE_TIMEOUT_SECONDS;
+        }
+    }
+
     /** Zamana bağlı SLA kuralları (cron yok): her istekte en fazla dakikada bir. Hata isteği bozmaz, günlüğe yazılır. */
     private function runSlaMonitor(): void
     {
@@ -606,7 +616,7 @@ final class Kernel
 
         $now = $this->clock->now()->getTimestamp();
         $last = $this->session->get('last_activity');
-        if (is_int($last) && $now - $last > self::IDLE_TIMEOUT_SECONDS) {
+        if (is_int($last) && $now - $last > $this->idleTimeoutSeconds()) {
             $token = $this->csrf->token();
             $this->session->destroy();
             $this->session->set('_csrf', $token); // açık sayfadaki giriş formu çalışmaya devam etsin

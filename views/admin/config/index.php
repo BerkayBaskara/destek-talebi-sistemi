@@ -6,6 +6,7 @@ $sections = [
     ['/yonetici/oncelikler', 'Öncelikler', 'Öncelik seviyeleri, sıraları, varsayılan SLA süreleri ve anahtar kelimeler.'],
     ['/yonetici/sla', 'SLA Süreleri', 'Kategori ve öncelik eşleşmesine göre çözüm süreleri (iş saati).'],
     ['/yonetici/takvim', 'Çalışma Takvimi', 'Çalışma günleri, mesai ve öğle arası saatleri, resmî tatiller.'],
+    ['/yonetici/ayarlar/guvenlik', 'Güvenlik ve Oturum', 'Hatalı giriş deneme sınırı, engel süresi, oturum süresi, hareketsiz personelin pasif yapılması.'],
     ['/yonetici/personel', 'Personel', 'Personel hesapları, aktif/pasif durumu ve kapasite.'],
     ['/yonetici/hiyerarsi', 'Personel Hiyerarşisi', 'Her kategoride personelin seviyesi; atama ve eskalasyon bu sırayı izler.'],
     ['/yonetici/izinler', 'Personel İzinleri', 'İzinli personel izin günlerinde yeni talep almaz.'],
