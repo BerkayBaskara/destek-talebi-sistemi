@@ -57,6 +57,7 @@ use App\Service\HierarchyService;
 use App\Service\NotificationService;
 use App\Service\EscalationService;
 use App\Service\SlaMonitorService;
+use App\Service\Observer\EscalationObserver;
 use App\Repository\EscalationRepositoryInterface;
 use App\Repository\Json\JsonEscalationRepository;
 use App\Repository\Json\JsonRuntimeStateRepository;
@@ -196,6 +197,7 @@ final class Kernel
             $this->notificationService,
             $this->clock,
         );
+        $this->ticketService->attachObserver(new EscalationObserver($this->escalationService));
         $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);

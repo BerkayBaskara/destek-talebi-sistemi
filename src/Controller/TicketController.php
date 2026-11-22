@@ -130,6 +130,10 @@ final class TicketController
             'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
             'actions' => $this->tickets->availableActions($ticket, $viewer),
             'canReply' => $this->tickets->canReply($ticket, $viewer),
+            'canEscalate' => in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)
+                && ($viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id)),
+            'assignableAgents' => $viewer->role === Role::Admin && $ticket->status === TicketStatus::Pending && $ticket->agentId === null
+                ? $this->assignableAgents() : [],
             'awaitsCustomer' => $ticket->status === TicketStatus::Resolved && $viewer->role !== Role::Customer,
             'replyBlockedMessage' => TicketService::RESOLVED_REPLY_MESSAGE,
         ]);
@@ -169,6 +173,55 @@ final class TicketController
         return Response::redirect('/talepler/' . $id);
     }
 
+    /** Personelin (ya da yöneticinin) gerekçeyle üst seviyeye aktarması. */
+    public function escalate(Request $request, int $id): Response
+    {
+        $actor = $this->kernel->requireRole(Role::Agent, Role::Admin);
+        $this->tickets->findVisible($id, $actor);
+
+        try {
+            $target = $this->kernel->escalationService()->escalateManually($id, $actor, $request->string('gerekce'));
+            $this->kernel->session()->flash('success', $target !== null
+                ? 'Talep üst seviye personele aktarıldı.'
+                : 'Uygun üst seviye personel yok; talep yönetici müdahalesi için Görev Havuzu\'na alındı.');
+        } catch (ValidationException $e) {
+            $this->kernel->session()->flash('error', $e->getMessage());
+        }
+
+        return Response::redirect($actor->role === Role::Agent ? '/kanban' : '/talepler/' . $id);
+    }
+
+    /** Yöneticinin havuzdaki talebi elle ataması. */
+    public function assign(Request $request, int $id): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $agentId = (int) $request->string('personel');
+
+        try {
+            $this->kernel->escalationService()->assignManually($id, $admin, $agentId, $request->string('gerekce'), $this->kernel->userRepository()->findById($agentId));
+            $this->kernel->session()->flash('success', 'Talep personele atandı.');
+        } catch (ValidationException $e) {
+            $this->kernel->session()->flash('error', $e->getMessage());
+        }
+
+        return Response::redirect('/talepler/' . $id);
+    }
+
+    /** Yöneticinin talebi "çözülemedi" olarak kapatması. */
+    public function closeUnresolvable(Request $request, int $id): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+
+        try {
+            $this->kernel->escalationService()->closeUnresolvable($id, $admin, $request->string('gerekce'));
+            $this->kernel->session()->flash('success', 'Talep "çözülemedi" olarak kapatıldı.');
+        } catch (ValidationException $e) {
+            $this->kernel->session()->flash('error', $e->getMessage());
+        }
+
+        return Response::redirect('/talepler/' . $id);
+    }
+
     /** Durum eylemi (iptal, incelemeye al, çözüldü, onayla, reddet). İzinsiz geçişin nedeni kullanıcıya gösterilir. */
     public function action(Request $request, int $id): Response
     {
@@ -183,6 +236,20 @@ final class TicketController
         }
 
         return Response::redirect('/talepler/' . $id);
+    }
+
+    /** @return list<array{agent: \App\Model\User, load: int, capacity: int}> aktif personel ve doluluğu */
+    private function assignableAgents(): array
+    {
+        $load = $this->kernel->ticketRepository()->countActiveByAgent();
+        $rows = [];
+        foreach ($this->kernel->userRepository()->findByRole(Role::Agent) as $agent) {
+            if ($agent->active) {
+                $rows[] = ['agent' => $agent, 'load' => $load[(int) $agent->id] ?? 0, 'capacity' => $this->kernel->staffService()->capacityOf($agent)];
+            }
+        }
+
+        return $rows;
     }
 
     /**

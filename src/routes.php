@@ -51,6 +51,9 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/talepler/{id}/yanit', static fn (Request $r, array $p): Response => $tickets->reply($r, (int) $p['id']));
     $router->add('POST', '/talepler/{id}/islem', static fn (Request $r, array $p): Response => $tickets->action($r, (int) $p['id']));
     $router->add('POST', '/talepler/{id}/karar', static fn (Request $r, array $p): Response => $tickets->decide($r, (int) $p['id']));
+    $router->add('POST', '/talepler/{id}/eskale', static fn (Request $r, array $p): Response => $tickets->escalate($r, (int) $p['id']));
+    $router->add('POST', '/talepler/{id}/ata', static fn (Request $r, array $p): Response => $tickets->assign($r, (int) $p['id']));
+    $router->add('POST', '/talepler/{id}/cozulemedi', static fn (Request $r, array $p): Response => $tickets->closeUnresolvable($r, (int) $p['id']));
 
     // Bildirimler (FR-18)
     $notifications = new NotificationController($kernel);

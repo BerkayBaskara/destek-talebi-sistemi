@@ -10,6 +10,8 @@
 /** @var list<\App\Model\Attachment> $attachments */
 /** @var list<string> $actions */
 /** @var bool $canReply */
+/** @var bool $canEscalate */
+/** @var list<array{agent: \App\Model\User, load: int, capacity: int}> $assignableAgents */
 /** @var bool $awaitsCustomer */
 /** @var string $replyBlockedMessage */
 /** @var callable $csrfField */
@@ -22,8 +24,8 @@ use App\Model\Enum\TicketStatus;
 $actionLabels = [
     'start_review' => ['İncelemeye al', 'btn', TicketStatus::InReview],
     'resolve' => ['Çözüldü olarak işaretle', 'btn', TicketStatus::Resolved],
-    'approve' => ['Çözümü onayla', 'btn btn-new', TicketStatus::Closed],
-    'reject' => ['Çözümü reddet', 'btn btn-light', TicketStatus::InReview],
+    'approve' => ['İşe yaradı', 'btn btn-new', TicketStatus::Closed],
+    'reject' => ['İşe yaramadı', 'btn btn-light', TicketStatus::InReview],
     'cancel' => ['Talebi iptal et', 'btn btn-danger', TicketStatus::Cancelled],
 ];
 $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === Role::Agent ? '/kanban' : '/yonetici');
@@ -100,6 +102,50 @@ $closureReasons = [
         </div>
     <?php endif; ?>
 </section>
+
+<?php if ($canEscalate || $assignableAgents !== [] || ($viewer->role === Role::Admin && !$ticket->status->isFinal())): ?>
+<section class="card">
+    <h2><?= $viewer->role === Role::Admin ? 'Yönetici işlemleri' : 'Üst seviyeye aktarma' ?></h2>
+    <?php if ($canEscalate): ?>
+        <form method="post" action="/talepler/<?= e($ticket->id) ?>/eskale" class="filters" data-confirm="Talep bir üst seviye personele aktarılacak. Onaylıyor musunuz?">
+            <?= $csrfField() ?>
+            <div class="grow">
+                <label for="eskale-gerekce">Üst seviyeye aktarma gerekçesi</label>
+                <input type="text" id="eskale-gerekce" name="gerekce" maxlength="300" required>
+            </div>
+            <div><button type="submit" class="btn btn-light">Üst seviyeye aktar</button></div>
+        </form>
+    <?php endif; ?>
+    <?php if ($assignableAgents !== []): ?>
+        <form method="post" action="/talepler/<?= e($ticket->id) ?>/ata" class="filters">
+            <?= $csrfField() ?>
+            <div>
+                <label for="ata-personel">Personele ata</label>
+                <select id="ata-personel" name="personel" required>
+                    <?php foreach ($assignableAgents as $row): ?>
+                        <option value="<?= e($row['agent']->id) ?>"><?= e($row['agent']->fullName() . ' (' . $row['load'] . '/' . $row['capacity'] . ')') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="grow">
+                <label for="ata-gerekce">Gerekçe (kapasitesi dolu personel için zorunlu)</label>
+                <input type="text" id="ata-gerekce" name="gerekce" maxlength="300">
+            </div>
+            <div><button type="submit" class="btn">Ata</button></div>
+        </form>
+    <?php endif; ?>
+    <?php if ($viewer->role === Role::Admin && !$ticket->status->isFinal()): ?>
+        <form method="post" action="/talepler/<?= e($ticket->id) ?>/cozulemedi" class="filters" data-confirm="Talep &quot;çözülemedi&quot; olarak kapatılacak. Onaylıyor musunuz?">
+            <?= $csrfField() ?>
+            <div class="grow">
+                <label for="cozulemedi-gerekce">Çözülemedi olarak kapatma gerekçesi</label>
+                <input type="text" id="cozulemedi-gerekce" name="gerekce" maxlength="300" required>
+            </div>
+            <div><button type="submit" class="btn btn-danger">Çözülemedi olarak kapat</button></div>
+        </form>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 
 <?php if ($attachments !== []): ?>
 <section class="card">

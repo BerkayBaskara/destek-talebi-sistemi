@@ -126,7 +126,7 @@ final class TicketDetailTest extends FeatureTestCase
         $this->switchTo($this->customerNo);
         $body = $this->get('/talepler/1')->body;
         self::assertStringContainsString('Sunucuyu yeniden başlattım', $body);
-        self::assertStringContainsString('Çözümü onayla', $body);
+        self::assertStringContainsString('İşe yaradı', $body);
 
         $this->post('/talepler/1/islem', ['islem' => 'reject']);
         $ticket = $this->kernel->ticketRepository()->findById(1);

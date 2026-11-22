@@ -23,4 +23,4 @@ if (PHP_SAPI !== 'cli') {
 $kernel = new Kernel(dirname(__DIR__), null, new ArraySession());
 $result = $kernel->slaMonitor()->run();
 
-echo 'SLA denetimi tamamlandı. Aşım işlendi: ' . $result['breaches'] . ', eskalasyon: ' . $result['escalations'] . PHP_EOL;
+echo 'SLA denetimi tamamlandı. Aşım işlendi: ' . $result['breaches'] . ', eskalasyon: ' . $result['escalations'] . ', otomatik tamamlanan: ' . $result['completed'] . PHP_EOL;

@@ -8,6 +8,7 @@ use App\Core\Clock\ClockInterface;
 use App\Exception\AuthorizationException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
+use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 use App\Model\TicketLog;
@@ -31,6 +32,11 @@ final class EscalationService
     public const REASON_REJECTED = 'rejected_limit';
 
     public const CLOSED_BY_CUSTOMER = 'customer_resolved';
+    public const CLOSED_AUTOMATICALLY = 'auto_closed';
+    public const CLOSED_UNRESOLVABLE = 'unresolvable';
+
+    /** Müşteri çözümü bu kadar reddedince talep otomatik olarak üst seviyeye aktarılır. */
+    public const REJECTION_LIMIT = 3;
 
     public function __construct(
         private readonly TicketRepositoryInterface $tickets,
@@ -208,6 +214,163 @@ final class EscalationService
         $this->deadlineExtended($ticket, $actorId, []);
 
         return (int) $target->id;
+    }
+
+    /**
+     * Müşteri "İşe yaramadı" dedi (talep İnceleniyor'a döndü): itiraz ek SLA alır (FR-14);
+     * 3. retten sonra talep otomatik olarak üst seviyeye aktarılır.
+     */
+    public function onRejected(Ticket $ticket, int $actorId): void
+    {
+        if ($ticket->status !== TicketStatus::InReview) {
+            return;
+        }
+        if ($ticket->attemptCount >= self::REJECTION_LIMIT) {
+            $this->escalate($ticket, self::REASON_REJECTED, $actorId, 'Müşteri çözümü ' . self::REJECTION_LIMIT . ' kez reddetti');
+
+            return;
+        }
+        $ticket->deadline = $this->extendedDeadline($ticket, $this->clock->now());
+        if ($this->tickets->saveIfUnchanged($ticket, TicketStatus::InReview, $ticket->agentId)) {
+            $this->deadlineExtended($ticket, $actorId, []);
+        }
+    }
+
+    /** Çözüldü talep, müşteri ayardaki iş günü boyunca yanıt vermezse Tamamlandı olur (FR-17). */
+    public function autoComplete(Ticket $ticket): bool
+    {
+        $now = $this->clock->now();
+        if ($ticket->status !== TicketStatus::Resolved || $ticket->resolvedAt === null
+            || $now < $this->sla->addBusinessDays($ticket->resolvedAt, $this->settings->int('sla.auto_close_days'))) {
+            return false;
+        }
+        $ticket->status = TicketStatus::Closed;
+        $ticket->closureReason = self::CLOSED_AUTOMATICALLY;
+        if (!$this->tickets->saveIfUnchanged($ticket, TicketStatus::Resolved, $ticket->agentId)) {
+            return false;
+        }
+        $code = $ticket->displayCode();
+        $this->statusChanged($ticket, TicketStatus::Resolved, TicketLog::SYSTEM_USER);
+        $this->ticketService->notifyObservers($ticket, 'closed', [
+            'activity' => 'closed',
+            'note' => 'Otomatik tamamlandı (müşteri yanıt vermedi)',
+            'notify' => [
+                [$ticket->creatorId, $code . ' talebiniz yanıt verilmediği için otomatik olarak tamamlandı.', 'closed'],
+                [(int) $ticket->agentId, $code . ' talebi müşteri yanıt vermediği için otomatik olarak tamamlandı.', 'closed'],
+            ],
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Personelin (ya da yöneticinin) gerekçeyle üst seviyeye aktarması (FR-55). Yeni personelin kimliğini döner;
+     * uygun üst seviye yoksa talep yöneticiye kalır ve null döner.
+     *
+     * @throws ValidationException
+     */
+    public function escalateManually(int $ticketId, User $actor, string $reason): ?int
+    {
+        $ticket = $this->tickets->findById($ticketId) ?? throw new NotFoundException('Talep bulunamadı.');
+        if (!($actor->role === Role::Admin || ($actor->role === Role::Agent && $ticket->agentId === $actor->id))) {
+            throw new AuthorizationException('Bu talebi üst seviyeye aktarma yetkiniz yok.');
+        }
+        if (!in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)) {
+            throw new ValidationException(['gerekce' => 'Yalnız Atandı ya da İnceleniyor durumundaki talep aktarılabilir.']);
+        }
+
+        return $this->escalate($ticket, self::REASON_MANUAL, (int) $actor->id, self::reason($reason));
+    }
+
+    /**
+     * Yöneticinin havuzdaki talebi elle ataması (FR-52, FR-57). Kapasitesi dolu personele atama gerekçe ister.
+     *
+     * @throws ValidationException
+     */
+    public function assignManually(int $ticketId, User $admin, int $agentId, string $reason, ?User $agent): Ticket
+    {
+        if ($admin->role !== Role::Admin) {
+            throw new AuthorizationException('Talebi yalnız yönetici elle atayabilir.');
+        }
+        $ticket = $this->tickets->findById($ticketId) ?? throw new NotFoundException('Talep bulunamadı.');
+        if ($ticket->status !== TicketStatus::Pending || $ticket->agentId !== null) {
+            throw new ValidationException(['personel' => 'Yalnız Görev Havuzu\'ndaki talep atanabilir.']);
+        }
+        if ($agent === null || $agent->role !== Role::Agent || !$agent->active) {
+            throw new ValidationException(['personel' => 'Aktif bir personel seçin.']);
+        }
+        $reason = trim($reason);
+        $load = $this->tickets->countActiveByAgent()[$agentId] ?? 0;
+        if ($load >= $this->assignment->capacityOf($agent) && $reason === '') {
+            throw new ValidationException(['gerekce' => 'Kapasitesi dolu personele atama için gerekçe yazın.']);
+        }
+
+        $ticket->agentId = $agentId;
+        $ticket->previousAgentId = null;
+        $ticket->holdUntil = null;
+        $ticket->awaitingAdmin = false;
+        $ticket->status = TicketStatus::Taken;
+        if (!$this->tickets->saveIfUnchanged($ticket, TicketStatus::Pending, null)) {
+            throw new ValidationException(['personel' => 'Talep az önce değişti. Sayfayı yenileyip tekrar deneyin.']);
+        }
+        $this->ticketService->notifyObservers($ticket, TicketService::EVENT_ASSIGNED, [
+            'agent_id' => $agentId, 'actor_id' => (int) $admin->id, 'note' => $reason !== '' ? mb_substr($reason, 0, 300) : null,
+        ]);
+        $this->statusChanged($ticket, TicketStatus::Pending, (int) $admin->id);
+
+        return $ticket;
+    }
+
+    /**
+     * Yöneticinin talebi "çözülemedi" olarak kapatması (gerekçe zorunlu).
+     *
+     * @throws ValidationException
+     */
+    public function closeUnresolvable(int $ticketId, User $admin, string $reason): Ticket
+    {
+        if ($admin->role !== Role::Admin) {
+            throw new AuthorizationException('Talebi yalnız yönetici "çözülemedi" olarak kapatabilir.');
+        }
+        $ticket = $this->tickets->findById($ticketId) ?? throw new NotFoundException('Talep bulunamadı.');
+        if ($ticket->status->isFinal()) {
+            throw new ValidationException(['gerekce' => 'Talep zaten kapalı.']);
+        }
+        $note = self::reason($reason);
+        $old = $ticket->status;
+        $oldAgent = $ticket->agentId;
+        $ticket->status = TicketStatus::Closed;
+        $ticket->closureReason = self::CLOSED_UNRESOLVABLE;
+        $ticket->holdUntil = null;
+        $ticket->awaitingAdmin = false;
+        if (!$this->tickets->saveIfUnchanged($ticket, $old, $oldAgent)) {
+            throw new ValidationException(['gerekce' => 'Talep az önce değişti. Sayfayı yenileyip tekrar deneyin.']);
+        }
+        $code = $ticket->displayCode();
+        $this->statusChanged($ticket, $old, (int) $admin->id);
+        $this->ticketService->notifyObservers($ticket, 'closed', [
+            'actor_id' => (int) $admin->id,
+            'activity' => 'closed',
+            'note' => 'Çözülemedi: ' . $note,
+            'notify' => [
+                [$ticket->creatorId, $code . ' talebiniz çözülemedi olarak kapatıldı: ' . $note, 'closed'],
+                [(int) ($oldAgent ?? $ticket->previousAgentId), $code . ' talebi yönetici tarafından çözülemedi olarak kapatıldı.', 'closed'],
+            ],
+        ]);
+        $this->ticketService->fillFromPool();
+
+        return $ticket;
+    }
+
+    /** @throws ValidationException */
+    private static function reason(string $reason): string
+    {
+        $reason = trim($reason);
+        $length = mb_strlen($reason);
+        if ($length < 5 || $length > 300) {
+            throw new ValidationException(['gerekce' => 'Gerekçe 5-300 karakter olmalı.']);
+        }
+
+        return $reason;
     }
 
     /** Ek SLA (FR-14): ilk SLA süresinin ayardaki oranı kadar iş dakikası, şu andan itibaren. */

@@ -35,11 +35,11 @@ final class SlaMonitorService
         }
     }
 
-    /** @return array{breaches: int, escalations: int} */
+    /** @return array{breaches: int, escalations: int, completed: int} */
     public function run(): array
     {
         $now = $this->clock->now();
-        $result = ['breaches' => 0, 'escalations' => 0];
+        $result = ['breaches' => 0, 'escalations' => 0, 'completed' => 0];
 
         foreach ($this->tickets->findAll() as $ticket) {
             if ($ticket->holdUntil !== null && $now >= $ticket->holdUntil) {
@@ -47,6 +47,8 @@ final class SlaMonitorService
                 $result['escalations']++;
             } elseif ($this->escalation->handleBreach($ticket)) {
                 $result['breaches']++;
+            } elseif ($this->escalation->autoComplete($ticket)) {
+                $result['completed']++;
             }
         }
 
