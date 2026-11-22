@@ -21,6 +21,9 @@ interface TicketRepositoryInterface
 
     public function findById(int $id): ?Ticket;
 
+    /** 6 karakterli talep koduna göre (büyük harf). */
+    public function findByCode(string $code): ?Ticket;
+
     /** @return list<Ticket> Görev Havuzu: kimseye atanmamış, Beklemede durumundaki talepler (eskiden yeniye). */
     public function getPoolTickets(): array;
 

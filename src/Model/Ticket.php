@@ -31,7 +31,35 @@ final class Ticket
         public ?DateTimeImmutable $resolvedAt,
         public int $earnedPoints = 0,
         public int $agentQuestionCount = 0,
+        /** Kullanıcıya gösterilen 6 karakterli kod (FR-34); eski kayıtlarda boş olabilir. */
+        public ?string $code = null,
+        /** İlk SLA bitişi (FR-05: ek SLA'dan ayrı saklanır); boşsa deadline ilk bitiştir. */
+        public ?DateTimeImmutable $originalDeadline = null,
+        /** SLA aşımında müşteri kararı beklenirken talebi bırakan personel. */
+        public ?int $previousAgentId = null,
+        /** Doluysa talep bu ana kadar müşteri kararı bekler; otomatik atamaya ve "Üzerime al"a girmez. */
+        public ?DateTimeImmutable $holdUntil = null,
+        /** Kapanış nedeni: customer_resolved, auto_closed, unresolvable (boş = müşteri onayı). */
+        public ?string $closureReason = null,
+        /** Aşımı işlenmiş son bitiş zamanı (aynı aşım iki kez işlenmesin). */
+        public ?DateTimeImmutable $breachHandledAt = null,
     ) {
+    }
+
+    /** Ekranda gösterilen numara: kod varsa "#AB23CD", eski kayıtta "#12". */
+    public function displayCode(): string
+    {
+        return '#' . ($this->code ?? (string) $this->id);
+    }
+
+    public function firstDeadline(): DateTimeImmutable
+    {
+        return $this->originalDeadline ?? $this->deadline;
+    }
+
+    public function isOnHold(): bool
+    {
+        return $this->holdUntil !== null;
     }
 
     /** Mevcut durumun kurallarını taşıyan State nesnesi (sınıf diyagramı: currentState). */
@@ -75,6 +103,12 @@ final class Ticket
             self::date($row['resolved_at'] ?? null),
             (int) ($row['earned_points'] ?? 0),
             (int) ($row['agent_question_count'] ?? 0),
+            isset($row['code']) && $row['code'] !== '' ? (string) $row['code'] : null,
+            self::date($row['original_deadline'] ?? null),
+            isset($row['previous_agent_id']) ? (int) $row['previous_agent_id'] : null,
+            self::date($row['hold_until'] ?? null),
+            isset($row['closure_reason']) && $row['closure_reason'] !== '' ? (string) $row['closure_reason'] : null,
+            self::date($row['breach_handled_at'] ?? null),
         );
     }
 
@@ -96,6 +130,12 @@ final class Ticket
             'resolved_at' => $this->resolvedAt?->format(DATE_ATOM),
             'earned_points' => $this->earnedPoints,
             'agent_question_count' => $this->agentQuestionCount,
+            'code' => $this->code,
+            'original_deadline' => $this->originalDeadline?->format(DATE_ATOM),
+            'previous_agent_id' => $this->previousAgentId,
+            'hold_until' => $this->holdUntil?->format(DATE_ATOM),
+            'closure_reason' => $this->closureReason,
+            'breach_handled_at' => $this->breachHandledAt?->format(DATE_ATOM),
         ];
     }
 

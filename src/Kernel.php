@@ -44,6 +44,9 @@ use App\Repository\Json\JsonUserRepository;
 use App\Repository\ReplyRepositoryInterface;
 use App\Repository\SlaPolicyRepositoryInterface;
 use App\Repository\TicketLogRepositoryInterface;
+use App\Repository\TicketActivityRepositoryInterface;
+use App\Repository\Json\JsonTicketActivityRepository;
+use App\Service\Observer\TicketActivityObserver;
 use App\Repository\TicketRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
 use App\Service\AssignmentService;
@@ -80,6 +83,7 @@ final class Kernel
     private readonly AuditLogRepositoryInterface $auditLogRepository;
     private readonly AuditLogger $auditLogger;
     private readonly SettingsService $settingsService;
+    private readonly TicketActivityRepositoryInterface $ticketActivityRepository;
     private readonly BrandingService $brandingService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
@@ -147,6 +151,8 @@ final class Kernel
             $this->clock,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
+        $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);
+        $this->ticketService->attachObserver(new TicketActivityObserver($this->ticketActivityRepository, $this->clock));
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
         $this->attachmentService = AttachmentService::fromSettingsFile(
@@ -415,6 +421,11 @@ final class Kernel
     public function replyRepository(): ReplyRepositoryInterface
     {
         return $this->replyRepository;
+    }
+
+    public function ticketActivityRepository(): TicketActivityRepositoryInterface
+    {
+        return $this->ticketActivityRepository;
     }
 
     public function ticketLogRepository(): TicketLogRepositoryInterface

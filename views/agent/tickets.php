@@ -15,7 +15,7 @@
             <tbody>
             <?php foreach ($rows as ['ticket' => $ticket, 'sla' => $sla]): ?>
                 <tr class="row-link row-<?= e($sla->level) ?>" data-href="/talepler/<?= e($ticket->id) ?>">
-                    <td data-label="ID">#<?= e($ticket->id) ?></td>
+                    <td data-label="ID"><?= e($ticket->displayCode()) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Öncelik"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>

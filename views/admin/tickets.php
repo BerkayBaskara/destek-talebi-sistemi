@@ -58,7 +58,7 @@ use App\Model\Enum\TicketStatus;
             <tbody>
             <?php foreach ($result['items'] as $i => $ticket): ?>
                 <tr class="row-link" data-href="/talepler/<?= e($ticket->id) ?>">
-                    <td data-label="ID">#<?= e($ticket->id) ?></td>
+                    <td data-label="ID"><?= e($ticket->displayCode()) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Müşteri"><?= e($names[$ticket->creatorId] ?? '-') ?></td>
                     <td data-label="Personel"><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Görev Havuzu') ?></td>

@@ -18,7 +18,7 @@ use App\Controller\KanbanController;
                 <div class="kanban-cards">
                     <?php foreach ($column['cards'] as ['ticket' => $ticket, 'sla' => $sla]): ?>
                         <article class="kanban-card" draggable="true" data-id="<?= e($ticket->id) ?>">
-                            <a href="/talepler/<?= e($ticket->id) ?>">#<?= e($ticket->id) ?> · <?= e($ticket->title) ?></a>
+                            <a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->displayCode()) ?> · <?= e($ticket->title) ?></a>
                             <div class="kanban-meta">
                                 <span class="badge"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></span>
                                 <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?>

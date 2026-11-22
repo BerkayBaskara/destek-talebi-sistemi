@@ -15,6 +15,7 @@ use App\Model\Enum\TicketStatus;
 use App\Model\Reply;
 use App\Model\State\InvalidTransitionException;
 use App\Model\Ticket;
+use App\Model\TicketCode;
 use App\Model\TicketLog;
 use App\Model\User;
 use App\Repository\CategoryRepositoryInterface;
@@ -106,6 +107,7 @@ final class TicketService
         $hours = $this->policies->findFor($categoryId, (int) $priority->id)->durationHours ?? $priority->defaultSlaHours;
         $now = $this->clock->now();
 
+        $deadline = $this->sla->calculateWithJson($now, $hours * 60);
         $ticket = $this->tickets->save(new Ticket(
             null,
             (int) $creator->id,
@@ -117,13 +119,27 @@ final class TicketService
             (int) $chosen->id,
             0,
             $now,
-            $this->sla->calculateWithJson($now, $hours * 60),
+            $deadline,
             null,
+            code: $this->newCode(),
+            originalDeadline: $deadline, // ilk SLA bitişi; ek SLA yalnız deadline'ı uzatır
         ));
         $this->replies->save(new Reply(null, (int) $ticket->id, (int) $creator->id, $description, $now));
         $this->notifyObservers($ticket, self::EVENT_CREATED, ['actor_id' => (int) $creator->id]);
 
         return $this->autoAssign($ticket) ?? $ticket;
+    }
+
+    /** Kullanılmamış 6 karakterli talep kodu (çakışma olasılığı çok düşük; yine de denetlenir). */
+    private function newCode(): string
+    {
+        for ($try = 0; $try < 20; $try++) {
+            $code = TicketCode::generate();
+            if ($this->tickets->findByCode($code) === null) {
+                return $code;
+            }
+        }
+        throw new \RuntimeException('Benzersiz talep kodu üretilemedi.');
     }
 
     /**
@@ -183,7 +199,7 @@ final class TicketService
         }
 
         $ticket = $this->mustFind($ticketId);
-        $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id]);
+        $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id, 'actor_id' => (int) $agent->id]);
         $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
             'old' => TicketStatus::Pending,
             'new' => TicketStatus::Taken,
@@ -418,6 +434,10 @@ final class TicketService
     {
         $query = trim($query);
         if ($query === '') {
+            return true;
+        }
+        $code = TicketCode::normalize($query);
+        if ($code !== null && $ticket->code === $code) {
             return true;
         }
         if (preg_match('/^#(\d+)$/', $query, $m) === 1) {

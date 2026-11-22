@@ -40,7 +40,7 @@ use App\Model\Enum\TicketStatus;
             <tbody>
             <?php foreach ($result['items'] as $ticket): ?>
                 <tr class="row-link" data-href="/talepler/<?= e($ticket->id) ?>">
-                    <td data-label="Talep No">#<?= e($ticket->id) ?></td>
+                    <td data-label="Talep No"><?= e($ticket->displayCode()) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="Tarih"><?= e($ticket->createdAt->format('d.m.Y H:i')) ?></td>

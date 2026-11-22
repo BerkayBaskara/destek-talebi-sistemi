@@ -110,7 +110,7 @@ final class TicketCreateTest extends FeatureTestCase
 
         self::assertSame(200, $page->status);
         self::assertStringContainsString('Talebiniz alındı.', $page->body);
-        self::assertStringContainsString('#1', $page->body);
+        self::assertStringContainsString('#' . $this->kernel->ticketRepository()->findById(1)?->code, $page->body);
         self::assertStringContainsString('<meta http-equiv="refresh" content="5;url=/talepler">', $page->body);
         self::assertStringContainsString('data-countdown="5"', $page->body);
 

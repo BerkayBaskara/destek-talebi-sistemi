@@ -6,6 +6,7 @@
 /** @var \App\Model\SlaStatus $sla */
 /** @var list<\App\Model\Reply> $replies */
 /** @var list<\App\Model\TicketLog> $logs */
+/** @var list<\App\Model\TicketActivity> $activities */
 /** @var list<\App\Model\Attachment> $attachments */
 /** @var list<string> $actions */
 /** @var bool $canReply */
@@ -30,7 +31,7 @@ $date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
 ?>
 <p><a href="<?= e($backUrl) ?>">&lsaquo; Geri dön</a></p>
 <section class="card">
-    <h1>Talep #<?= e($ticket->id) ?> · <?= e($ticket->title) ?></h1>
+    <h1>Talep <?= e($ticket->displayCode()) ?> · <?= e($ticket->title) ?></h1>
     <div class="detail-grid">
         <dl class="detail-list">
             <?php if ($viewer->role !== Role::Customer): ?>
@@ -102,12 +103,34 @@ $date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
 
 <section class="card">
     <h2>Günlük</h2>
+    <?php
+    // Durum değişiklikleri ve diğer işlemler tek zaman çizelgesinde (aynı anda olursa durum satırı önce).
+    $entries = [];
+    foreach ($logs as $log) {
+        $entries[] = [$log->changedAt, 0, (int) $log->id, $log->userId,
+            $log->oldStatus !== null ? $log->oldStatus->label() . ' → ' . $log->newStatus->label() : 'Talep oluşturuldu (' . $log->newStatus->label() . ')'];
+    }
+    foreach ($activities as $activity) {
+        $target = $names[(int) $activity->targetUserId] ?? '-';
+        $text = match ($activity->action) {
+            'assigned' => 'Atama: ' . $target,
+            'replied' => 'Yanıt yazıldı',
+            'escalated' => 'Eskalasyon: ' . $target . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
+            'returned_to_pool' => 'Görev Havuzu\'na alındı' . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
+            'sla_extended' => 'Ek SLA: yeni bitiş ' . ($activity->note ?? ''),
+            'closed' => 'Kapanış: ' . ($activity->note ?? ''),
+            default => $activity->note ?? $activity->action,
+        };
+        $entries[] = [$activity->createdAt, 1, (int) $activity->id, $activity->userId, $text];
+    }
+    usort($entries, static fn (array $a, array $b): int => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
+    ?>
     <ol class="timeline">
-        <?php foreach ($logs as $log): ?>
+        <?php foreach ($entries as [$at, , , $userId, $text]): ?>
             <li>
-                <span class="muted"><?= e($date($log->changedAt)) ?></span> ·
-                <strong><?= e($names[$log->userId] ?? '-') ?></strong> ·
-                <?= e($log->oldStatus !== null ? $log->oldStatus->label() . ' → ' . $log->newStatus->label() : 'Talep oluşturuldu (' . $log->newStatus->label() . ')') ?>
+                <span class="muted"><?= e($date($at)) ?></span> ·
+                <strong><?= e($names[$userId] ?? '-') ?></strong> ·
+                <?= e($text) ?>
             </li>
         <?php endforeach; ?>
     </ol>

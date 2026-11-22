@@ -100,9 +100,16 @@ final class TicketController
         $ticket = $this->tickets->findVisible($id, $viewer);
         $replies = $this->kernel->replyRepository()->findByTicket($id);
         $logs = $this->kernel->ticketLogRepository()->findByTicket($id);
+        $activities = $this->kernel->ticketActivityRepository()->findByTicket($id);
 
         // Ekranda isim göstermek için ilgili kullanıcıları bir kez yükle (0 = Sistem).
-        $ids = array_merge([$ticket->creatorId, (int) $ticket->agentId], array_map(static fn ($r) => $r->userId, $replies), array_map(static fn ($l) => $l->userId, $logs));
+        $ids = array_merge(
+            [$ticket->creatorId, (int) $ticket->agentId, (int) $ticket->previousAgentId],
+            array_map(static fn ($r) => $r->userId, $replies),
+            array_map(static fn ($l) => $l->userId, $logs),
+            array_map(static fn ($a) => $a->userId, $activities),
+            array_map(static fn ($a) => (int) $a->targetUserId, $activities),
+        );
         $names = [0 => 'Sistem'];
         foreach (array_unique($ids) as $userId) {
             if ($userId > 0) {
@@ -111,7 +118,7 @@ final class TicketController
         }
 
         return $this->kernel->render('tickets/show', [
-            'title' => 'Talep #' . $ticket->id,
+            'title' => 'Talep ' . $ticket->displayCode(),
             'ticket' => $ticket,
             'viewer' => $viewer,
             'names' => $names,
@@ -119,6 +126,7 @@ final class TicketController
             'sla' => $this->kernel->slaStatusService()->forTicket($ticket),
             'replies' => $replies,
             'logs' => $logs,
+            'activities' => $activities,
             'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
             'actions' => $this->tickets->availableActions($ticket, $viewer),
             'canReply' => $this->tickets->canReply($ticket, $viewer),

@@ -49,6 +49,17 @@ final class JsonTicketRepository implements TicketRepositoryInterface
         });
     }
 
+    public function findByCode(string $code): ?Ticket
+    {
+        foreach ($this->store->all(self::TABLE) as $row) {
+            if (($row['code'] ?? null) === $code) {
+                return Ticket::fromArray($row);
+            }
+        }
+
+        return null;
+    }
+
     public function findById(int $id): ?Ticket
     {
         $row = $this->store->find(self::TABLE, $id);

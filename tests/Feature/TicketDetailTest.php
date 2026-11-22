@@ -231,4 +231,18 @@ final class TicketDetailTest extends FeatureTestCase
         $this->switchTo($this->customerNo);
         self::assertStringContainsString('name="mesaj"', $this->get('/talepler/1')->body);
     }
+
+    public function test_detail_and_lists_show_ticket_code_and_activity(): void
+    {
+        $this->agent();
+        $this->openTicket();
+        $ticket = $this->kernel->ticketRepository()->findById(1);
+        $code = (string) $ticket?->code;
+
+        $detail = $this->get('/talepler/1')->body;
+        self::assertStringContainsString('<h1>Talep #' . $code . ' · ', $detail);
+        self::assertStringContainsString('Atama: Zeynep Kaya', $detail);
+        self::assertStringContainsString('#' . $code, $this->get('/talepler')->body);
+        self::assertStringContainsString('Sunucu erişimi koptu', $this->get('/talepler?q=' . strtolower($code))->body);
+    }
 }

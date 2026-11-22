@@ -8,7 +8,7 @@
     </div>
     <h1>Talebiniz alındı.</h1>
     <p>Talep numaranız</p>
-    <p class="big-number">#<?= e($ticket->id) ?></p>
+    <p class="big-number"><?= e($ticket->displayCode()) ?></p>
     <p class="muted" data-countdown="<?= e($seconds) ?>" data-countdown-url="/talepler">
         <span data-countdown-number><?= e($seconds) ?></span> saniye içinde taleplerinizin listesine yönlendirileceksiniz.
     </p>

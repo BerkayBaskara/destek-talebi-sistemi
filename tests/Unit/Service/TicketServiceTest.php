@@ -390,6 +390,7 @@ final class TicketServiceTest extends TestCase
                 $this->snapshot = $inner->findById(1);
             }
 
+            public function findByCode(string $code): ?Ticket { return $this->inner->findByCode($code); }
             public function findById(int $id): ?Ticket
             {
                 return $this->snapshot !== null ? clone $this->snapshot : null; // eski kopya
@@ -563,5 +564,31 @@ final class TicketServiceTest extends TestCase
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.');
         $this->service->addReply($id, $agent, 'Bir not daha');
+    }
+
+    public function test_created_ticket_gets_unique_code_and_is_found_by_it(): void
+    {
+        $a = $this->create();
+        $b = $this->create();
+
+        self::assertMatchesRegularExpression('/^[A-Z2-9]{6}$/', (string) $a->code);
+        self::assertNotSame($a->code, $b->code);
+        self::assertSame($a->id, $this->tickets->findByCode((string) $a->code)?->id);
+        self::assertTrue($this->service->matches($a, '#' . strtolower((string) $a->code)));
+        self::assertFalse($this->service->matches($b, (string) $a->code));
+        self::assertEquals($a->deadline, $a->originalDeadline, 'İlk SLA bitişi ayrıca saklanır.');
+    }
+
+    public function test_assignment_and_reply_are_recorded_as_activity(): void
+    {
+        $activities = new \App\Repository\Json\JsonTicketActivityRepository($this->tempStore());
+        $this->service->attachObserver(new \App\Service\Observer\TicketActivityObserver($activities, $this->clock));
+        $agent = $this->user('P000001', Role::Agent);
+
+        $id = (int) $this->create()->id;
+        $this->service->addReply($id, $agent, 'İnceliyorum.');
+
+        $rows = array_map(static fn ($a): array => [$a->action, $a->userId, $a->targetUserId], $activities->findByTicket($id));
+        self::assertSame([['assigned', 0, $agent->id], ['replied', $agent->id, null]], $rows);
     }
 }

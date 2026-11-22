@@ -17,7 +17,7 @@ $ticketList = static function (array $tickets): string {
     }
     $html = '<ul class="plain">';
     foreach ($tickets as $t) {
-        $html .= '<li><a href="/talepler/' . e($t->id) . '">#' . e($t->id) . ' · ' . e($t->title) . '</a> <span class="muted">(bitiş ' . e($t->deadline->format('d.m.Y H:i')) . ')</span></li>';
+        $html .= '<li><a href="/talepler/' . e($t->id) . '">' . e($t->displayCode()) . ' · ' . e($t->title) . '</a> <span class="muted">(bitiş ' . e($t->deadline->format('d.m.Y H:i')) . ')</span></li>';
     }
 
     return $html . '</ul>';
