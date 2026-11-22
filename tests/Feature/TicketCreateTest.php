@@ -32,7 +32,7 @@ final class TicketCreateTest extends FeatureTestCase
         $response = $this->post('/talepler', self::form());
 
         self::assertSame(302, $response->status);
-        self::assertSame('/talepler/1', $response->headers['Location']);
+        self::assertSame('/talepler/1/olusturuldu', $response->headers['Location']);
         $list = $this->get('/talepler');
         self::assertStringContainsString('Yazıcıdan çıktı alamıyorum', $list->body);
         self::assertSame(TicketStatus::Pending, $this->kernel->ticketRepository()->findById(1)?->status);
@@ -99,5 +99,37 @@ final class TicketCreateTest extends FeatureTestCase
 
         self::assertSame(403, $this->get('/talepler/yeni')->status);
         self::assertSame(403, $this->post('/talepler', self::form())->status);
+    }
+
+    public function test_create_redirects_to_success_page_and_only_owner_sees_it(): void
+    {
+        $this->loginAs($this->registerCustomer(), self::PASSWORD);
+        $this->post('/talepler', self::form());
+
+        $page = $this->get('/talepler/1/olusturuldu');
+
+        self::assertSame(200, $page->status);
+        self::assertStringContainsString('Talebiniz alındı.', $page->body);
+        self::assertStringContainsString('#1', $page->body);
+        self::assertStringContainsString('<meta http-equiv="refresh" content="5;url=/talepler">', $page->body);
+        self::assertStringContainsString('data-countdown="5"', $page->body);
+
+        $this->post('/cikis');
+        $this->loginAs($this->registerCustomer('Ayşe'), self::PASSWORD);
+        self::assertSame(403, $this->get('/talepler/1/olusturuldu')->status);
+    }
+
+    public function test_register_done_has_link_and_no_refresh(): void
+    {
+        $this->post('/kayit', [
+            'name' => 'Ayşe', 'surname' => 'Demir', 'password' => self::PASSWORD, 'password_confirm' => self::PASSWORD,
+            'secret_question' => \App\Service\AuthService::SECRET_QUESTIONS[0], 'secret_answer' => 'Pamuk',
+        ]);
+
+        $done = $this->get('/kayit/tamam')->body;
+
+        self::assertStringContainsString('<a href="/giris">Giriş yapmak için buraya tıklayınız</a>', $done);
+        self::assertStringNotContainsString('http-equiv="refresh"', $done);
+        self::assertMatchesRegularExpression('/M\d{6}/', $done);
     }
 }

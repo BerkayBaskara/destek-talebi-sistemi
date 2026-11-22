@@ -1,5 +1,5 @@
-// FR-09: Kanban sürükle-bırak. Kart başka sütuna bırakılınca sunucuya JSON istek gider;
-// sunucu State deseniyle kontrol eder. Reddederse kart eski yerine döner ve neden gösterilir.
+// FR-09: Kanban sürükle-bırak. Kart başka sütuna bırakılınca önce onay istenir, sonra sunucuya JSON istek gider;
+// sunucu State deseniyle kontrol eder. Reddederse (ya da kullanıcı vazgeçerse) kart eski yerine döner.
 (function () {
   'use strict';
 
@@ -15,6 +15,29 @@
   function updateCounts() {
     document.querySelectorAll('.kanban-col').forEach(function (col) {
       col.querySelector('.count').textContent = col.querySelectorAll('.kanban-card').length;
+    });
+  }
+
+  function revert(card, previousColumn) {
+    previousColumn.appendChild(card);
+    card.querySelector('.kanban-move').value = previousColumn.parentElement.dataset.status;
+    updateCounts();
+  }
+
+  // Taşımadan önce onay penceresi (ui.js). Pencere yoksa doğrudan taşınır.
+  function askAndMove(card, targetStatus, previousColumn) {
+    var column = document.querySelector('.kanban-col[data-status="' + targetStatus + '"]');
+    var label = column ? column.dataset.label : targetStatus;
+    if (typeof window.confirmAction !== 'function') {
+      move(card, targetStatus, previousColumn);
+      return;
+    }
+    window.confirmAction('Bu talebin durumunu «' + label + '» olarak değiştirmek istiyor musunuz?', function (ok) {
+      if (ok) {
+        move(card, targetStatus, previousColumn);
+      } else {
+        revert(card, previousColumn);
+      }
     });
   }
 
@@ -47,9 +70,7 @@
         updateCounts();
       })
       .catch(function (error) {
-        previousColumn.appendChild(card); // geri al
-        card.querySelector('.kanban-move').value = previousColumn.parentElement.dataset.status;
-        updateCounts();
+        revert(card, previousColumn); // geri al
         showError(error.message);
       });
   }
@@ -70,7 +91,8 @@
       var previous = card.parentElement;
       var target = document.querySelector('.kanban-col[data-status="' + event.target.value + '"] .kanban-cards');
       target.appendChild(card);
-      move(card, event.target.value, previous);
+      updateCounts();
+      askAndMove(card, event.target.value, previous);
     });
   });
 
@@ -90,7 +112,8 @@
       }
       var previous = dragged.parentElement;
       column.querySelector('.kanban-cards').appendChild(dragged);
-      move(dragged, column.dataset.status, previous);
+      updateCounts();
+      askAndMove(dragged, column.dataset.status, previous);
       dragged = null;
     });
   });

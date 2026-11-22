@@ -62,7 +62,7 @@ use App\Model\Enum\TicketStatus;
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Müşteri"><?= e($names[$ticket->creatorId] ?? '-') ?></td>
                     <td data-label="Personel"><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></td>
-                    <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
+                    <td data-label="Öncelik"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $slas[$i], 'ticketId' => $ticket->id]) ?></td>
                 </tr>

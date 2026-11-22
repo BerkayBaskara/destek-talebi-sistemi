@@ -67,7 +67,6 @@ final class TicketController
             return $this->kernel->render('tickets/create', $this->formData($old, $e->errors()), 422);
         }
 
-        $this->kernel->session()->flash('success', 'Talebiniz alındı. Talep no: #' . $ticket->id);
         foreach ($files as $file) {
             try {
                 $attachments->store((int) $ticket->id, $customer, $file);
@@ -77,7 +76,21 @@ final class TicketController
             }
         }
 
-        return Response::redirect('/talepler/' . $ticket->id);
+        return Response::redirect('/talepler/' . $ticket->id . '/olusturuldu');
+    }
+
+    /** Talep oluşturuldu ekranı: yalnız talebin sahibi görür; 5 saniye sonra Taleplerim'e döner. */
+    public function created(int $id): Response
+    {
+        $customer = $this->kernel->requireRole(Role::Customer);
+        $ticket = $this->tickets->findVisible($id, $customer);
+
+        return $this->kernel->render('tickets/created', [
+            'title' => 'Talebiniz alındı',
+            'ticket' => $ticket,
+            'seconds' => 5,
+            'refresh' => '5;url=/talepler',
+        ]);
     }
 
     /** Talep detayı: müşteri kendi talebini, personel kendisine atananı/havuzdakini, yönetici hepsini görür. */
@@ -109,6 +122,8 @@ final class TicketController
             'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
             'actions' => $this->tickets->availableActions($ticket, $viewer),
             'canReply' => $this->tickets->canReply($ticket, $viewer),
+            'awaitsCustomer' => $ticket->status === TicketStatus::Resolved && $viewer->role !== Role::Customer,
+            'replyBlockedMessage' => TicketService::RESOLVED_REPLY_MESSAGE,
         ]);
     }
 

@@ -13,14 +13,14 @@ use App\Controller\KanbanController;
     <div id="kanban-error" class="alert alert-error" role="alert" hidden></div>
     <div class="kanban">
         <?php foreach ($columns as $value => $column): ?>
-            <div class="kanban-col" data-status="<?= e($value) ?>">
+            <div class="kanban-col" data-status="<?= e($value) ?>" data-label="<?= e($column['status']->label()) ?>">
                 <h2><?= e($column['status']->label()) ?> <span class="muted count"><?= count($column['cards']) ?></span></h2>
                 <div class="kanban-cards">
                     <?php foreach ($column['cards'] as ['ticket' => $ticket, 'sla' => $sla]): ?>
                         <article class="kanban-card" draggable="true" data-id="<?= e($ticket->id) ?>">
                             <a href="/talepler/<?= e($ticket->id) ?>">#<?= e($ticket->id) ?> · <?= e($ticket->title) ?></a>
                             <div class="kanban-meta">
-                                <span class="badge"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></span>
+                                <span class="badge"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></span>
                                 <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?>
                             </div>
                             <label class="sr-only" for="move-<?= e($ticket->id) ?>">Durum</label>

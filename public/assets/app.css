@@ -209,3 +209,44 @@ input.input-sm[type="number"] { width: 90px; min-width: 64px; padding: 8px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .step { display: flex; flex-direction: column; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+
+/* Talep detayı: iki sütun */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 24px; margin-bottom: 8px; }
+.detail-list { margin: 0; }
+.detail-list > div { display: grid; grid-template-columns: 150px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.detail-list dt { font-weight: 600; color: var(--muted); }
+.detail-list dd { margin: 0; }
+@media (max-width: 420px) { .detail-list > div { grid-template-columns: 1fr; gap: 2px; } }
+.alert-warning { background: var(--warn-bg); color: var(--warn); }
+
+/* Öncelik yıldızı ve bilgi kutusu */
+.priority { position: relative; display: inline-flex; align-items: flex-start; gap: 2px; }
+.tip { position: relative; top: -0.45em; border: 0; background: none; padding: 0 2px; margin: 0; font-size: 0.85em; line-height: 1; color: #d97706; cursor: help; }
+.tip::after {
+    content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+    background: #1f2933; color: #fff; font-size: 0.8rem; font-weight: 500; white-space: nowrap; padding: 6px 8px; border-radius: 6px;
+    opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.15s; z-index: 20;
+}
+.tip:hover::after, .tip:focus-visible::after, .tip.show::after { opacity: 1; visibility: visible; }
+
+/* Onay penceresi */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.modal-backdrop[hidden] { display: none; }
+.modal { background: var(--card); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); padding: 20px; width: 100%; max-width: 420px; }
+.modal h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.blurred { filter: blur(4px); }
+@supports (backdrop-filter: blur(4px)) {
+    .blurred { filter: none; }
+    .modal-backdrop { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+}
+
+/* Başarı ekranları */
+.success-card { text-align: center; }
+.success-icon { width: 88px; height: 88px; margin: 4px auto 8px; border-radius: 50%; background: var(--ok-bg); color: var(--new); display: flex; align-items: center; justify-content: center; }
+.success-links { margin-top: 16px; }
+.progress { height: 6px; background: #e4e7eb; border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+.progress-bar { height: 100%; width: 0; background: var(--new); animation-name: progress-fill; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes progress-fill { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .progress-bar { animation: none; width: 100%; } }
+

@@ -17,7 +17,7 @@
                 <tr class="row-link row-<?= e($sla->level) ?>" data-href="/talepler/<?= e($ticket->id) ?>">
                     <td data-label="ID">#<?= e($ticket->id) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
-                    <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
+                    <td data-label="Öncelik"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></td>
                 </tr>

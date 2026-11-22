@@ -9,49 +9,57 @@
 /** @var list<\App\Model\Attachment> $attachments */
 /** @var list<string> $actions */
 /** @var bool $canReply */
+/** @var bool $awaitsCustomer */
+/** @var string $replyBlockedMessage */
 /** @var callable $csrfField */
 /** @var \App\Core\View $view */
 
 use App\Model\Enum\Role;
+use App\Model\Enum\TicketStatus;
 
+// Eylem → düğme metni, sınıfı ve eylemden sonraki durum (onay penceresinde gösterilir)
 $actionLabels = [
-    'start_review' => ['İncelemeye al', 'btn'],
-    'resolve' => ['Çözüldü olarak işaretle', 'btn'],
-    'approve' => ['Çözümü onayla', 'btn'],
-    'reject' => ['Çözümü reddet', 'btn btn-light'],
-    'cancel' => ['Talebi iptal et', 'btn btn-danger'],
+    'start_review' => ['İncelemeye al', 'btn', TicketStatus::InReview],
+    'resolve' => ['Çözüldü olarak işaretle', 'btn', TicketStatus::Resolved],
+    'approve' => ['Çözümü onayla', 'btn btn-new', TicketStatus::Closed],
+    'reject' => ['Çözümü reddet', 'btn btn-light', TicketStatus::InReview],
+    'cancel' => ['Talebi iptal et', 'btn btn-danger', TicketStatus::Cancelled],
 ];
 $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === Role::Agent ? '/kanban' : '/yonetici');
+$date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
 ?>
 <p><a href="<?= e($backUrl) ?>">&lsaquo; Geri dön</a></p>
 <section class="card">
     <h1>Talep #<?= e($ticket->id) ?> · <?= e($ticket->title) ?></h1>
-    <div class="meta-grid">
-        <div><strong>Müşteri:</strong> <?= e($names[$ticket->creatorId] ?? '-') ?></div>
-        <div><strong>Kategori:</strong> <?= e($category->name ?? '-') ?></div>
-        <div><strong>Açılış:</strong> <?= e($ticket->createdAt->format('d.m.Y H:i')) ?></div>
-        <div>
-            <strong>Öncelik:</strong> <?= e($priorityNames[$ticket->priorityId] ?? '-') ?>
-            <?php if ($ticket->priorityRaised()): ?>
-                <span class="muted">(Sistem önceliği yükseltti; seçilen: <?= e($priorityNames[$ticket->customerPriorityId] ?? '-') ?>)</span>
+    <div class="detail-grid">
+        <dl class="detail-list">
+            <?php if ($viewer->role !== Role::Customer): ?>
+                <div><dt>Müşteri</dt><dd><?= e($names[$ticket->creatorId] ?? '-') ?></dd></div>
             <?php endif; ?>
-        </div>
-        <div><strong>Durum:</strong> <?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></div>
-        <div><strong>Personel:</strong> <?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></div>
-        <div><strong>SLA bitişi:</strong> <?= e($ticket->deadline->format('d.m.Y H:i')) ?></div>
-        <div><strong>SLA:</strong> <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></div>
-        <?php if ($ticket->attemptCount > 0): ?>
-            <div><strong>Reddedilen çözüm:</strong> <?= e($ticket->attemptCount) ?></div>
-        <?php endif; ?>
+            <div><dt>Kategori</dt><dd><?= e($category->name ?? '-') ?></dd></div>
+            <div><dt>Öncelik</dt><dd><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></dd></div>
+            <div><dt>Oluşturulma Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>
+            <div><dt>Başlangıç Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>
+        </dl>
+        <dl class="detail-list">
+            <div><dt>Durum</dt><dd><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></dd></div>
+            <div><dt>Atanan Personel</dt><dd><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></dd></div>
+            <div><dt>Bitiş Tarihi</dt><dd><?= e($date($ticket->deadline)) ?></dd></div>
+            <div><dt>Kalan Süre</dt><dd><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></dd></div>
+            <?php if ($ticket->attemptCount > 0): ?>
+                <div><dt>Reddedilen Çözüm</dt><dd><?= e($ticket->attemptCount) ?></dd></div>
+            <?php endif; ?>
+        </dl>
     </div>
 
     <?php if ($actions !== []): ?>
         <div class="actions">
             <?php foreach ($actions as $action): ?>
-                <form method="post" action="/talepler/<?= e($ticket->id) ?>/islem">
+                <?php [$label, $class, $target] = $actionLabels[$action]; ?>
+                <form method="post" action="/talepler/<?= e($ticket->id) ?>/islem" data-confirm="Bu talebin durumunu «<?= e($target->label()) ?>» olarak değiştirmek istiyor musunuz?">
                     <?= $csrfField() ?>
                     <input type="hidden" name="islem" value="<?= e($action) ?>">
-                    <button type="submit" class="<?= e($actionLabels[$action][1]) ?>"><?= e($actionLabels[$action][0]) ?></button>
+                    <button type="submit" class="<?= e($class) ?>"><?= e($label) ?></button>
                 </form>
             <?php endforeach; ?>
         </div>
@@ -73,7 +81,7 @@ $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === R
     <h2>Mesajlar</h2>
     <?php foreach ($replies as $reply): ?>
         <div class="message<?= $reply->userId === $viewer->id ? ' mine' : '' ?>">
-            <div class="muted"><strong><?= e($names[$reply->userId] ?? '-') ?></strong> · <?= e($reply->createdAt->format('d.m.Y H:i')) ?></div>
+            <div class="muted"><strong><?= e($names[$reply->userId] ?? '-') ?></strong> · <?= e($date($reply->createdAt)) ?></div>
             <p><?= nl2br(e($reply->message)) ?></p>
         </div>
     <?php endforeach; ?>
@@ -87,15 +95,17 @@ $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === R
             </div>
             <button type="submit" class="btn">Yanıtı gönder</button>
         </form>
+    <?php elseif ($awaitsCustomer): ?>
+        <p class="alert alert-warning"><?= e($replyBlockedMessage) ?></p>
     <?php endif; ?>
 </section>
 
 <section class="card">
-    <h2>Durum geçmişi</h2>
+    <h2>Günlük</h2>
     <ol class="timeline">
         <?php foreach ($logs as $log): ?>
             <li>
-                <span class="muted"><?= e($log->changedAt->format('d.m.Y H:i')) ?></span> ·
+                <span class="muted"><?= e($date($log->changedAt)) ?></span> ·
                 <strong><?= e($names[$log->userId] ?? '-') ?></strong> ·
                 <?= e($log->oldStatus !== null ? $log->oldStatus->label() . ' → ' . $log->newStatus->label() : 'Talep oluşturuldu (' . $log->newStatus->label() . ')') ?>
             </li>

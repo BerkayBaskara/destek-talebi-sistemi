@@ -48,7 +48,7 @@ final class TicketDetailTest extends FeatureTestCase
         $body = $this->get('/talepler/1')->body;
 
         self::assertStringContainsString('Sabah geldiğimizden beri sunucuya bağlanamıyoruz.', $body);
-        self::assertStringContainsString('Durum geçmişi', $body);
+        self::assertStringContainsString('<h2>Günlük</h2>', $body);
         self::assertStringContainsString('Sistem', $body, 'Otomatik atama satırı "Sistem" adıyla görünmeli.');
         self::assertStringContainsString('Beklemede → Atandı', $body);
         self::assertStringContainsString('sla-badge', $body);
@@ -56,11 +56,17 @@ final class TicketDetailTest extends FeatureTestCase
         self::assertStringContainsString('Zeynep Kaya', $body, 'Atanan personel görünmeli.');
     }
 
-    public function test_priority_raised_note(): void
+    public function test_priority_star_shown_only_when_raised(): void
     {
         $this->openTicket('Muhasebe sunucusu çöktü');
+        $this->openTicket('Yeni fare talebi');
 
-        self::assertStringContainsString('Sistem önceliği yükseltti', $this->get('/talepler/1')->body);
+        $raised = $this->get('/talepler/1')->body;
+        $normal = $this->get('/talepler/2')->body;
+
+        self::assertStringContainsString('<button type="button" class="tip" aria-label="Öncelik seviyesi yükseltildi" data-tip="Öncelik seviyesi yükseltildi">★</button>', $raised);
+        self::assertStringNotContainsString('Sistem önceliği yükseltti', $raised);
+        self::assertStringNotContainsString('class="tip"', $normal);
     }
 
     public function test_other_customer_gets_403_and_no_content(): void
@@ -166,5 +172,63 @@ final class TicketDetailTest extends FeatureTestCase
 
         self::assertSame(403, $this->post('/talepler/1/yanit', ['mesaj' => 'Merhaba'])->status);
         self::assertSame(403, $this->post('/talepler/1/islem', ['islem' => 'start_review'])->status);
+    }
+
+    public function test_detail_two_column_labels(): void
+    {
+        $this->agent();
+        $this->openTicket();
+
+        $body = $this->get('/talepler/1')->body;
+
+        foreach (['Kategori', 'Öncelik', 'Oluşturulma Tarihi', 'Başlangıç Tarihi', 'Durum', 'Atanan Personel', 'Bitiş Tarihi', 'Kalan Süre'] as $label) {
+            self::assertStringContainsString('<dt>' . $label . '</dt>', $body);
+        }
+        self::assertStringContainsString('class="detail-grid"', $body);
+        self::assertStringNotContainsString('Durum geçmişi', $body);
+    }
+
+    public function test_customer_detail_hides_customer_row(): void
+    {
+        $agent = $this->agent();
+        $this->openTicket();
+
+        self::assertStringNotContainsString('<dt>Müşteri</dt>', $this->get('/talepler/1')->body);
+
+        $this->switchTo($agent->customerNo);
+        $body = $this->get('/talepler/1')->body;
+        self::assertStringContainsString('<dt>Müşteri</dt>', $body);
+        self::assertStringContainsString('Ahmet Yılmaz', $body);
+    }
+
+    public function test_status_forms_have_confirm_attribute(): void
+    {
+        $agent = $this->agent();
+        $this->openTicket();
+        $this->switchTo($agent->customerNo);
+
+        $body = $this->get('/talepler/1')->body;
+
+        self::assertStringContainsString('data-confirm="Bu talebin durumunu «İnceleniyor» olarak değiştirmek istiyor musunuz?"', $body);
+        self::assertStringContainsString('/assets/ui.js', $body);
+    }
+
+    public function test_agent_cannot_reply_to_resolved_but_customer_can(): void
+    {
+        $agent = $this->agent();
+        $this->openTicket();
+        $this->switchTo($agent->customerNo);
+        $this->post('/talepler/1/islem', ['islem' => 'start_review']);
+        $this->post('/talepler/1/islem', ['islem' => 'resolve']);
+
+        $page = $this->get('/talepler/1')->body;
+        self::assertStringNotContainsString('name="mesaj"', $page);
+        self::assertStringContainsString('Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.', $page);
+
+        $this->post('/talepler/1/yanit', ['mesaj' => 'Ek bilgi']);
+        self::assertStringNotContainsString('<p>Ek bilgi</p>', $this->get('/talepler/1')->body);
+
+        $this->switchTo($this->customerNo);
+        self::assertStringContainsString('name="mesaj"', $this->get('/talepler/1')->body);
     }
 }

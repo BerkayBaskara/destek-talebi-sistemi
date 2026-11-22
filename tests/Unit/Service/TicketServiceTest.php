@@ -543,4 +543,25 @@ final class TicketServiceTest extends TestCase
         $this->expectExceptionMessage('Kapasiteniz dolu; yeni talep alamazsınız.');
         $service->take((int) $pool->id, $p1);
     }
+
+    public function test_agent_cannot_reply_to_resolved_but_can_to_breached(): void
+    {
+        $agent = $this->user('P000001', Role::Agent);
+        $id = (int) $this->create()->id;
+        $this->clock->advance('+30 days'); // SLA çoktan aşıldı
+
+        self::assertTrue($this->service->canReply($this->service->mustFind($id), $agent));
+        $this->service->addReply($id, $agent, 'SLA aşılmış olsa da yazabiliyorum.');
+
+        $this->service->perform($id, $agent, 'start_review');
+        $this->service->perform($id, $agent, 'resolve');
+        $resolved = $this->service->mustFind($id);
+        self::assertFalse($this->service->canReply($resolved, $agent));
+        self::assertTrue($this->service->canReply($resolved, $this->customer), 'Müşteri çözüldü durumunda yazabilmeli.');
+        $this->service->addReply($id, $this->customer, 'Hâlâ sorun var.');
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.');
+        $this->service->addReply($id, $agent, 'Bir not daha');
+    }
 }

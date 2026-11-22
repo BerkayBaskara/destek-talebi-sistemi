@@ -18,8 +18,12 @@ use App\Model\Enum\Role;
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= e($csrfToken ?? '') ?>">
     <title><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?><?= isset($title) ? ' · ' . e($title) : '' ?></title>
+    <?php if (!empty($refresh)): ?>
+        <meta http-equiv="refresh" content="<?= e($refresh) ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/app.css">
     <script src="/assets/menu.js" defer></script>
+    <script src="/assets/ui.js" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -60,7 +64,7 @@ use App\Model\Enum\Role;
         </nav>
     </div>
 </header>
-<main class="container">
+<main class="container" id="main">
     <?php if (!empty($flashSuccess)): ?>
         <div class="alert alert-success" role="status"><?= e($flashSuccess) ?></div>
     <?php endif; ?>

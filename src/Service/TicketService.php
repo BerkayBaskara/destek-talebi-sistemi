@@ -282,9 +282,14 @@ final class TicketService
     }
 
     /** Yanıt yazabilir mi (arayüzde form gösterilsin mi). */
+    /**
+     * Yanıt yazılabilir mi: kapanmış/iptal talebe kimse, Çözüldü durumundaki talebe personel ve yönetici yazamaz
+     * (müşterinin onayı ya da reddi beklenir). SLA süresi dolmuş olsa da yazmak serbesttir.
+     */
     public function canReply(Ticket $ticket, User $viewer): bool
     {
         return !$ticket->status->isFinal()
+            && !self::awaitsCustomer($ticket, $viewer)
             && ($ticket->creatorId === $viewer->id
                 || $viewer->role === Role::Admin
                 || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id));
@@ -300,6 +305,14 @@ final class TicketService
         };
     }
 
+    public const RESOLVED_REPLY_MESSAGE = 'Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.';
+
+    /** Çözüldü durumunda sıra müşteride: personel ve yönetici yazamaz. */
+    private static function awaitsCustomer(Ticket $ticket, User $user): bool
+    {
+        return $ticket->status === TicketStatus::Resolved && $user->role !== Role::Customer;
+    }
+
     /** Talebe mesaj yazar (US-04, US-10): talep sahibi, atanan personel veya yönetici. */
     public function addReply(int $ticketId, User $author, string $message): Reply
     {
@@ -311,6 +324,9 @@ final class TicketService
         );
         if ($ticket->status->isFinal()) {
             throw new ValidationException(['message' => 'Kapalı veya iptal edilmiş talebe yanıt yazılamaz.']);
+        }
+        if (self::awaitsCustomer($ticket, $author)) {
+            throw new ValidationException(['message' => self::RESOLVED_REPLY_MESSAGE]);
         }
         $message = trim($message);
         if (Text::length($message) < 1 || Text::length($message) > 5000) {
