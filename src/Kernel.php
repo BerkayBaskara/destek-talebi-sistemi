@@ -22,6 +22,9 @@ use App\Exception\RedirectException;
 use App\Model\Enum\Role;
 use App\Model\User;
 use App\Repository\AttachmentRepositoryInterface;
+use App\Repository\AuditLogRepositoryInterface;
+use App\Repository\Json\JsonAuditLogRepository;
+use App\Repository\Json\JsonSettingsRepository;
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\Json\JsonAttachmentRepository;
 use App\Service\AttachmentService;
@@ -38,7 +41,9 @@ use App\Repository\TicketLogRepositoryInterface;
 use App\Repository\TicketRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
 use App\Service\AssignmentService;
+use App\Service\AuditLogger;
 use App\Service\AuthService;
+use App\Service\SettingsService;
 use App\Service\Observer\TicketLogObserver;
 use App\Service\PriorityDetector;
 use App\Service\SlaCalculatorService;
@@ -64,6 +69,9 @@ final class Kernel
     private readonly Csrf $csrf;
     private readonly View $view;
     private readonly Router $router;
+    private readonly AuditLogRepositoryInterface $auditLogRepository;
+    private readonly AuditLogger $auditLogger;
+    private readonly SettingsService $settingsService;
     private readonly UserRepositoryInterface $userRepository;
     private readonly AuthService $authService;
     private readonly TicketRepositoryInterface $ticketRepository;
@@ -88,6 +96,10 @@ final class Kernel
         $this->csrf = new Csrf($this->session);
         $this->view = new View($this->rootDir . '/views');
         $this->router = new Router();
+
+        $this->auditLogRepository = new JsonAuditLogRepository($this->store);
+        $this->auditLogger = new AuditLogger($this->auditLogRepository, $this->clock);
+        $this->settingsService = new SettingsService(new JsonSettingsRepository($this->store), $this->auditLogger);
 
         $this->userRepository = new JsonUserRepository($this->store);
         $this->authService = new AuthService($this->userRepository);
@@ -265,6 +277,21 @@ final class Kernel
     public function rootDir(): string
     {
         return $this->rootDir;
+    }
+
+    public function auditLogRepository(): AuditLogRepositoryInterface
+    {
+        return $this->auditLogRepository;
+    }
+
+    public function auditLogger(): AuditLogger
+    {
+        return $this->auditLogger;
+    }
+
+    public function settingsService(): SettingsService
+    {
+        return $this->settingsService;
     }
 
     public function userRepository(): UserRepositoryInterface
