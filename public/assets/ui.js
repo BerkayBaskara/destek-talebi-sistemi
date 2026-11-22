@@ -139,6 +139,19 @@
         }, 60000);
     }
 
+    // Talep formu: yalnız seçilen kategorinin ek alanları gösterilir (JavaScript yoksa hepsi görünür).
+    var categorySelect = document.getElementById('category_id');
+    var extraFields = document.querySelectorAll('.extra-field[data-category]');
+    if (categorySelect && extraFields.length > 0) {
+        var syncFields = function () {
+            extraFields.forEach(function (field) {
+                field.hidden = field.getAttribute('data-category') !== categorySelect.value;
+            });
+        };
+        categorySelect.addEventListener('change', syncFields);
+        syncFields();
+    }
+
     // Geri sayım (talep oluşturuldu ekranı). Sayfa başındaki meta yenileme JavaScript kapalıyken de yönlendirir.
     var countdown = document.querySelector('[data-countdown]');
     if (countdown) {

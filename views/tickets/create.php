@@ -5,6 +5,8 @@
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
 /** @var int $maxFiles */
+/** @var list<array{id: int, category_id: int, label: string, type: string, required: bool}> $extraFields */
+/** @var array<mixed> $oldExtra */
 /** @var int $maxImageMb */
 /** @var int $maxVideoMb */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
@@ -35,6 +37,26 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             </select>
             <?= $fieldError('priority') ?>
         </div>
+        <?php foreach ($extraFields as $field): ?>
+            <?php
+            $fid = $field['id'];
+            $categoryName = '';
+            foreach ($categories as $category) {
+                if ((int) $category->id === $field['category_id']) {
+                    $categoryName = $category->name;
+                }
+            }
+            if ($categoryName === '') {
+                continue; // pasif kategorinin alanı formda gösterilmez
+            }
+            $value = $oldExtra[$fid] ?? $oldExtra[(string) $fid] ?? '';
+            ?>
+            <div class="form-row extra-field" data-category="<?= e($field['category_id']) ?>">
+                <label for="extra-<?= e($fid) ?>"><?= e($field['label']) ?><?= $field['required'] ? '' : ' (isteğe bağlı)' ?> <span class="muted extra-field-category">· <?= e($categoryName) ?></span></label>
+                <input type="<?= $field['type'] === 'number' ? 'number' : ($field['type'] === 'date' ? 'date' : 'text') ?>" id="extra-<?= e($fid) ?>" name="extra[<?= e($fid) ?>]" maxlength="200" value="<?= e(is_string($value) ? $value : '') ?>">
+                <?= $fieldError('extra_' . $fid) ?>
+            </div>
+        <?php endforeach; ?>
         <div class="form-row">
             <label for="title">Konu başlığı</label>
             <input type="text" id="title" name="title" maxlength="150" value="<?= e($old['title'] ?? '') ?>" required>

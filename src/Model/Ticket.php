@@ -45,6 +45,8 @@ final class Ticket
         public ?DateTimeImmutable $breachHandledAt = null,
         /** Eskalasyonda uygun üst seviye personel bulunamadı; yönetici elle atayana kadar havuzda bekler (FR-57). */
         public bool $awaitingAdmin = false,
+        /** @var array<string, string> kategoriye özel ek alanlar (etiket → değer) */
+        public array $extraFields = [],
     ) {
     }
 
@@ -113,6 +115,7 @@ final class Ticket
             isset($row['closure_reason']) && $row['closure_reason'] !== '' ? (string) $row['closure_reason'] : null,
             self::date($row['breach_handled_at'] ?? null),
             (bool) ($row['awaiting_admin'] ?? false),
+            self::stringMap($row['extra_fields'] ?? null),
         );
     }
 
@@ -141,7 +144,21 @@ final class Ticket
             'closure_reason' => $this->closureReason,
             'breach_handled_at' => $this->breachHandledAt?->format(DATE_ATOM),
             'awaiting_admin' => $this->awaitingAdmin,
+            'extra_fields' => $this->extraFields,
         ];
+    }
+
+    /** @return array<string, string> */
+    private static function stringMap(mixed $value): array
+    {
+        $map = [];
+        foreach (is_array($value) ? $value : [] as $key => $item) {
+            if (is_scalar($item)) {
+                $map[(string) $key] = (string) $item;
+            }
+        }
+
+        return $map;
     }
 
     public static function date(mixed $value): ?DateTimeImmutable

@@ -50,6 +50,7 @@ use App\Model\Enum\Role;
                 <?php else: ?>
                     <a href="/yonetici">Tüm Talepler</a>
                     <a href="/yonetici/ozet">Özet Rapor</a>
+                    <a href="/yonetici/rapor">Ayrıntılı Rapor</a>
                     <a href="/havuz">Görev Havuzu</a>
                     <a href="/yonetici/ayarlar">Sistem Yapılandırması</a>
                 <?php endif; ?>

@@ -3,6 +3,8 @@
 /** @var array<int|string, array<string, string>> $old */
 /** @var array<int|string, array<string, string>> $errors */
 /** @var callable $csrfField */
+/** @var array<int, list<array{id: int, category_id: int, label: string, type: string, required: bool}>> $fields */
+/** @var array<string, string> $fieldTypes */
 $fieldError = static fn (string $row, string $f): string => isset($errors[$row][$f]) ? '<div class="field-error">' . e($errors[$row][$f]) . '</div>' : '';
 ?>
 <p><a href="/yonetici/ayarlar">← Sistem Yapılandırması</a></p>
@@ -50,3 +52,48 @@ $fieldError = static fn (string $row, string $f): string => isset($errors[$row][
         <button type="submit" class="btn">Ekle</button>
     </form>
 </section>
+<section class="card">
+    <h2>Kategoriye özel ek alanlar</h2>
+    <p class="muted">Seçilen kategoride talep formunda ek alanlar gösterilir (ör. cihaz seri numarası). Zorunlu alan boş bırakılırsa talep açılmaz.</p>
+    <?php foreach ($categories as $category): ?>
+        <?php $c = (int) $category->id; $fe = $errors['field-' . $c] ?? []; ?>
+        <div class="field-block">
+            <h3><?= e($category->name) ?></h3>
+            <?php if (($fields[$c] ?? []) === []): ?>
+                <p class="muted">Ek alan yok.</p>
+            <?php else: ?>
+                <ul class="plain">
+                    <?php foreach ($fields[$c] as $field): ?>
+                        <li>
+                            <?= e($field['label']) ?> <span class="muted">(<?= e($fieldTypes[$field['type']] ?? $field['type']) ?><?= $field['required'] ? ', zorunlu' : '' ?>)</span>
+                            <form method="post" action="/yonetici/kategoriler/alanlar/<?= e($field['id']) ?>/sil" class="inline-form" data-confirm="Bu alan silinsin mi? Daha önce girilen değerler taleplerde kalır.">
+                                <?= $csrfField() ?>
+                                <button type="submit" class="linklike danger-link">Sil</button>
+                            </form>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <form method="post" action="/yonetici/kategoriler/<?= e($c) ?>/alanlar" class="filters" novalidate>
+                <?= $csrfField() ?>
+                <div class="grow">
+                    <label for="field-label-<?= e($c) ?>">Alan adı</label>
+                    <input type="text" id="field-label-<?= e($c) ?>" name="label" maxlength="60">
+                    <?php if (isset($fe['field_label'])): ?><div class="field-error"><?= e($fe['field_label']) ?></div><?php endif; ?>
+                </div>
+                <div>
+                    <label for="field-type-<?= e($c) ?>">Tür</label>
+                    <select id="field-type-<?= e($c) ?>" name="type">
+                        <?php foreach ($fieldTypes as $value => $label): ?>
+                            <option value="<?= e($value) ?>"><?= e($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (isset($fe['field_type'])): ?><div class="field-error"><?= e($fe['field_type']) ?></div><?php endif; ?>
+                </div>
+                <div><label><input type="checkbox" name="required" value="1"> Zorunlu</label></div>
+                <div><button type="submit" class="btn btn-light">Alan ekle</button></div>
+            </form>
+        </div>
+    <?php endforeach; ?>
+</section>
+

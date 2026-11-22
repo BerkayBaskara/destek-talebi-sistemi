@@ -11,6 +11,7 @@ use App\Controller\CalendarController;
 use App\Controller\CatalogController;
 use App\Controller\HierarchyController;
 use App\Controller\NotificationController;
+use App\Controller\ReportController;
 use App\Controller\SettingsController;
 use App\Controller\StaffController;
 use App\Controller\HomeController;
@@ -96,11 +97,19 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/yonetici/ayarlar/dosya', static fn (Request $r, array $p): Response => $settings->saveFiles($r));
     $router->add('POST', '/yonetici/ayarlar/sorular', static fn (Request $r, array $p): Response => $settings->saveQuestions($r));
     $router->add('GET', '/yonetici/denetim', static fn (Request $r, array $p): Response => $settings->audit());
+    $router->add('GET', '/yonetici/yedek', static fn (Request $r, array $p): Response => $settings->backupPage());
+    $router->add('POST', '/yonetici/yedek/indir', static fn (Request $r, array $p): Response => $settings->backupDownload());
+
+    $report = new ReportController($kernel);
+    $router->add('GET', '/yonetici/rapor', static fn (Request $r, array $p): Response => $report->page($r));
+    $router->add('GET', '/yonetici/rapor.csv', static fn (Request $r, array $p): Response => $report->csv($r));
 
     $catalog = new CatalogController($kernel);
     $router->add('GET', '/yonetici/kategoriler', static fn (Request $r, array $p): Response => $catalog->categories());
     $router->add('POST', '/yonetici/kategoriler', static fn (Request $r, array $p): Response => $catalog->createCategory($r));
     $router->add('POST', '/yonetici/kategoriler/{id}', static fn (Request $r, array $p): Response => $catalog->updateCategory($r, (int) $p['id']));
+    $router->add('POST', '/yonetici/kategoriler/{id}/alanlar', static fn (Request $r, array $p): Response => $catalog->addField($r, (int) $p['id']));
+    $router->add('POST', '/yonetici/kategoriler/alanlar/{id}/sil', static fn (Request $r, array $p): Response => $catalog->removeField((int) $p['id']));
     $router->add('GET', '/yonetici/oncelikler', static fn (Request $r, array $p): Response => $catalog->priorities());
     $router->add('POST', '/yonetici/oncelikler', static fn (Request $r, array $p): Response => $catalog->createPriority($r));
     $router->add('POST', '/yonetici/oncelikler/{id}', static fn (Request $r, array $p): Response => $catalog->updatePriority($r, (int) $p['id']));

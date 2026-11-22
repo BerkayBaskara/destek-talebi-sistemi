@@ -10,6 +10,7 @@ use App\Exception\ValidationException;
 use App\Model\Category;
 use App\Model\SlaPolicy;
 use App\Model\User;
+use App\Repository\CategoryFieldRepositoryInterface;
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\PriorityRepositoryInterface;
 use App\Repository\SlaPolicyRepositoryInterface;
@@ -25,7 +26,45 @@ final class CatalogService
         private readonly PriorityRepositoryInterface $priorities,
         private readonly SlaPolicyRepositoryInterface $policies,
         private readonly AuditLogger $audit,
+        private readonly ?CategoryFieldRepositoryInterface $fields = null,
     ) {
+    }
+
+    public const FIELD_TYPES = ['text' => 'Metin', 'number' => 'Sayı', 'date' => 'Tarih'];
+
+    /** Kategoriye ek talep alanı ekler (FR-01). @throws ValidationException */
+    public function addField(User $admin, int $categoryId, string $label, string $type, bool $required): int
+    {
+        if ($this->categories->findById($categoryId) === null) {
+            throw new NotFoundException('Kategori bulunamadı.');
+        }
+        $label = trim($label);
+        $errors = [];
+        if (mb_strlen($label) < 2 || mb_strlen($label) > 60) {
+            $errors['field_label'] = 'Alan adı 2-60 karakter olmalı.';
+        }
+        if (!isset(self::FIELD_TYPES[$type])) {
+            $errors['field_type'] = 'Geçerli bir alan türü seçin.';
+        }
+        if ($errors !== [] || $this->fields === null) {
+            throw new ValidationException($errors);
+        }
+        $id = $this->fields->add($categoryId, $label, $type, $required);
+        $this->audit->record($admin, 'create', 'category_field', $id, null, ['category_id' => $categoryId, 'label' => $label, 'type' => $type, 'required' => $required]);
+
+        return $id;
+    }
+
+    public function removeField(User $admin, int $id): void
+    {
+        foreach ($this->fields?->all() ?? [] as $field) {
+            if ($field['id'] === $id) {
+                $this->fields?->remove($id);
+                $this->audit->record($admin, 'delete', 'category_field', $id, $field, null);
+
+                return;
+            }
+        }
     }
 
     /** @throws ValidationException */

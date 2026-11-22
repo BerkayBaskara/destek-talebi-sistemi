@@ -10,6 +10,7 @@ $sections = [
     ['/yonetici/hiyerarsi', 'Personel Hiyerarşisi', 'Her kategoride personelin seviyesi; atama ve eskalasyon bu sırayı izler.'],
     ['/yonetici/izinler', 'Personel İzinleri', 'İzinli personel izin günlerinde yeni talep almaz.'],
     ['/yonetici/denetim', 'Denetim Kaydı', 'Yöneticilerin yaptığı son değişiklikler.'],
+    ['/yonetici/yedek', 'Veri Yedeği', 'Tüm verileri zip dosyası olarak indirin.'],
 ];
 ?>
 <section class="card">

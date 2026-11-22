@@ -54,6 +54,10 @@ use App\Service\AuditLogger;
 use App\Service\AuthService;
 use App\Service\BrandingService;
 use App\Service\HierarchyService;
+use App\Service\BackupService;
+use App\Service\DetailedReportService;
+use App\Repository\CategoryFieldRepositoryInterface;
+use App\Repository\Json\JsonCategoryFieldRepository;
 use App\Service\NotificationService;
 use App\Service\EscalationService;
 use App\Service\SlaMonitorService;
@@ -104,6 +108,7 @@ final class Kernel
     private readonly HierarchyRepositoryInterface $hierarchyRepository;
     private readonly LeaveRepositoryInterface $leaveRepository;
     private readonly HierarchyService $hierarchyService;
+    private readonly CategoryFieldRepositoryInterface $categoryFieldRepository;
     private readonly NotificationRepositoryInterface $notificationRepository;
     private readonly NotificationService $notificationService;
     private readonly AssignmentService $assignmentService;
@@ -166,7 +171,8 @@ final class Kernel
         $this->leaveRepository = new JsonLeaveRepository($this->store);
         $this->hierarchyService = new HierarchyService($this->hierarchyRepository, $this->categoryRepository, $this->userRepository, $this->auditLogger);
         $this->leaveService = new LeaveService($this->leaveRepository, $this->userRepository, $this->auditLogger);
-        $this->catalogService = new CatalogService($this->categoryRepository, $this->priorityRepository, $this->slaPolicyRepository, $this->auditLogger);
+        $this->categoryFieldRepository = new JsonCategoryFieldRepository($this->store);
+        $this->catalogService = new CatalogService($this->categoryRepository, $this->priorityRepository, $this->slaPolicyRepository, $this->auditLogger, $this->categoryFieldRepository);
         $this->slaCalculator = new SlaCalculatorService($this->workCalendarRepository);
         $this->slaStatusService = new SlaStatusService($this->slaCalculator, $this->clock);
         $this->ticketService = new TicketService(
@@ -178,6 +184,7 @@ final class Kernel
             $this->priorityRepository,
             $this->assignmentService = new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService, $this->hierarchyRepository, $this->leaveRepository, $this->clock),
             $this->clock,
+            $this->categoryFieldRepository,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
         $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);
@@ -456,6 +463,21 @@ final class Kernel
     public function notificationService(): NotificationService
     {
         return $this->notificationService;
+    }
+
+    public function categoryFieldRepository(): CategoryFieldRepositoryInterface
+    {
+        return $this->categoryFieldRepository;
+    }
+
+    public function detailedReportService(): DetailedReportService
+    {
+        return new DetailedReportService($this->ticketRepository, $this->userRepository, $this->slaCalculator);
+    }
+
+    public function backupService(): BackupService
+    {
+        return new BackupService($this->rootDir . '/storage/data', $this->auditLogger);
     }
 
     public function hierarchyRepository(): HierarchyRepositoryInterface

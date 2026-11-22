@@ -57,14 +57,16 @@ final class TicketController
             'title' => $request->string('title'),
             'description' => $request->string('description'),
         ];
+        $extra = $request->input('extra', []);
+        $extra = is_array($extra) ? $extra : [];
 
         $attachments = $this->kernel->attachmentService();
         try {
             // Önce dosyalar doğrulanır; geçersiz dosya yarım kalmış talep bırakmasın.
             $files = $attachments->validateMany(AttachmentService::normalizeFiles($request->files['ekler'] ?? null));
-            $ticket = $this->tickets->createTicket($customer, $old);
+            $ticket = $this->tickets->createTicket($customer, $old + ['extra' => $extra]);
         } catch (ValidationException $e) {
-            return $this->kernel->render('tickets/create', $this->formData($old, $e->errors()), 422);
+            return $this->kernel->render('tickets/create', $this->formData($old, $e->errors(), $extra), 422);
         }
 
         foreach ($files as $file) {
@@ -255,11 +257,19 @@ final class TicketController
     /**
      * @param array<string, string> $old
      * @param array<string, string> $errors
+     * @param array<mixed> $oldExtra
      * @return array<string, mixed>
      */
-    private function formData(array $old, array $errors): array
+    private function formData(array $old, array $errors, array $oldExtra = []): array
     {
+        $fields = [];
+        foreach ($this->kernel->categoryFieldRepository()->all() as $field) {
+            $fields[] = $field;
+        }
+
         return [
+            'extraFields' => $fields,
+            'oldExtra' => $oldExtra,
             'title' => 'Yeni destek talebi',
             'categories' => $this->kernel->categoryRepository()->findActive(),
             'priorities' => $this->kernel->priorityRepository()->findActive(),

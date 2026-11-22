@@ -16,6 +16,7 @@ use App\Model\Reply;
 use App\Model\State\InvalidTransitionException;
 use App\Model\Ticket;
 use App\Model\TicketCode;
+use App\Repository\CategoryFieldRepositoryInterface;
 use App\Model\TicketLog;
 use App\Model\User;
 use App\Repository\CategoryRepositoryInterface;
@@ -50,6 +51,7 @@ final class TicketService
         private readonly PriorityRepositoryInterface $priorities,
         private readonly AssignmentService $assignment,
         private readonly ClockInterface $clock,
+        private readonly ?CategoryFieldRepositoryInterface $fields = null,
     ) {
     }
 
@@ -99,6 +101,7 @@ final class TicketService
         if (Text::length($description) < 10 || Text::length($description) > 5000) {
             $errors['description'] = 'Açıklama 10-5000 karakter olmalı.';
         }
+        $extra = $this->extraFields($categoryId, is_array($data['extra'] ?? null) ? $data['extra'] : [], $errors);
         if ($errors !== [] || $chosen === null) {
             throw new ValidationException($errors);
         }
@@ -123,11 +126,45 @@ final class TicketService
             null,
             code: $this->newCode(),
             originalDeadline: $deadline, // ilk SLA bitişi; ek SLA yalnız deadline'ı uzatır
+            extraFields: $extra,
         ));
         $this->replies->save(new Reply(null, (int) $ticket->id, (int) $creator->id, $description, $now));
         $this->notifyObservers($ticket, self::EVENT_CREATED, ['actor_id' => (int) $creator->id]);
 
         return $this->autoAssign($ticket) ?? $ticket;
+    }
+
+    /**
+     * Kategorinin ek alanlarını doğrular (zorunlu, sayı, tarih) ve etiket → değer olarak döner.
+     *
+     * @param array<mixed> $input alan id → değer
+     * @param array<string, string> $errors
+     * @return array<string, string>
+     */
+    private function extraFields(int $categoryId, array $input, array &$errors): array
+    {
+        $values = [];
+        foreach ($this->fields?->forCategory($categoryId) ?? [] as $field) {
+            $raw = $input[$field['id']] ?? $input[(string) $field['id']] ?? '';
+            $value = trim(is_string($raw) ? $raw : '');
+            $key = 'extra_' . $field['id'];
+            if ($value === '') {
+                if ($field['required']) {
+                    $errors[$key] = $field['label'] . ' alanı zorunlu.';
+                }
+                continue;
+            }
+            if ($field['type'] === 'number' && !is_numeric($value)) {
+                $errors[$key] = $field['label'] . ' alanı sayı olmalı.';
+            } elseif ($field['type'] === 'date' && (\DateTimeImmutable::createFromFormat('!Y-m-d', $value) === false)) {
+                $errors[$key] = $field['label'] . ' alanı geçerli bir tarih olmalı.';
+            } elseif (Text::length($value) > 200) {
+                $errors[$key] = $field['label'] . ' en fazla 200 karakter olabilir.';
+            }
+            $values[$field['label']] = $value;
+        }
+
+        return $values;
     }
 
     /** Kullanılmamış 6 karakterli talep kodu (çakışma olasılığı çok düşük; yine de denetlenir). */

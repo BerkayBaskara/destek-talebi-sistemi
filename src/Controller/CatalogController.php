@@ -54,6 +54,26 @@ final class CatalogController
         return $this->saved('/yonetici/kategoriler');
     }
 
+    public function addField(Request $request, int $categoryId): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        try {
+            $this->kernel->catalogService()->addField($admin, $categoryId, $request->string('label'), $request->string('type'), $request->string('required') === '1');
+        } catch (ValidationException $e) {
+            return $this->categoriesView([], ['field-' . $categoryId => $e->errors()], 422);
+        }
+
+        return $this->saved('/yonetici/kategoriler');
+    }
+
+    public function removeField(int $id): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $this->kernel->catalogService()->removeField($admin, $id);
+
+        return $this->saved('/yonetici/kategoriler');
+    }
+
     public function priorities(): Response
     {
         $this->kernel->requireRole(Role::Admin);
@@ -184,8 +204,15 @@ final class CatalogController
      */
     private function categoriesView(array $old, array $errors, int $status = 200): Response
     {
+        $fields = [];
+        foreach ($this->kernel->categoryFieldRepository()->all() as $field) {
+            $fields[$field['category_id']][] = $field;
+        }
+
         return $this->kernel->render('admin/config/categories', [
             'title' => 'Kategoriler',
+            'fields' => $fields,
+            'fieldTypes' => \App\Service\CatalogService::FIELD_TYPES,
             'categories' => $this->kernel->categoryRepository()->findAll(),
             'old' => $old,
             'errors' => $errors,

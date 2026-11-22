@@ -48,6 +48,9 @@ $closureReasons = [
             <div><dt>Öncelik</dt><dd><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></dd></div>
             <div><dt>Oluşturulma Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>
             <div><dt>Başlangıç Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>
+            <?php foreach ($ticket->extraFields as $label => $value): ?>
+                <div><dt><?= e($label) ?></dt><dd><?= e($value) ?></dd></div>
+            <?php endforeach; ?>
         </dl>
         <dl class="detail-list">
             <div><dt>Durum</dt><dd><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></dd></div>

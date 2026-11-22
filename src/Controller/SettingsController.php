@@ -149,6 +149,24 @@ final class SettingsController
         return Response::redirect('/yonetici/ayarlar/site');
     }
 
+    public function backupPage(): Response
+    {
+        $this->kernel->requireRole(Role::Admin);
+
+        return $this->kernel->render('admin/config/backup', ['title' => 'Veri Yedeği']);
+    }
+
+    public function backupDownload(): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $file = 'yedek-' . $this->kernel->clock()->now()->format('Ymd-Hi') . '.zip';
+
+        return new Response($this->kernel->backupService()->createZip($admin), 200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="' . $file . '"',
+        ]);
+    }
+
     /** Son 100 yönetici değişikliği. */
     public function audit(): Response
     {
