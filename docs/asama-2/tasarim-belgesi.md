@@ -189,11 +189,11 @@ Tarihler testlerde sabit (ör. Kasım 2026 haftaları ve 29 Ekim gibi gerçek ta
 
 | Değer | Ekranda | Hocanın adı | State sınıfı |
 |---|---|---|---|
-| `pending` | Talep Bekleniyor | Açık | `PendingState` |
-| `taken` | Talep Alındı | İşlemde | `TakenState` |
-| `in_review` | Talep İnceleniyor | İşlemde | `InReviewState` |
-| `resolved` | Talep Çözüldü | Çözüldü | `ResolvedState` |
-| `closed` | Kapalı | Kapalı | `ClosedState` |
+| `pending` | Beklemede | Açık | `PendingState` |
+| `taken` | Atandı | İşlemde | `TakenState` |
+| `in_review` | İnceleniyor | İşlemde | `InReviewState` |
+| `resolved` | Çözüldü | Çözüldü | `ResolvedState` |
+| `closed` | Tamamlandı | Kapalı | `ClosedState` |
 | `cancelled` | İptal Edildi | (Kapalı, iptal) | `CancelledState` |
 
 `TicketState` arayüzü sınıf diyagramındaki `cancel`, `take`, `resolve` metotlarına ek olarak `startReview`, `reject`, `close` metotlarını içerir. İzin verilmeyen geçiş `InvalidTransitionException` fırlatır ve kullanıcıya nedeni gösterilir.
@@ -268,3 +268,29 @@ Sınıf içi ayrıntılar, CSS görünümü, hata mesajlarının tam metni, seed
 9. Yeni talep, açıldığı anda en az iş yüklü personele otomatik atanır; havuzda yalnız personel bulunamayan talepler kalır.
 10. SLA havuzda beklerken de işler; çözümde durur; ret sonrası aynı bitiş zamanıyla devam eder.
 11. ER'ye 4 alan eklendi (`tickets.title`, `tickets.customer_priority`, `tickets.resolved_at`, `users.surname`); açıklama ilk mesaj olarak `replies`'e yazılır.
+
+## 18. Yapılandırma güncellemesi
+
+Ekip içi gözden geçirmeden sonra Aşama 2 aşağıdaki değişikliklerle genişletildi. Veri yine JSON dosyalarında; Aşama 3'te yalnız repository sınıfları MySQL karşılıklarıyla değişir. Bu bölüm, yukarıdaki 2, 8, 9 ve 12. maddelerle çeliştiği yerde geçerlidir.
+
+**Yeni tablolar (`storage/data/`):**
+
+| Tablo | Alanlar | Not |
+|---|---|---|
+| `system_settings` | `key`, `value` | Site başlığı, logo yolu, ana sayfa başlığı ve metni, personel varsayılan kapasitesi |
+| `admin_audit_logs` | `user_id`, `action`, `entity`, `entity_id`, `old_value`, `new_value`, `created_at` | Yalnız ekleme; güncelleme ve silme yöntemi yok |
+| `priorities` | `name`, `rank`, `default_sla_hours`, `active`, `keywords` | Varsayılan 5 seviye; kimlikler eski sabit değerlerle uyumlu (1 Düşük, 2 Normal, 3 Yüksek, 4 Çok Yüksek, 5 Çok Düşük) |
+| `work_hours` | `day` (1–7), `works`, `start`, `end`, `break_start`, `break_end` | Tablo boşken `calendar.json` okunur (seed bu dosyayı tabloya aktarır) |
+| `holidays` | `date`, `description` | Tam gün tatiller |
+
+**Eklenen alanlar:** `users.active`, `users.capacity` (boş = varsayılan kapasite), `categories.active`. `tickets.priority` ve `tickets.customer_priority` `priorities` tablosuna işaret eder.
+
+**Değişen kurallar:**
+
+- Öncelikler ve anahtar kelimeler yönetici ekranından yönetilir (`storage/config/priority_keywords.json` kaldırıldı). Yükseltilen öncelik, adın sağ üstünde yıldız ve "Öncelik seviyesi yükseltildi" bilgi kutusuyla gösterilir.
+- Otomatik atama yalnız aktif ve kapasitesi dolmamış personeli seçer. Uygun personel yoksa talep Talep Havuzu'nda bekler; bir talep çözülünce, kapanınca ya da iptal edilince, yönetici kapasiteyi artırınca veya personeli aktif yapınca en eski talepten başlanarak atanır. Kapasite kontrolü atama ile aynı kilit içinde yapılır.
+- Personel hesapları yönetici ekranından açılır; yönetici hesabı yalnız `php bin/create-admin.php` ile. Pasif kullanıcı giriş yapamaz, açık oturumu bir sonraki istekte sonlanır.
+- Şifre kuralı: en az 8 karakter, en az bir harf, bir rakam ve bir noktalama işareti.
+- Çözüldü durumundaki talebe personel ve yönetici yanıt yazamaz (müşterinin onayı ya da reddi beklenir); SLA süresi aşılmış talebe yazmak serbesttir.
+- Arayüz: herkese açık ana sayfa, logo ve site başlığı ayardan, durum simgeleri, iki sütunlu talep detayı ("Günlük" bölümü), durum değişikliklerinde onay penceresi, talep oluşturulunca 5 saniyelik geri sayımlı başarı ekranı, kayıt sonunda otomatik yönlendirmesiz başarı ekranı.
+

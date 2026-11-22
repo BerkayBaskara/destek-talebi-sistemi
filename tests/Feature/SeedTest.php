@@ -81,4 +81,36 @@ final class SeedTest extends FeatureTestCase
         $this->loginAs('M100001', DemoSeeder::PASSWORD);
         self::assertSame(200, $this->get('/talepler')->status);
     }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('moments')]
+    public function test_seed_has_config_and_pool_example(string $moment): void
+    {
+        $this->clock->set(new \DateTimeImmutable($moment, new \DateTimeZone('Europe/Istanbul')));
+        (new DemoSeeder($this->kernel, $this->clock))->run();
+
+        $priorities = $this->kernel->priorityRepository()->findAll();
+        self::assertCount(5, $priorities);
+        self::assertSame(['Çok Düşük', 'Düşük', 'Normal', 'Yüksek', 'Çok Yüksek'], array_map(static fn ($p): string => $p->name, $priorities));
+        self::assertGreaterThanOrEqual(4, count($this->kernel->categoryRepository()->findActive()));
+        self::assertCount(7, $this->kernel->workCalendarRepository()->workHours());
+        self::assertGreaterThanOrEqual(1, count($this->kernel->workCalendarRepository()->holidays()));
+        self::assertNotSame([], $this->kernel->catalogService()->slaGrid());
+
+        $settings = $this->kernel->settingsService();
+        self::assertSame('Destek Talebi Sistemi', $settings->string('site.title'));
+        self::assertSame(5, $settings->int('staff.default_capacity'));
+
+        $admin = $this->kernel->userRepository()->findByCustomerNo('Y000001');
+        self::assertNotNull($admin);
+        self::assertSame(Role::Admin, $admin->role);
+
+        // Havuzdaki talepler personel olmadığı için değil, herkesin kapasitesi dolu olduğu için bekliyor.
+        self::assertNotSame([], $this->kernel->ticketRepository()->getPoolTickets());
+        $load = $this->kernel->ticketRepository()->countActiveByAgent();
+        $staff = $this->kernel->staffService();
+        foreach ($this->kernel->userRepository()->findByRole(Role::Agent) as $agent) {
+            self::assertTrue($agent->active);
+            self::assertSame($staff->capacityOf($agent), $load[(int) $agent->id] ?? 0, $agent->customerNo . ' kapasitesi dolu olmalı.');
+        }
+    }
 }

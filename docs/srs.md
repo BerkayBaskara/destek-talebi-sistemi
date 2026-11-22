@@ -6,7 +6,7 @@ Bu projenin temel amacı; işletmelerin müşteri destek süreçlerini optimize 
 ## 2. Çekirdek Problem ve Proje Kapsamı
 Bu projenin çözdüğü çekirdek mühendislik problemi, dinamik takvim verilerine ve personel izin/iş yükü durumlarına duyarlı SLA hesaplama ve eskalasyon algoritmasıdır.
 * Sistem; çalışma saatlerini ve tatil günlerini JSON formatında dışarıdan alır. Yöneticiler takvim üzerinde en erken 5 gün sonrası için değişiklik yapabilir.
-* Algoritma, talep çözüm sürecindeki spesifik durum akışını (Talep Bekleniyor → Talep Alındı → Talep İnceleniyor → Talep Çözüldü) takip eder.
+* Algoritma, talep çözüm sürecindeki spesifik durum akışını (Beklemede → Atandı → İnceleniyor → Çözüldü → Tamamlandı) takip eder.
 * Akıllı Eskalasyon: Personelin çözüm için maksimum 3 deneme hakkı vardır. 3 kez reddedilen çözüm sonrası talep otomatik eskalasyona uğrar. Ayrıca, yönetici bir personele izin verdiğinde, personelin elindeki "henüz cevaplanmamış" bir talebin SLA bitiş tarihi bu izin gününe denk geliyorsa, sistem talebi beklemeden otomatik eskalasyon yapar.
 
 ## 3. Kapsam Dışı
@@ -31,7 +31,9 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 * **SLA (Service Level Agreement):** Hizmet Seviyesi Anlaşması. Müşterinin açtığı bir destek talebinin, işletmenin mesai saatlerine göre maksimum kaç saat/gün içinde çözülmesi gerektiğini belirleyen taahhüt süresi.
 * **Eskalasyon:** SLA süresi dolan, izin günü çakışması yaşanan veya personelin 3 çözüm hakkını tükettiği durumlarda, biletin otomatik veya manuel olarak bir üst yetkiliye devredilmesi işlemi.
 * **Kanban Panosu:** Personelin üzerine aldığı destek taleplerini durumlarına göre sütunlar halinde gördüğü ve sürükle-bırak yöntemiyle güncellediği asenkron (AJAX) çalışma arayüzü.
-* **Ortak Havuz:** Sisteme yeni düşmüş, statüsü "Talep Bekleniyor" olan ve henüz hiçbir destek personeli tarafından kabul edilmemiş biletlerin beklediği genel kuyruk.
+* **Talep Havuzu:** Statüsü "Beklemede" olan ve aktif, kapasitesi dolmamış personel bulunamadığı için henüz kimseye atanmamış biletlerin beklediği genel kuyruk. Personelde yer açıldığında (talep çözülür, kapanır, iptal edilir ya da yönetici kapasiteyi artırır veya personeli aktif yapar) en eski bilet otomatik atanır.
+* **Öncelik seviyeleri:** Yöneticinin yönettiği sıralı liste. Varsayılan beş seviye (düşükten yükseğe): Çok Düşük, Düşük, Normal, Yüksek, Çok Yüksek. Her seviyenin varsayılan SLA süresi ve anahtar kelimeleri vardır.
+* **Personel kapasitesi:** Bir personelin aynı anda üzerinde tutabileceği aktif (Atandı ya da İnceleniyor durumundaki) bilet sayısı. Personele özel girilmezse yöneticinin belirlediği varsayılan değer kullanılır.
 * **JSON (JavaScript Object Notation):** Yöneticilerin, işletmeye özel çalışma günlerini, saatlerini ve tatillerini sisteme aktarmak için kullanacakları hafif, metin tabanlı veri değişim formatı.
 * **Core PHP:** Herhangi bir dış kütüphane veya web çatısı kullanılmadan yazılan saf PHP kod yapısı.
 
@@ -73,10 +75,10 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 
 *   **FR-01:** Sistem, müşteri girişi yapıldığında kategori, öncelik, başlık ve mesaj alanlarından oluşan bir form sunmalıdır. (US-01, US-05)
 *   **FR-02:** Sistem, bilet oluşturma esnasında JPG, PNG formatlarındaki görsellerin yanı sıra MP4 ve WebM formatlarında video yüklenmesine izin vermelidir. Görseller ve videolar için yöneticinin belirlediği maksimum boyut ve MIME-Type kontrolü yapılmalıdır. (US-02)
-*   **FR-03:** Sistem, biletin içeriğini analiz ederek anahtar kelime eşleşmesi ile akıllı/gölge öncelik belirleyebilmelidir.
-*   **FR-04:** Sistem, açılan yeni bileti, havuzdaki mevcut aktif iş yükü en az olan personele otomatik olarak atamalıdır.
+*   **FR-03:** Sistem, biletin içeriğini analiz ederek anahtar kelime eşleşmesi ile akıllı/gölge öncelik belirleyebilmelidir. Anahtar kelimeler her öncelik seviyesi için yönetici tarafından tanımlanır; öncelik yalnız yükseltilir ve yükseltilen öncelik ekranda yıldız işaretiyle gösterilir.
+*   **FR-04:** Sistem, açılan yeni bileti, havuzdaki mevcut aktif iş yükü en az olan personele otomatik olarak atamalıdır. Atamada yalnız aktif ve kapasitesi dolmamış personel dikkate alınır; uygun personel yoksa bilet Talep Havuzu'nda bekler.
 *   **FR-05:** Sistem; biletin açıldığı anı, sisteme girilen resmi tatil günlerini ve mesai saatlerini hesaplayarak kesin bir SLA bitiş tarihi oluşturmalıdır.
-*   **FR-06:** Sistem, durum geçişlerini State deseni ile kısıtlamalıdır. Kapatılmış bir bilet yeniden "İşlemde" durumuna alınamaz ve sadece "Talep Bekleniyor" statüsündeki biletler müşteri tarafından "İptal Edildi" statüsüne çekilebilir. (US-07, US-08)
+*   **FR-06:** Sistem, durum geçişlerini State deseni ile kısıtlamalıdır. Kapatılmış bir bilet yeniden "İşlemde" durumuna alınamaz ve sadece "Beklemede" statüsündeki biletler müşteri tarafından "İptal Edildi" statüsüne çekilebilir. (US-07, US-08)
 *   **FR-07:** Sistem, SLA süresinin %80'i dolduğunda bileti arayüzde sarı uyarı moduna, %100'ü dolduğunda ise kırmızı ihlal moduna sokmalıdır. (US-11, US-12)
 *   **FR-08:** Sistem, SLA süresi tamamen dolduğunda bileti otomatik olarak eskalasyon yöneticisine (bir üst yetkiliye) devretmeli ve veritabanına eskalasyon kaydı atmalıdır.
 *   **FR-09:** Sistem, personelin biletleri yönetmesi için AJAX tabanlı (sayfa yenilemeden çalışan) bir Kanban panosu sağlamalıdır. (US-08, US-09)
@@ -87,11 +89,11 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **FR-14:** Sistem; bir bilet eskalasyona uğradığında yeni atanan personelin talebi inceleyebilmesi için veya SLA süresinin dolmasına çok az kala müşteri tarafından yeni bir yanıt/itiraz geldiğinde, mevcut SLA bitiş tarihine yöneticinin belirlediği standart bir ek süre otomatik olarak ilave etmelidir.
 *   **FR-15:** Sistem, bilet "Çözüldü" statüsüne geçtiğinde personele standart bir taban puan vermelidir. Bu puan; 1. denemede %100, 2. denemede %70, 3. denemede %40 oranında yansıtılmalı; eskalasyonla devredilen taleplerde ise asıl personele puan verilmemeli, devralan personele ise zorluk bonusu olarak %20 ekstra puan eklenmelidir.
 *   **FR-16:** Sistem, bilet oluşturma formuna yöneticilerin de erişebilmesine ve kendi oturumlarıyla bilet açabilmesine izin vermelidir.
-*   **FR-17:** Sistem, "Talep Çözüldü" statüsündeki biletleri arka planda sürekli denetlemeli ve müşteriden 3 iş günü boyunca hiçbir onay veya ret yanıtı gelmemesi durumunda, bileti otomatik olarak "Kapalı" statüsüne almalıdır.
+*   **FR-17:** Sistem, "Çözüldü" statüsündeki biletleri arka planda sürekli denetlemeli ve müşteriden 3 iş günü boyunca hiçbir onay veya ret yanıtı gelmemesi durumunda, bileti otomatik olarak "Tamamlandı" statüsüne almalıdır.
 *   **FR-18:** Kapsam dışı bırakılan e-posta bildirimlerinin eksikliğini gidermek için sistem; yeni bilet ataması, müşteri itirazı veya eskalasyon durumlarında personele uygulama içi bir çan ikonu üzerinden okunmamış bildirimleri sayfa yenilenmeden göstermelidir.
 *   **FR-19:** Sistem, her biletin detay sayfasında; biletin açılmasından kapanmasına kadar geçen tüm durum değişikliklerini kronolojik bir log olarak listelemelidir.
-*   **FR-20:** Sistem, Ortak Havuzdan personele bilet ataması yaparken, veritabanında o gün veya ertesi gün için aktif bir izni bulunan personelleri atama/dağıtım havuzundan otomatik olarak hariç tutmalıdır.
-*   **FR-21:** Sistem, "Talep Çözüldü" statüsündeki bir bilet müşteri tarafından reddedildiğinde, bileti tekrar "Talep İnceleniyor" statüsüne çekmeli ve biletin ait olduğu personelin "çözüm deneme hakkı" sayacını bir artırmalıdır.
+*   **FR-20:** Sistem, Talep Havuzu'ndan personele bilet ataması yaparken, veritabanında o gün veya ertesi gün için aktif bir izni bulunan personelleri atama/dağıtım havuzundan otomatik olarak hariç tutmalıdır.
+*   **FR-21:** Sistem, "Çözüldü" statüsündeki bir bilet müşteri tarafından reddedildiğinde, bileti tekrar "İnceleniyor" statüsüne çekmeli ve biletin ait olduğu personelin "çözüm deneme hakkı" sayacını bir artırmalıdır.
 *   **FR-22:** Sistem, personelin müşteri talebine yanıt verirken bunu bir "Soru" olarak işaretlemesine izin vermelidir. Bir bilet için bu hak maksimum 2 ile sınırlandırılmalı ve sorulan sorular, biletin hesaplanmış SLA bitiş tarihini kesinlikle değiştirmemeli veya duraklatmamalıdır.
 
 
@@ -108,3 +110,5 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 *   **NFR-09:** Projenin tüm Core PHP kod tabanı PSR-12 kodlama standartlarına %100 uymalı ve PHPStan statik kod analiz aracından 0 hata ile geçecek yapıda yazılmalıdır.
 *   **NFR-10:** Sisteme giriş yapmış personellerin ve yöneticilerin aktif oturumları, güvenlik gereği arka arkaya 30 dakika boyunca hiçbir fare veya klavye etkileşimi olmazsa sunucu tarafından otomatik olarak sonlandırılmalıdır.
 *   **NFR-11:** Sistem, sunucuya aktarımı tamamlanan maksimum 50 MB boyutundaki bir video dosyasının MIME türü güvenlik doğrulamasını ve storage klasörüne kalıcı olarak yazılma işlemini, istemcinin ağ hızından tamamen bağımsız olarak en fazla 1600 milisaniye içerisinde tamamlamalıdır.
+*   **NFR-11:** Video ekleri en fazla 50 MB, görsel ve PDF ekleri en fazla 5 MB olmalı; sınırı aşan dosya bilet oluşturulmadan reddedilmelidir.
+*   **NFR-12:** Kullanıcı şifreleri en az 8 karakter olmalı ve en az bir harf, bir rakam ve bir noktalama işareti içermelidir. Kural kayıt, şifre sıfırlama ve personel oluşturma formlarında anlık gösterilmeli; asıl kontrol sunucuda yapılmalıdır.

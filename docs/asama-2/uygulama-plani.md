@@ -354,7 +354,7 @@ throw RuntimeException("Takvimde iş günü bulunamadı")
 **Arayüzler:**
 - Sağlar: `PriorityDetector::__construct(array<int, list<string>> $keywords)` (öncelik değeri → kelimeler), `static fromFile(string $path): self` (dosya yok/bozuksa boş liste), `detect(string $text): ?Priority` (eşleşen en yüksek öncelik), `effective(Priority $chosen, string $title, string $description): Priority` (seçilen ile algılananın büyüğü; asla düşürmez).
 - Normalleştirme: `str_replace(['İ','I'], ['i','ı'], $s)` sonra `mb_strtolower($s, 'UTF-8')`; alt dize araması.
-- `priority_keywords.json`: `{"4": ["acil","çöktü","erişilemiyor","çalışmıyor","kritik","veri kaybı"], "3": ["hata","yavaş","bağlanamıyorum","açılmıyor"]}`.
+- `priority_keywords.json`: `{"4": ["acil","çöktü","erişilemiyor","çalışmıyor","kritik","veri kaybı"], "3": ["hata","yavaş","bağlanamıyorum","açılmıyor"]}`. (Sonraki güncellemede anahtar kelimeler `priorities` tablosuna taşındı ve bu dosya kaldırıldı; bkz. tasarım belgesi 18. bölüm.)
 
 - [x] **Adım 1: Başarısız testler:** `test_detects_urgent_keyword`, `test_turkish_uppercase_is_detected` *(Denetim odağı 1)*: `detect('ACİL: SUNUCU ÇÖKTÜ') === Priority::Urgent` ve `detect('BAĞLANAMIYORUM') === Priority::High`, `test_effective_never_lowers` (Acil seçilmiş + "yavaş" → Acil), `test_effective_raises` (Düşük + "çalışmıyor" → Acil), `test_no_keyword_returns_null`, `test_missing_file_means_no_detection`.
 - [x] **Adım 2–4:** test kırmızı → kodu yaz → test yeşil + PHPStan.
