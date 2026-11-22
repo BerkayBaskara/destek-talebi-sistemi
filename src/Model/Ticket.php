@@ -47,6 +47,10 @@ final class Ticket
         public bool $awaitingAdmin = false,
         /** @var array<string, string> kategoriye özel ek alanlar (etiket → değer) */
         public array $extraFields = [],
+        /** Personel soru sordu, müşterinin yanıtı bekleniyor: SLA bu anda durdu (FR-22). */
+        public ?DateTimeImmutable $pausedAt = null,
+        /** Müşterinin soruyu yanıtlaması gereken an; geçerse SLA kendiliğinden devam eder. */
+        public ?DateTimeImmutable $questionDueAt = null,
     ) {
     }
 
@@ -116,6 +120,8 @@ final class Ticket
             self::date($row['breach_handled_at'] ?? null),
             (bool) ($row['awaiting_admin'] ?? false),
             self::stringMap($row['extra_fields'] ?? null),
+            self::date($row['paused_at'] ?? null),
+            self::date($row['question_due_at'] ?? null),
         );
     }
 
@@ -145,6 +151,8 @@ final class Ticket
             'breach_handled_at' => $this->breachHandledAt?->format(DATE_ATOM),
             'awaiting_admin' => $this->awaitingAdmin,
             'extra_fields' => $this->extraFields,
+            'paused_at' => $this->pausedAt?->format(DATE_ATOM),
+            'question_due_at' => $this->questionDueAt?->format(DATE_ATOM),
         ];
     }
 

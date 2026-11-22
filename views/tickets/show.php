@@ -11,6 +11,8 @@
 /** @var list<string> $actions */
 /** @var bool $canReply */
 /** @var bool $canEscalate */
+/** @var bool $canAsk */
+/** @var int $questionsLeft */
 /** @var list<array{agent: \App\Model\User, load: int, capacity: int}> $assignableAgents */
 /** @var bool $awaitsCustomer */
 /** @var string $replyBlockedMessage */
@@ -165,7 +167,7 @@ $closureReasons = [
     <h2>Mesajlar</h2>
     <?php foreach ($replies as $reply): ?>
         <div class="message<?= $reply->userId === $viewer->id ? ' mine' : '' ?>">
-            <div class="muted"><strong><?= e($names[$reply->userId] ?? '-') ?></strong> · <?= e($date($reply->createdAt)) ?></div>
+            <div class="muted"><strong><?= e($names[$reply->userId] ?? '-') ?></strong> · <?= e($date($reply->createdAt)) ?><?php if ($reply->isQuestion): ?> <span class="badge status-in_review">Soru</span><?php endif; ?></div>
             <p><?= nl2br(e($reply->message)) ?></p>
         </div>
     <?php endforeach; ?>
@@ -177,6 +179,9 @@ $closureReasons = [
                 <label for="mesaj">Yanıtınız</label>
                 <textarea id="mesaj" name="mesaj" maxlength="5000" required placeholder="Mesajınızı yazın..."></textarea>
             </div>
+            <?php if ($canAsk && $questionsLeft > 0): ?>
+                <div class="form-row"><label class="inline-check"><input type="checkbox" name="soru" value="1"> Müşteriye soru olarak gönder (müşteri yanıtlayana kadar SLA durur; kalan soru hakkı: <?= e($questionsLeft) ?>)</label></div>
+            <?php endif; ?>
             <button type="submit" class="btn">Yanıtı gönder</button>
         </form>
     <?php elseif ($awaitsCustomer): ?>
@@ -203,6 +208,7 @@ $closureReasons = [
                 : 'Eskalasyon: ' . $target . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
             'returned_to_pool' => 'Görev Havuzu\'na alındı' . ($activity->note !== null ? ' (' . $activity->note . ')' : ''),
             'sla_extended' => 'Ek SLA: yeni bitiş ' . ($activity->note ?? ''),
+            'sla_resumed' => 'SLA devam etti: yeni bitiş ' . ($activity->note ?? ''),
             'closed' => 'Kapanış: ' . ($activity->note ?? ''),
             default => $activity->note ?? $activity->action,
         };

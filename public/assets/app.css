@@ -275,4 +275,5 @@ input.input-sm[type="number"] { width: 90px; min-width: 64px; padding: 8px; }
 .hero-image { display: block; max-width: 100%; max-height: 220px; margin: 0 auto 16px; border-radius: var(--radius); }
 input.input-name[type="text"] { max-width: 140px; padding: 6px 8px; margin-bottom: 4px; }
 .inline-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+.sla-paused { background: #e3ecfb; color: #1d4f9c; }
 

@@ -53,6 +53,7 @@ final class TicketService
         private readonly ClockInterface $clock,
         private readonly ?CategoryFieldRepositoryInterface $fields = null,
         private readonly ?ExtraSlaPolicy $extraSla = null,
+        private readonly ?QuestionPolicy $questions = null,
     ) {
     }
 
@@ -166,6 +167,48 @@ final class TicketService
         }
 
         return $values;
+    }
+
+    /** @throws ValidationException */
+    private function pauseForQuestion(Ticket $ticket): Ticket
+    {
+        if ($ticket->pausedAt !== null) {
+            throw new ValidationException(['message' => 'Önceki sorunun yanıtı bekleniyor.']);
+        }
+        if (!in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)) {
+            throw new ValidationException(['message' => 'Soru yalnız Atandı ya da İnceleniyor durumundaki talepte sorulabilir.']);
+        }
+        $max = $this->questions?->maxQuestions() ?? 0;
+        if ($ticket->agentQuestionCount >= $max) {
+            throw new ValidationException(['message' => 'Bu talepte en fazla ' . $max . ' soru sorulabilir.']);
+        }
+        $now = $this->clock->now();
+        $ticket->agentQuestionCount++;
+        $ticket->pausedAt = $now;
+        $ticket->questionDueAt = $this->questions?->replyDue($now);
+        if (!$this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            throw new ValidationException(['message' => 'Talep az önce değişti. Sayfayı yenileyip tekrar deneyin.']);
+        }
+
+        return $ticket;
+    }
+
+    /** SLA'yı durduğu yerden sürdürür: kalan iş süresi şimdiden itibaren işler (FR-22). */
+    public function resumeSla(Ticket $ticket, int $actorId): Ticket
+    {
+        if ($ticket->pausedAt === null || $this->questions === null) {
+            return $ticket;
+        }
+        $ticket->deadline = $this->questions->resumedDeadline($ticket, $this->clock->now());
+        $ticket->pausedAt = null;
+        $ticket->questionDueAt = null;
+        if ($this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            $this->notifyObservers($ticket, 'sla_resumed', [
+                'actor_id' => $actorId, 'activity' => 'sla_resumed', 'note' => $ticket->deadline->format('d.m.Y H:i'),
+            ]);
+        }
+
+        return $ticket;
     }
 
     /**
@@ -398,7 +441,10 @@ final class TicketService
     }
 
     /** Talebe mesaj yazar (US-04, US-10): talep sahibi, atanan personel veya yönetici. */
-    public function addReply(int $ticketId, User $author, string $message): Reply
+    /**
+     * @param bool $asQuestion personel yanıtı müşteriye soru olarak gönderir (FR-22): SLA durur
+     */
+    public function addReply(int $ticketId, User $author, string $message, bool $asQuestion = false): Reply
     {
         $ticket = $this->mustFind($ticketId);
         $this->authorize(
@@ -417,7 +463,15 @@ final class TicketService
             throw new ValidationException(['message' => 'Mesaj 1-5000 karakter olmalı.']);
         }
 
-        $reply = $this->replies->save(new Reply(null, $ticketId, (int) $author->id, $message, $this->clock->now()));
+        $asQuestion = $asQuestion && $author->role !== Role::Customer && $this->questions !== null;
+        if ($asQuestion) {
+            $ticket = $this->pauseForQuestion($ticket);
+        }
+
+        $reply = $this->replies->save(new Reply(null, $ticketId, (int) $author->id, $message, $this->clock->now(), $asQuestion));
+        if ($author->id === $ticket->creatorId && $ticket->pausedAt !== null) {
+            $ticket = $this->resumeSla($ticket, (int) $author->id); // müşteri soruyu yanıtladı
+        }
         $event = $author->role === Role::Customer ? self::EVENT_CUSTOMER_REPLIED : self::EVENT_AGENT_REPLIED;
         $this->notifyObservers($ticket, $event, ['actor_id' => (int) $author->id, 'reply_id' => $reply->id]);
 

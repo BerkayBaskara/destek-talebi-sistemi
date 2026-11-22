@@ -56,7 +56,7 @@ final class EscalationService
     {
         $now = $this->clock->now();
         if (!in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)
-            || $ticket->agentId === null || $ticket->isOnHold() || $now <= $ticket->deadline
+            || $ticket->agentId === null || $ticket->isOnHold() || $ticket->pausedAt !== null || $now <= $ticket->deadline
             || $ticket->breachHandledAt?->getTimestamp() === $ticket->deadline->getTimestamp()) {
             return false;
         }

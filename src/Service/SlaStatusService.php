@@ -66,6 +66,11 @@ final class SlaStatusService
     public function forTicket(Ticket $ticket): SlaStatus
     {
         $resolved = in_array($ticket->status, [TicketStatus::Resolved, TicketStatus::Closed], true);
+        if ($ticket->pausedAt !== null && !$ticket->status->isFinal() && !$resolved) {
+            $left = $ticket->pausedAt < $ticket->deadline ? $this->calculator->businessMinutesBetween($ticket->pausedAt, $ticket->deadline) : 0;
+
+            return new SlaStatus('paused', 0, $left, 'SLA durdu (müşteri yanıtı bekleniyor)');
+        }
 
         return $this->evaluate(
             $ticket->createdAt,

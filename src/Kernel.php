@@ -186,6 +186,7 @@ final class Kernel
             $this->clock,
             $this->categoryFieldRepository,
             new \App\Service\ExtraSlaPolicy($this->slaCalculator, $this->settingsService),
+            new \App\Service\QuestionPolicy($this->settingsService, $this->slaCalculator),
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
         $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);

@@ -147,6 +147,8 @@ final class TicketController
             'attachments' => $this->kernel->attachmentRepository()->findByTicket($id),
             'actions' => $this->tickets->availableActions($ticket, $viewer),
             'canReply' => $this->tickets->canReply($ticket, $viewer),
+            'canAsk' => $viewer->role !== Role::Customer && in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true) && $ticket->pausedAt === null,
+            'questionsLeft' => max(0, $this->kernel->settingsService()->int('tickets.max_questions') - $ticket->agentQuestionCount),
             'canEscalate' => in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)
                 && ($viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id)),
             'assignableAgents' => $viewer->role === Role::Admin && $ticket->status === TicketStatus::Pending && $ticket->agentId === null
@@ -163,7 +165,7 @@ final class TicketController
         $this->tickets->findVisible($id, $author);
 
         try {
-            $this->tickets->addReply($id, $author, $request->string('mesaj'));
+            $this->tickets->addReply($id, $author, $request->string('mesaj'), $request->string('soru') === '1');
             $this->kernel->session()->flash('success', 'Mesajınız gönderildi.');
         } catch (ValidationException $e) {
             $this->kernel->session()->flash('error', $e->getMessage());

@@ -73,6 +73,16 @@ $ruleError = static fn (string $f): string => isset($ruleErrors[$f]) ? '<div cla
             <input type="number" id="auto_close_days" name="auto_close_days" min="1" max="30" value="<?= e($rules['auto_close_days']) ?>">
             <?= $ruleError('auto_close_days') ?>
         </div>
+        <div>
+            <label for="max_questions">Personelin talep başına soru sınırı</label>
+            <input type="number" id="max_questions" name="max_questions" min="0" max="10" value="<?= e($rules['max_questions']) ?>">
+            <?= $ruleError('max_questions') ?>
+        </div>
+        <div>
+            <label for="question_reply_hours">Müşterinin soruyu yanıtlama süresi (saat; bu sürede SLA durur)</label>
+            <input type="number" id="question_reply_hours" name="question_reply_hours" min="1" max="168" value="<?= e($rules['question_reply_hours']) ?>">
+            <?= $ruleError('question_reply_hours') ?>
+        </div>
         <div><button type="submit" class="btn">Kuralları kaydet</button></div>
     </form>
 </section>

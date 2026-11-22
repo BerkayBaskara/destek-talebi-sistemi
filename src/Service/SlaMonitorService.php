@@ -46,6 +46,12 @@ final class SlaMonitorService
         $result = ['breaches' => 0, 'escalations' => 0, 'completed' => 0];
 
         foreach ($this->tickets->findAll() as $ticket) {
+            if ($ticket->pausedAt !== null && $ticket->questionDueAt !== null && $now >= $ticket->questionDueAt) {
+                // Müşteri soruyu süresinde yanıtlamadı: SLA kaldığı yerden devam eder.
+                $this->ticketService->resumeSla($ticket, TicketLog::SYSTEM_USER);
+                $this->notifications->notify((int) $ticket->agentId, 'status', (int) $ticket->id, $ticket->displayCode() . ' talebinde müşteri soruyu süresinde yanıtlamadı; SLA kaldığı yerden devam ediyor.');
+                continue;
+            }
             if ($ticket->holdUntil !== null && $now >= $ticket->holdUntil
                 && $ticket->status === TicketStatus::Pending && $ticket->agentId === null) {
                 $this->escalation->escalate($ticket, EscalationService::REASON_NO_RESPONSE, TicketLog::SYSTEM_USER, 'SLA aşımında müşteri yanıt vermedi');

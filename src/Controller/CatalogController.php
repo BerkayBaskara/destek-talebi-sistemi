@@ -156,11 +156,16 @@ final class CatalogController
     {
         $admin = $this->kernel->requireRole(Role::Admin);
         $rules = [];
+        $values = [];
         foreach (self::RULE_FIELDS as $field => $key) {
+            if ($request->input($field) === null) {
+                continue; // formda olmayan kural değiştirilmez
+            }
             $rules[$field] = trim($request->string($field));
+            $values[$key] = $rules[$field];
         }
         try {
-            $this->kernel->settingsService()->update($admin, array_combine(array_values(self::RULE_FIELDS), array_values($rules)));
+            $this->kernel->settingsService()->update($admin, $values);
         } catch (ValidationException $e) {
             $errors = [];
             foreach ($e->errors() as $key => $message) {
@@ -177,6 +182,8 @@ final class CatalogController
         'breach_wait_days' => 'sla.breach_wait_days',
         'extra_percent' => 'sla.extra_percent',
         'auto_close_days' => 'sla.auto_close_days',
+        'max_questions' => 'tickets.max_questions',
+        'question_reply_hours' => 'tickets.question_reply_hours',
     ];
 
     private function saved(string $url): Response
