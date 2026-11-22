@@ -21,7 +21,7 @@ use App\Controller\KanbanController;
                         <article class="kanban-card" draggable="true" data-id="<?= e($ticket->id) ?>">
                             <a href="/talepler/<?= e($ticket->id) ?>">#<?= e($ticket->id) ?> · <?= e($ticket->title) ?></a>
                             <div class="kanban-meta">
-                                <span class="badge"><?= e($ticket->priority->label()) ?></span>
+                                <span class="badge"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></span>
                                 <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?>
                             </div>
                             <label class="sr-only" for="move-<?= e($ticket->id) ?>">Durum</label>

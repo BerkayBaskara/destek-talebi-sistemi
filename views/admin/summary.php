@@ -9,7 +9,6 @@
  */
 /** @var callable(int): string $format */
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 
 $ticketList = static function (array $tickets): string {
@@ -69,7 +68,7 @@ $ticketList = static function (array $tickets): string {
             <thead><tr><th>Öncelik</th><th>Talep</th></tr></thead>
             <tbody>
             <?php foreach ($summary['byPriority'] as $value => $count): ?>
-                <tr><td data-label="Öncelik"><?= e(Priority::from($value)->label()) ?></td><td data-label="Talep"><?= e($count) ?></td></tr>
+                <tr><td data-label="Öncelik"><?= e($priorityNames[$value] ?? '-') ?></td><td data-label="Talep"><?= e($count) ?></td></tr>
             <?php endforeach; ?>
             </tbody>
         </table>

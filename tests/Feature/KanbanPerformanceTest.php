@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
@@ -20,7 +19,7 @@ final class KanbanPerformanceTest extends FeatureTestCase
         $now = $this->clock->now();
         for ($i = 1; $i <= 100; $i++) {
             $repo->save(new Ticket(null, 99, $agent->id, 1, "Yük testi talebi $i", $i % 2 === 0 ? TicketStatus::Taken : TicketStatus::InReview,
-                Priority::Normal, Priority::Normal, 0, $now->modify("-$i hours"), $now->modify('+' . (200 - $i) . ' hours'), null));
+                2, 2, 0, $now->modify("-$i hours"), $now->modify('+' . (200 - $i) . ' hours'), null));
         }
         $this->loginAs($agent->customerNo, self::PASSWORD);
 

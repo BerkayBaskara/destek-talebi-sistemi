@@ -7,7 +7,7 @@ namespace App\Seed;
 use App\Core\Clock\FixedClock;
 use App\Kernel;
 use App\Model\Category;
-use App\Model\Enum\Priority;
+use App\Service\PriorityService;
 use App\Model\Enum\Role;
 use App\Model\SlaPolicy;
 use App\Model\Ticket;
@@ -24,6 +24,12 @@ use DateTimeImmutable;
  */
 final class DemoSeeder
 {
+    /** Varsayılan öncelik kimlikleri (PriorityService::defaults). */
+    private const LOW = 1;
+    private const NORMAL = 2;
+    private const HIGH = 3;
+    private const TOP = 4;
+
     public const PASSWORD = 'Destek2026!';
     public const SECRET_ANSWER = 'pamuk';
 
@@ -71,19 +77,23 @@ final class DemoSeeder
     }
 
     /**
-     * Kategoriler ve kategori × öncelik SLA kuralları. Varsayılan süreler Priority::defaultSlaHours();
-     * Ağ / Erişim kesintisi işi durdurduğu için Acil kuralı 2 saat.
+     * Öncelikler, kategoriler ve kategori × öncelik SLA kuralları. Varsayılan süre her önceliğin kendi süresi;
+     * Ağ / Erişim kesintisi işi durdurduğu için Çok Yüksek kuralı 2 saat.
      */
     public function seedCatalog(): void
     {
+        $priorities = $this->kernel->priorityRepository();
+        foreach (PriorityService::defaults() as $priority) {
+            $priorities->save($priority);
+        }
+
         $categories = $this->kernel->categoryRepository();
         $policies = $this->kernel->slaPolicyRepository();
-
         foreach (['Donanım', 'Yazılım', 'Ağ / Erişim', 'Hesap'] as $name) {
             $category = $categories->save(new Category(null, $name));
-            foreach (Priority::cases() as $priority) {
-                $hours = $name === 'Ağ / Erişim' && $priority === Priority::Urgent ? 2 : $priority->defaultSlaHours();
-                $policies->save(new SlaPolicy(null, (int) $category->id, $priority, $hours));
+            foreach ($priorities->findAll() as $priority) {
+                $hours = $name === 'Ağ / Erişim' && $priority->id === self::TOP ? 2 : $priority->defaultSlaHours;
+                $policies->save(new SlaPolicy(null, (int) $category->id, (int) $priority->id, $hours));
             }
         }
     }
@@ -121,20 +131,20 @@ final class DemoSeeder
     private function seedPoolAndCancelled(DateTimeImmutable $now): void
     {
         $pool = [
-            ['M100003', 1, Priority::Low, 'Ek monitör talebi', 'Çift ekranla çalışmak için ikinci bir monitör istiyoruz.', '-2 hours'],
-            ['M100004', 4, Priority::Normal, 'Ortak klasöre erişim yetkisi', 'Muhasebe ortak klasörüne yazma yetkim yok.', '-90 minutes'],
-            ['M100005', 2, Priority::Normal, 'Ofis programı lisansı', 'Yeni gelen stajyer için ofis programı lisansı gerekiyor.', '-40 minutes'],
-            ['M100001', 1, Priority::Low, 'Kulaklık değişimi', 'Kulaklığın mikrofonu ses almıyor, yenisi lazım.', '-20 minutes'],
-            ['M100002', 3, Priority::Normal, 'Misafir Wi-Fi şifresi', 'Toplantıya gelecek misafirler için Wi-Fi şifresi lazım.', '-3 hours'],
+            ['M100003', 1, self::LOW, 'Ek monitör talebi', 'Çift ekranla çalışmak için ikinci bir monitör istiyoruz.', '-2 hours'],
+            ['M100004', 4, self::NORMAL, 'Ortak klasöre erişim yetkisi', 'Muhasebe ortak klasörüne yazma yetkim yok.', '-90 minutes'],
+            ['M100005', 2, self::NORMAL, 'Ofis programı lisansı', 'Yeni gelen stajyer için ofis programı lisansı gerekiyor.', '-40 minutes'],
+            ['M100001', 1, self::LOW, 'Kulaklık değişimi', 'Kulaklığın mikrofonu ses almıyor, yenisi lazım.', '-20 minutes'],
+            ['M100002', 3, self::NORMAL, 'Misafir Wi-Fi şifresi', 'Toplantıya gelecek misafirler için Wi-Fi şifresi lazım.', '-3 hours'],
         ];
         foreach ($pool as [$customer, $category, $priority, $title, $description, $ago]) {
             $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
         }
 
         $cancelled = [
-            ['M100001', 2, Priority::Normal, 'Excel açılmıyor', 'Excel her açılışta donuyor. (Sonradan kendim çözdüm.)', '-2 days'],
-            ['M100003', 1, Priority::Low, 'Fare tekerleği', 'Fare tekerleği takılıyor.', '-3 days'],
-            ['M100004', 4, Priority::Normal, 'Şifre sıfırlama', 'Şifremi unuttum, sıfırlanmasını istiyorum.', '-26 hours'],
+            ['M100001', 2, self::NORMAL, 'Excel açılmıyor', 'Excel her açılışta donuyor. (Sonradan kendim çözdüm.)', '-2 days'],
+            ['M100003', 1, self::LOW, 'Fare tekerleği', 'Fare tekerleği takılıyor.', '-3 days'],
+            ['M100004', 4, self::NORMAL, 'Şifre sıfırlama', 'Şifremi unuttum, sıfırlanmasını istiyorum.', '-26 hours'],
         ];
         foreach ($cancelled as [$customer, $category, $priority, $title, $description, $ago]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
@@ -149,12 +159,12 @@ final class DemoSeeder
 
         // Kapalı (müşteri onayladı); biri önce reddedildi, biri SLA'yı aşarak çözüldü.
         $closed = [
-            ['M100001', 1, Priority::Normal, 'Yazıcıdan çıktı alamıyorum', 'Muhasebe yazıcısı sürekli kağıt sıkıştırıyor.', '-6 days', '+2 hours', false],
-            ['M100002', 2, Priority::High, 'Muhasebe programı açılmıyor', 'Program açılırken hata veriyor, fatura kesemiyoruz.', '-5 days', '+3 hours', true],
-            ['M100003', 3, Priority::Urgent, 'VPN bağlantısı yok', 'Uzaktan çalışanlar VPN\'e bağlanamıyor.', '-5 days', '+30 hours', false],
-            ['M100004', 4, Priority::Normal, 'E-posta şifresi değişikliği', 'E-posta şifremi değiştirmek istiyorum.', '-4 days', '+1 hour', false],
-            ['M100005', 1, Priority::Low, 'Klavye tuşları basmıyor', 'Klavyede bazı tuşlar çalışmıyor.', '-7 days', '+5 hours', false],
-            ['M100001', 2, Priority::Normal, 'Antivirüs uyarısı', 'Antivirüs sürekli güncelleme uyarısı veriyor.', '-3 days', '+4 hours', false],
+            ['M100001', 1, self::NORMAL, 'Yazıcıdan çıktı alamıyorum', 'Muhasebe yazıcısı sürekli kağıt sıkıştırıyor.', '-6 days', '+2 hours', false],
+            ['M100002', 2, self::HIGH, 'Muhasebe programı açılmıyor', 'Program açılırken hata veriyor, fatura kesemiyoruz.', '-5 days', '+3 hours', true],
+            ['M100003', 3, self::TOP, 'VPN bağlantısı yok', 'Uzaktan çalışanlar VPN\'e bağlanamıyor.', '-5 days', '+30 hours', false],
+            ['M100004', 4, self::NORMAL, 'E-posta şifresi değişikliği', 'E-posta şifremi değiştirmek istiyorum.', '-4 days', '+1 hour', false],
+            ['M100005', 1, self::LOW, 'Klavye tuşları basmıyor', 'Klavyede bazı tuşlar çalışmıyor.', '-7 days', '+5 hours', false],
+            ['M100001', 2, self::NORMAL, 'Antivirüs uyarısı', 'Antivirüs sürekli güncelleme uyarısı veriyor.', '-3 days', '+4 hours', false],
         ];
         foreach ($closed as [$customer, $category, $priority, $title, $description, $ago, $workTime, $rejectOnce]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
@@ -174,10 +184,10 @@ final class DemoSeeder
 
         // Çözüldü (müşteri onayı bekleniyor)
         $resolved = [
-            ['M100002', 4, Priority::Normal, 'Kullanıcı hesabı kilitlendi', 'Üç kez yanlış şifre girince hesabım kilitlendi.', '-2 days', '+2 hours'],
-            ['M100003', 2, Priority::High, 'Rapor ekranı hata veriyor', 'Aylık rapor ekranı hata mesajı gösteriyor.', '-1 day', '+3 hours'],
-            ['M100005', 3, Priority::Normal, 'İnternet çok yavaş', 'Öğleden sonra internet çok yavaşlıyor.', '-30 hours', '+6 hours'],
-            ['M100004', 1, Priority::Low, 'Toplantı odası projektörü', 'Projektör görüntü vermiyor.', '-3 days', '+4 hours'],
+            ['M100002', 4, self::NORMAL, 'Kullanıcı hesabı kilitlendi', 'Üç kez yanlış şifre girince hesabım kilitlendi.', '-2 days', '+2 hours'],
+            ['M100003', 2, self::HIGH, 'Rapor ekranı hata veriyor', 'Aylık rapor ekranı hata mesajı gösteriyor.', '-1 day', '+3 hours'],
+            ['M100005', 3, self::NORMAL, 'İnternet çok yavaş', 'Öğleden sonra internet çok yavaşlıyor.', '-30 hours', '+6 hours'],
+            ['M100004', 1, self::LOW, 'Toplantı odası projektörü', 'Projektör görüntü vermiyor.', '-3 days', '+4 hours'],
         ];
         foreach ($resolved as [$customer, $category, $priority, $title, $description, $ago, $workTime]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
@@ -187,9 +197,9 @@ final class DemoSeeder
         // Kırmızı: SLA'yı çoktan aşmış aktif talepler (alındı / inceleniyor)
         $breached = [
             // 6-8 gün önce: hafta sonu ve bayram tatili araya girse de SLA kesin aşılmış olur.
-            ['M100001', 3, Priority::Urgent, 'Sunucu erişimi koptu', 'Sabahtan beri sunucuya bağlanamıyoruz.', '-6 days', true],
-            ['M100004', 2, Priority::High, 'Fatura programı hata veriyor', 'Fatura kesmeye çalışınca program kapanıyor.', '-8 days', false],
-            ['M100005', 1, Priority::Urgent, 'Kasa bilgisayarı açılmıyor', 'Kasa bilgisayarı hiç açılmıyor, satış yapamıyoruz.', '-7 days', true],
+            ['M100001', 3, self::TOP, 'Sunucu erişimi koptu', 'Sabahtan beri sunucuya bağlanamıyoruz.', '-6 days', true],
+            ['M100004', 2, self::HIGH, 'Fatura programı hata veriyor', 'Fatura kesmeye çalışınca program kapanıyor.', '-8 days', false],
+            ['M100005', 1, self::TOP, 'Kasa bilgisayarı açılmıyor', 'Kasa bilgisayarı hiç açılmıyor, satış yapamıyoruz.', '-7 days', true],
         ];
         foreach ($breached as [$customer, $category, $priority, $title, $description, $ago, $startReview]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
@@ -203,9 +213,9 @@ final class DemoSeeder
         // sarı durum sunum boyunca birkaç iş saati sürsün (kısa SLA'lar dakikalar içinde kırmızıya döner).
         // Açıklamalarda anahtar kelime yok; öncelik yükselip SLA kısalmasın.
         $warning = [
-            ['M100002', 3, Priority::Normal, 'Kablosuz ağ kopuyor', 'Ofiste kablosuz ağ sık sık kopuyor.', true],
-            ['M100003', 4, Priority::Low, 'Yeni personel hesabı', 'Yeni başlayan personel için hesap açılmalı.', false],
-            ['M100001', 1, Priority::Normal, 'Sunucu odası kliması', 'Sunucu odasının kliması soğutmuyor, bakım gerekiyor.', true],
+            ['M100002', 3, self::NORMAL, 'Kablosuz ağ kopuyor', 'Ofiste kablosuz ağ sık sık kopuyor.', true],
+            ['M100003', 4, self::LOW, 'Yeni personel hesabı', 'Yeni başlayan personel için hesap açılmalı.', false],
+            ['M100001', 1, self::NORMAL, 'Sunucu odası kliması', 'Sunucu odasının kliması soğutmuyor, bakım gerekiyor.', true],
         ];
         foreach ($warning as [$customer, $category, $priority, $title, $description, $startReview]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $this->warningStart($now, $category, $priority));
@@ -218,10 +228,10 @@ final class DemoSeeder
 
         // Normal: yeni açılmış aktif talepler (biri anahtar kelimeyle önceliği yükselmiş)
         $fresh = [
-            ['M100004', 2, Priority::Low, 'Yazılım güncellemesi', 'Muhasebe yazılımı güncelleme istiyor.', '-30 minutes', false],
-            ['M100005', 1, Priority::Normal, 'Telefon santrali çöktü', 'Dahili telefonlar çalışmıyor.', '-15 minutes', false],
-            ['M100002', 4, Priority::Low, 'Yetki talebi', 'Raporlama ekranına erişim yetkisi istiyorum.', '-45 minutes', true],
-            ['M100003', 1, Priority::Low, 'Yeni fare talebi', 'Farenin tekerleği bozuldu.', '-10 minutes', false],
+            ['M100004', 2, self::LOW, 'Yazılım güncellemesi', 'Muhasebe yazılımı güncelleme istiyor.', '-30 minutes', false],
+            ['M100005', 1, self::NORMAL, 'Telefon santrali çöktü', 'Dahili telefonlar çalışmıyor.', '-15 minutes', false],
+            ['M100002', 4, self::LOW, 'Yetki talebi', 'Raporlama ekranına erişim yetkisi istiyorum.', '-45 minutes', true],
+            ['M100003', 1, self::LOW, 'Yeni fare talebi', 'Farenin tekerleği bozuldu.', '-10 minutes', false],
         ];
         foreach ($fresh as [$customer, $category, $priority, $title, $description, $ago, $startReview]) {
             $ticket = $this->open($customer, $category, $priority, $title, $description, $now->modify($ago));
@@ -233,13 +243,13 @@ final class DemoSeeder
     }
 
     /** Saati verilen ana alıp talebi müşteri adına açar. */
-    private function open(string $customer, int $category, Priority $priority, string $title, string $description, DateTimeImmutable $at): Ticket
+    private function open(string $customer, int $category, int $priority, string $title, string $description, DateTimeImmutable $at): Ticket
     {
         $this->clock->set($at);
 
         return $this->kernel->ticketService()->createTicket($this->users[$customer], [
             'category_id' => $category,
-            'priority' => $priority->value,
+            'priority' => $priority,
             'title' => $title,
             'description' => $description,
         ]);
@@ -271,9 +281,10 @@ final class DemoSeeder
      * SLA'sının ~%82'si dolmuş olacak açılış anı: şimdiden geriye, iş dakikasıyla, SLA süresinin %82'si kadar git.
      * (Hafta sonu veya mesai dışında çalıştırılsa da iş saatine göre doğru sonuç verir.)
      */
-    private function warningStart(DateTimeImmutable $now, int $category, Priority $priority): DateTimeImmutable
+    private function warningStart(DateTimeImmutable $now, int $category, int $priority): DateTimeImmutable
     {
-        $hours = $this->kernel->slaPolicyRepository()->findFor($category, $priority)->durationHours ?? $priority->defaultSlaHours();
+        $hours = $this->kernel->slaPolicyRepository()->findFor($category, $priority)->durationHours
+            ?? $this->kernel->priorityRepository()->findById($priority)->defaultSlaHours ?? 16;
         $target = (int) ceil($hours * 60 * 0.82);
         $calculator = $this->kernel->slaCalculator();
 

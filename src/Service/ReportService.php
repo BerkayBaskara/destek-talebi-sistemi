@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 use App\Model\User;
+use App\Repository\PriorityRepositoryInterface;
 use App\Repository\TicketRepositoryInterface;
 use App\Repository\UserRepositoryInterface;
 
@@ -24,6 +24,7 @@ final class ReportService
         private readonly UserRepositoryInterface $users,
         private readonly SlaStatusService $slaStatus,
         private readonly SlaCalculatorService $calculator,
+        private readonly PriorityRepositoryInterface $priorities,
     ) {
     }
 
@@ -49,8 +50,8 @@ final class ReportService
             $byStatus[$status->value] = 0;
         }
         $byPriority = [];
-        foreach (Priority::cases() as $priority) {
-            $byPriority[$priority->value] = 0;
+        foreach ($this->priorities->findAll() as $priority) {
+            $byPriority[(int) $priority->id] = 0;
         }
 
         $warning = [];
@@ -59,7 +60,7 @@ final class ReportService
         $met = 0;
         foreach ($all as $ticket) {
             $byStatus[$ticket->status->value]++;
-            $byPriority[$ticket->priority->value]++;
+            $byPriority[$ticket->priorityId] = ($byPriority[$ticket->priorityId] ?? 0) + 1;
 
             $level = $this->slaStatus->forTicket($ticket)->level;
             if ($level === 'warning') {

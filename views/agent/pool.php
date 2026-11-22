@@ -16,7 +16,7 @@
                 <tr>
                     <td data-label="ID">#<?= e($ticket->id) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
-                    <td data-label="Öncelik"><?= e($ticket->priority->label()) ?></td>
+                    <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
                     <td data-label="Açılış"><?= e($ticket->createdAt->format('d.m.Y H:i')) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></td>
                     <td>

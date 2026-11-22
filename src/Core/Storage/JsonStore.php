@@ -107,6 +107,21 @@ final class JsonStore
     }
 
     /**
+     * Satırı siler (yoksa bir şey yapmaz). Sıra numarası geri sarılmaz; silinen id tekrar verilmez.
+     * Yalnız yönetici verilerinde (tatil, SLA kuralı) kullanılır; talepler ve kayıtlar silinmez.
+     */
+    public function delete(string $table, int $id): void
+    {
+        $this->transaction([$table], function () use ($table, $id): void {
+            $rows = $this->read($table);
+            $kept = array_values(array_filter($rows, static fn (array $row): bool => ($row['id'] ?? null) !== $id));
+            if (count($kept) !== count($rows)) {
+                $this->write($table, $kept);
+            }
+        });
+    }
+
+    /**
      * Verilen tabloları özel kilitle kilitleyip $fn'i çalıştırır.
      * Kilitler her zaman alfabetik sırayla alınır; böylece iki istek birbirini
      * sonsuza kadar bekleyemez (deadlock olmaz). Zaten tutulan kilit tekrar alınmaz.

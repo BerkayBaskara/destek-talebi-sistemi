@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Repository;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 use App\Repository\Json\JsonTicketRepository;
@@ -28,7 +27,7 @@ final class JsonTicketRepositoryTest extends TestCase
     {
         $tz = new DateTimeZone('Europe/Istanbul');
 
-        return new Ticket(null, $creatorId, $agentId, 1, 'Yazıcı çalışmıyor', $status, Priority::Normal, Priority::Normal, 0,
+        return new Ticket(null, $creatorId, $agentId, 1, 'Yazıcı çalışmıyor', $status, 2, 2, 0,
             new DateTimeImmutable($created, $tz), new DateTimeImmutable('2026-11-10 10:00', $tz), null);
     }
 

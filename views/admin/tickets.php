@@ -6,7 +6,6 @@
 /** @var array<string, string> $filters */
 /** @var \App\Core\View $view */
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 
 ?>
@@ -30,8 +29,8 @@ use App\Model\Enum\TicketStatus;
             <label for="oncelik">Öncelik</label>
             <select id="oncelik" name="oncelik">
                 <option value="">Tümü</option>
-                <?php foreach (Priority::cases() as $case): ?>
-                    <option value="<?= e($case->value) ?>"<?= $filters['oncelik'] === (string) $case->value ? ' selected' : '' ?>><?= e($case->label()) ?></option>
+                <?php foreach ($priorities as $priority): ?>
+                    <option value="<?= e($priority->id) ?>"<?= $filters['oncelik'] === (string) $priority->id ? ' selected' : '' ?>><?= e($priority->name) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -63,7 +62,7 @@ use App\Model\Enum\TicketStatus;
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Müşteri"><?= e($names[$ticket->creatorId] ?? '-') ?></td>
                     <td data-label="Personel"><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Havuzda') ?></td>
-                    <td data-label="Öncelik"><?= e($ticket->priority->label()) ?></td>
+                    <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $slas[$i], 'ticketId' => $ticket->id]) ?></td>
                 </tr>

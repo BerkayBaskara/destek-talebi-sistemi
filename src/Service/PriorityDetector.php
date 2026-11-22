@@ -5,53 +5,42 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Text;
-use App\Model\Enum\Priority;
+use App\Model\Priority;
 
 /**
  * FR-03: talebin başlık ve açıklamasındaki anahtar kelimelere bakarak "gölge" öncelik belirler.
  * Müşterinin seçtiği öncelik hiçbir zaman düşürülmez; yalnız gerekiyorsa yükseltilir.
- * Kelimeler storage/config/priority_keywords.json dosyasından okunur (kod değişmeden güncellenebilir).
+ * Kelimeler her önceliğin kaydında tutulur; yönetici Sistem Yapılandırması'ndan değiştirir.
  */
 final class PriorityDetector
 {
-    /** @var array<int, list<string>> öncelik değeri => küçük harfe çevrilmiş kelimeler */
-    private array $keywords = [];
+    /** @var list<array{priority: Priority, words: list<string>}> en yüksek öncelik önce */
+    private array $levels = [];
 
-    /** @param array<int, list<string>> $keywords */
-    public function __construct(array $keywords)
+    /** @param list<Priority> $priorities */
+    public function __construct(array $priorities)
     {
-        foreach ($keywords as $priority => $words) {
-            $this->keywords[(int) $priority] = array_map(static fn (string $w): string => Text::fold($w), $words);
-        }
-        krsort($this->keywords); // en yüksek öncelik önce denenir
-    }
-
-    /** Dosya yoksa veya bozuksa algılama yapılmaz (sistem çökmez). */
-    public static function fromFile(string $path): self
-    {
-        $data = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
-        if (!is_array($data)) {
-            return new self([]);
-        }
-
-        $keywords = [];
-        foreach ($data as $priority => $words) {
-            if (is_array($words) && Priority::tryFrom((int) $priority) !== null) {
-                $keywords[(int) $priority] = array_values(array_filter($words, 'is_string'));
+        foreach ($priorities as $priority) {
+            if (!$priority->active) {
+                continue;
             }
+            $words = array_values(array_filter(
+                array_map(static fn (string $w): string => Text::fold($w), $priority->keywords),
+                static fn (string $w): bool => $w !== '',
+            ));
+            $this->levels[] = ['priority' => $priority, 'words' => $words];
         }
-
-        return new self($keywords);
+        usort($this->levels, static fn (array $a, array $b): int => $b['priority']->rank <=> $a['priority']->rank);
     }
 
     /** Metinde geçen en yüksek önceliğin kelimesi; hiçbiri yoksa null. */
     public function detect(string $text): ?Priority
     {
         $text = Text::fold($text);
-        foreach ($this->keywords as $priority => $words) {
-            foreach ($words as $word) {
-                if ($word !== '' && str_contains($text, $word)) {
-                    return Priority::tryFrom($priority);
+        foreach ($this->levels as $level) {
+            foreach ($level['words'] as $word) {
+                if (str_contains($text, $word)) {
+                    return $level['priority'];
                 }
             }
         }
@@ -64,6 +53,6 @@ final class PriorityDetector
     {
         $detected = $this->detect($title . "\n" . $description);
 
-        return $detected !== null && $detected->value > $chosen->value ? $detected : $chosen;
+        return $detected !== null && $detected->rank > $chosen->rank ? $detected : $chosen;
     }
 }

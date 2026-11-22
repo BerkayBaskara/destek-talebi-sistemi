@@ -7,7 +7,6 @@ namespace App\Controller;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Kernel;
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
@@ -28,11 +27,11 @@ final class AdminController
     {
         $this->kernel->requireRole(Role::Admin);
         $status = TicketStatus::tryFrom($request->string('durum'));
-        $priority = Priority::tryFrom((int) $request->string('oncelik'));
+        $priorityId = (int) $request->string('oncelik');
         $agentId = (int) $request->string('personel');
         $query = $request->string('q');
 
-        $result = $this->tickets->searchAll($status, $priority, $agentId > 0 ? $agentId : null, $query, max(1, (int) $request->string('sayfa')));
+        $result = $this->tickets->searchAll($status, $priorityId > 0 ? $priorityId : null, $agentId > 0 ? $agentId : null, $query, max(1, (int) $request->string('sayfa')));
 
         $sla = $this->kernel->slaStatusService();
         $users = $this->kernel->userRepository();
@@ -51,9 +50,10 @@ final class AdminController
             'slas' => array_map(static fn (Ticket $t) => $sla->forTicket($t), $result['items']),
             'names' => $names,
             'agents' => $users->findByRole(Role::Agent),
+            'priorities' => $this->kernel->priorityRepository()->findAll(),
             'filters' => [
                 'durum' => $status->value ?? '',
-                'oncelik' => $priority !== null ? (string) $priority->value : '',
+                'oncelik' => $priorityId > 0 ? (string) $priorityId : '',
                 'personel' => $agentId > 0 ? (string) $agentId : '',
                 'q' => $query,
             ],

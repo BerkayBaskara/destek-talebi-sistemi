@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Model;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 use App\Model\State\InvalidTransitionException;
 use App\Model\Ticket;
@@ -27,8 +26,8 @@ final class TicketStateTest extends TestCase
             categoryId: 1,
             title: 'Sunucu erişimi koptu',
             status: $status,
-            priority: Priority::Urgent,
-            customerPriority: Priority::Normal,
+            priorityId: 4,
+            customerPriorityId: 2,
             attemptCount: 0,
             createdAt: new DateTimeImmutable('2026-11-09 10:00', $tz),
             deadline: new DateTimeImmutable('2026-11-09 14:00', $tz),
@@ -114,8 +113,10 @@ final class TicketStateTest extends TestCase
 
     public function test_priority_labels_and_default_hours(): void
     {
-        self::assertSame('Acil', Priority::Urgent->label());
-        self::assertSame([24, 16, 8, 4], array_map(static fn (Priority $p): int => $p->defaultSlaHours(), Priority::cases()));
+        $defaults = \App\Service\PriorityService::defaults();
+        self::assertSame('Çok Yüksek', $defaults[3]->label());
+        self::assertSame([24, 16, 8, 4, 32], array_map(static fn (\App\Model\Priority $p): int => $p->defaultSlaHours, $defaults));
+        self::assertTrue(self::ticket(TicketStatus::Pending)->priorityRaised());
     }
 
     public function test_ticket_round_trips_array(): void

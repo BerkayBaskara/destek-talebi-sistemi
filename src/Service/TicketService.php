@@ -10,7 +10,6 @@ use App\Exception\AuthorizationException;
 use App\Exception\ConflictException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Reply;
@@ -19,6 +18,7 @@ use App\Model\Ticket;
 use App\Model\TicketLog;
 use App\Model\User;
 use App\Repository\CategoryRepositoryInterface;
+use App\Repository\PriorityRepositoryInterface;
 use App\Repository\ReplyRepositoryInterface;
 use App\Repository\SlaPolicyRepositoryInterface;
 use App\Repository\TicketRepositoryInterface;
@@ -46,7 +46,7 @@ final class TicketService
         private readonly CategoryRepositoryInterface $categories,
         private readonly SlaPolicyRepositoryInterface $policies,
         private readonly SlaCalculatorService $sla,
-        private readonly PriorityDetector $priorityDetector,
+        private readonly PriorityRepositoryInterface $priorities,
         private readonly AssignmentService $assignment,
         private readonly ClockInterface $clock,
     ) {
@@ -80,7 +80,10 @@ final class TicketService
         $title = trim(is_string($data['title'] ?? null) ? $data['title'] : '');
         $description = trim(is_string($data['description'] ?? null) ? $data['description'] : '');
         $categoryId = is_numeric($data['category_id'] ?? null) ? (int) $data['category_id'] : 0;
-        $chosen = is_numeric($data['priority'] ?? null) ? Priority::tryFrom((int) $data['priority']) : null;
+        $chosen = is_numeric($data['priority'] ?? null) ? $this->priorities->findById((int) $data['priority']) : null;
+        if ($chosen !== null && !$chosen->active) {
+            $chosen = null;
+        }
 
         $errors = [];
         if ($this->categories->findById($categoryId) === null) {
@@ -99,8 +102,8 @@ final class TicketService
             throw new ValidationException($errors);
         }
 
-        $priority = $this->priorityDetector->effective($chosen, $title, $description);
-        $hours = $this->policies->findFor($categoryId, $priority)->durationHours ?? $priority->defaultSlaHours();
+        $priority = (new PriorityDetector($this->priorities->findActive()))->effective($chosen, $title, $description);
+        $hours = $this->policies->findFor($categoryId, (int) $priority->id)->durationHours ?? $priority->defaultSlaHours;
         $now = $this->clock->now();
 
         $ticket = $this->tickets->save(new Ticket(
@@ -110,8 +113,8 @@ final class TicketService
             $categoryId,
             $title,
             TicketStatus::Pending,
-            $priority,
-            $chosen,
+            (int) $priority->id,
+            (int) $chosen->id,
             0,
             $now,
             $this->sla->calculateWithJson($now, $hours * 60),
@@ -327,12 +330,12 @@ final class TicketService
      *
      * @return array{items: list<Ticket>, total: int, page: int, pages: int}
      */
-    public function searchAll(?TicketStatus $status, ?Priority $priority, ?int $agentId, string $query, int $page, int $perPage = 15): array
+    public function searchAll(?TicketStatus $status, ?int $priorityId, ?int $agentId, string $query, int $page, int $perPage = 15): array
     {
         $items = array_values(array_filter(
             $this->tickets->findAll(),
             fn (Ticket $t): bool => ($status === null || $t->status === $status)
-                && ($priority === null || $t->priority === $priority)
+                && ($priorityId === null || $t->priorityId === $priorityId)
                 && ($agentId === null || $t->agentId === $agentId)
                 && $this->matches($t, $query),
         ));

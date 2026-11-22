@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Repository;
 
 use App\Model\Category;
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 use App\Model\Reply;
 use App\Model\SlaPolicy;
@@ -42,13 +41,13 @@ final class JsonCatalogRepositoriesTest extends TestCase
     public function test_sla_policy_lookup_by_category_and_priority(): void
     {
         $repo = new JsonSlaPolicyRepository($this->makeStore());
-        $repo->save(new SlaPolicy(null, 1, Priority::Urgent, 4));
-        $repo->save(new SlaPolicy(null, 1, Priority::Normal, 16));
-        $repo->save(new SlaPolicy(null, 2, Priority::Urgent, 2));
+        $repo->save(new SlaPolicy(null, 1, 4, 4));
+        $repo->save(new SlaPolicy(null, 1, 2, 16));
+        $repo->save(new SlaPolicy(null, 2, 4, 2));
 
-        self::assertSame(2, $repo->findFor(2, Priority::Urgent)?->durationHours);
-        self::assertSame(16, $repo->findFor(1, Priority::Normal)?->durationHours);
-        self::assertNull($repo->findFor(2, Priority::Low));
+        self::assertSame(2, $repo->findFor(2, 4)?->durationHours);
+        self::assertSame(16, $repo->findFor(1, 2)?->durationHours);
+        self::assertNull($repo->findFor(2, 1));
         self::assertCount(3, $repo->findAll());
     }
 

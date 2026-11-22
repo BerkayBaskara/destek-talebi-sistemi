@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 
 final class TicketCreateTest extends FeatureTestCase
@@ -20,7 +19,7 @@ final class TicketCreateTest extends FeatureTestCase
     {
         return $override + [
             'category_id' => '1',
-            'priority' => (string) Priority::Normal->value,
+            'priority' => '2',
             'title' => 'Yazıcıdan çıktı alamıyorum',
             'description' => 'Muhasebe yazıcısı sürekli kağıt sıkıştırıyor.',
         ];
@@ -46,7 +45,7 @@ final class TicketCreateTest extends FeatureTestCase
         $body = $this->get('/talepler/yeni')->body;
 
         self::assertStringContainsString('Ağ / Erişim', $body);
-        self::assertStringContainsString('Acil', $body);
+        self::assertStringContainsString('Çok Yüksek', $body);
         self::assertStringContainsString('name="_csrf"', $body);
     }
 

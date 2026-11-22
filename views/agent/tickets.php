@@ -17,7 +17,7 @@
                 <tr class="row-<?= e($sla->level) ?>">
                     <td data-label="ID">#<?= e($ticket->id) ?></td>
                     <td data-label="Konu"><?= e($ticket->title) ?></td>
-                    <td data-label="Öncelik"><?= e($ticket->priority->label()) ?></td>
+                    <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></td>
                     <td><a class="btn<?= $ticket->status->isFinal() ? ' btn-light' : '' ?>" href="/talepler/<?= e($ticket->id) ?>"><?= $ticket->status->isFinal() ? 'İncele' : 'Yanıtla' ?> &rsaquo;</a></td>

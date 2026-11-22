@@ -48,6 +48,19 @@ final class JsonStoreTest extends TestCase
         self::assertSame(['id' => 1, 'name' => 'B', 'role' => 'customer'], $store->find('users', 1));
     }
 
+    public function test_delete_removes_row_and_ids_are_not_reused(): void
+    {
+        $store = new JsonStore($this->dir);
+        $store->insert('holidays', ['date' => '2026-11-25']);
+        $store->insert('holidays', ['date' => '2026-12-31']);
+
+        $store->delete('holidays', 2);
+        $store->delete('holidays', 99); // olmayan satır sessizce geçilir
+
+        self::assertSame([['id' => 1, 'date' => '2026-11-25']], $store->all('holidays'));
+        self::assertSame(3, $store->insert('holidays', ['date' => '2027-01-01']));
+    }
+
     public function test_update_missing_row_throws(): void
     {
         $store = new JsonStore($this->dir);

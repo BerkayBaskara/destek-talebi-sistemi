@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Repository\Json;
 
 use App\Core\Storage\JsonStore;
-use App\Model\Enum\Priority;
 use App\Model\SlaPolicy;
 use App\Repository\SlaPolicyRepositoryInterface;
 
@@ -18,15 +17,23 @@ final class JsonSlaPolicyRepository implements SlaPolicyRepositoryInterface
     {
     }
 
-    public function findFor(int $categoryId, Priority $priority): ?SlaPolicy
+    public function findFor(int $categoryId, int $priorityId): ?SlaPolicy
     {
         foreach ($this->findAll() as $policy) {
-            if ($policy->categoryId === $categoryId && $policy->priority === $priority) {
+            if ($policy->categoryId === $categoryId && $policy->priorityId === $priorityId) {
                 return $policy;
             }
         }
 
         return null;
+    }
+
+    public function remove(int $categoryId, int $priorityId): void
+    {
+        $policy = $this->findFor($categoryId, $priorityId);
+        if ($policy !== null && $policy->id !== null) {
+            $this->store->delete(self::TABLE, $policy->id);
+        }
     }
 
     public function findAll(): array

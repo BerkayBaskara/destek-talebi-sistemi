@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Service;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
@@ -41,7 +40,7 @@ final class AssignmentServiceTest extends TestCase
     private function giveTickets(int $agentId, int $count, TicketStatus $status = TicketStatus::Taken): void
     {
         for ($i = 0; $i < $count; $i++) {
-            $this->tickets->save(new Ticket(null, 99, $agentId, 1, 'T', $status, Priority::Normal, Priority::Normal, 0,
+            $this->tickets->save(new Ticket(null, 99, $agentId, 1, 'T', $status, 2, 2, 0,
                 new DateTimeImmutable('2026-11-09 10:00'), new DateTimeImmutable('2026-11-09 12:00'), null));
         }
     }

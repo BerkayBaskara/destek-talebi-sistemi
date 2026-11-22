@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Model;
 
-use App\Model\Enum\Priority;
-
 /** Kategori ve önceliğe göre SLA süresi, iş saati cinsinden (ER: sla_policies). */
 final class SlaPolicy
 {
     public function __construct(
         public ?int $id,
         public int $categoryId,
-        public Priority $priority,
+        public int $priorityId,
         public int $durationHours,
     ) {
     }
@@ -23,7 +21,7 @@ final class SlaPolicy
         return new self(
             isset($row['id']) ? (int) $row['id'] : null,
             (int) ($row['category_id'] ?? 0),
-            Priority::from((int) ($row['priority'] ?? 2)),
+            (int) ($row['priority'] ?? 2),
             (int) ($row['duration_hours'] ?? 0),
         );
     }
@@ -34,7 +32,7 @@ final class SlaPolicy
         return [
             'id' => $this->id,
             'category_id' => $this->categoryId,
-            'priority' => $this->priority->value,
+            'priority' => $this->priorityId,
             'duration_hours' => $this->durationHours,
         ];
     }

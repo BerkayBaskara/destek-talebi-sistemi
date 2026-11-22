@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Service;
 
 use App\Core\Clock\FixedClock;
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
@@ -39,7 +38,11 @@ final class ReportServiceTest extends TestCase
         $this->users = new JsonUserRepository($store);
         $clock = new FixedClock(self::at('2026-11-10 09:30')); // Salı
         $calculator = new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json'));
-        $this->service = new ReportService($this->tickets, $this->users, new SlaStatusService($calculator, $clock), $calculator);
+        $priorities = new \App\Repository\Json\JsonPriorityRepository($store);
+        foreach (\App\Service\PriorityService::defaults() as $priority) {
+            $priorities->save($priority);
+        }
+        $this->service = new ReportService($this->tickets, $this->users, new SlaStatusService($calculator, $clock), $calculator, $priorities);
 
         $this->p1 = (int) $this->users->save(new User(null, 'P000001', 'x', Role::Agent, 'Zeynep', 'Kaya', 'S', 'C'))->id;
         $this->p2 = (int) $this->users->save(new User(null, 'P000002', 'x', Role::Agent, 'Murat', 'Demir', 'S', 'C'))->id;
@@ -50,7 +53,7 @@ final class ReportServiceTest extends TestCase
         return new DateTimeImmutable($s, new DateTimeZone('Europe/Istanbul'));
     }
 
-    private function add(TicketStatus $status, ?int $agent, string $created, string $deadline, ?string $resolved = null, Priority $priority = Priority::Normal): void
+    private function add(TicketStatus $status, ?int $agent, string $created, string $deadline, ?string $resolved = null, int $priority = 2): void
     {
         $this->tickets->save(new Ticket(null, 99, $agent, 1, 'T', $status, $priority, $priority, 0,
             self::at($created), self::at($deadline), $resolved === null ? null : self::at($resolved)));
@@ -60,15 +63,15 @@ final class ReportServiceTest extends TestCase
     {
         $this->add(TicketStatus::Closed, $this->p1, '2026-11-09 09:00', '2026-11-09 09:30', '2026-11-09 10:00');            // 60 dk, geç çözüldü
         $this->add(TicketStatus::Resolved, $this->p2, '2026-11-09 09:00', '2026-11-09 17:00', '2026-11-09 12:00');          // 180 dk
-        $this->add(TicketStatus::Taken, $this->p1, '2026-11-09 09:00', '2026-11-10 11:00', null, Priority::High);           // %85 sarı
-        $this->add(TicketStatus::InReview, $this->p1, '2026-11-09 09:00', '2026-11-09 12:00', null, Priority::Urgent);      // aşıldı
+        $this->add(TicketStatus::Taken, $this->p1, '2026-11-09 09:00', '2026-11-10 11:00', null, 3);           // %85 sarı
+        $this->add(TicketStatus::InReview, $this->p1, '2026-11-09 09:00', '2026-11-09 12:00', null, 4);      // aşıldı
         $this->add(TicketStatus::Pending, null, '2026-11-10 09:00', '2026-11-11 09:00');                                     // normal
         $this->add(TicketStatus::Cancelled, null, '2026-11-09 09:00', '2026-11-10 09:00');
 
         $summary = $this->service->summary();
 
         self::assertSame(['pending' => 1, 'taken' => 1, 'in_review' => 1, 'resolved' => 1, 'closed' => 1, 'cancelled' => 1], $summary['byStatus']);
-        self::assertSame([1 => 0, 2 => 4, 3 => 1, 4 => 1], $summary['byPriority']);
+        self::assertSame([5 => 0, 1 => 0, 2 => 4, 3 => 1, 4 => 1], $summary['byPriority']); // sıra: Çok Düşük → Çok Yüksek
         self::assertSame([3], array_map(static fn (Ticket $t): ?int => $t->id, $summary['warning']));
         self::assertSame([4], array_map(static fn (Ticket $t): ?int => $t->id, $summary['breached']));
         self::assertSame(120, $summary['avgResolutionMinutes']);

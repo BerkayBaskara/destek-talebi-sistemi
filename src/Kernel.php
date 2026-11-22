@@ -25,6 +25,8 @@ use App\Repository\AttachmentRepositoryInterface;
 use App\Repository\AuditLogRepositoryInterface;
 use App\Repository\Json\JsonAuditLogRepository;
 use App\Repository\Json\JsonSettingsRepository;
+use App\Repository\Json\JsonPriorityRepository;
+use App\Repository\PriorityRepositoryInterface;
 use App\Repository\CategoryRepositoryInterface;
 use App\Repository\Json\JsonAttachmentRepository;
 use App\Service\AttachmentService;
@@ -45,7 +47,7 @@ use App\Service\AuditLogger;
 use App\Service\AuthService;
 use App\Service\SettingsService;
 use App\Service\Observer\TicketLogObserver;
-use App\Service\PriorityDetector;
+use App\Service\PriorityService;
 use App\Service\SlaCalculatorService;
 use App\Service\SlaStatusService;
 use App\Service\TicketService;
@@ -72,6 +74,8 @@ final class Kernel
     private readonly AuditLogRepositoryInterface $auditLogRepository;
     private readonly AuditLogger $auditLogger;
     private readonly SettingsService $settingsService;
+    private readonly PriorityRepositoryInterface $priorityRepository;
+    private readonly PriorityService $priorityService;
     private readonly UserRepositoryInterface $userRepository;
     private readonly AuthService $authService;
     private readonly TicketRepositoryInterface $ticketRepository;
@@ -108,6 +112,8 @@ final class Kernel
         $this->ticketRepository = new JsonTicketRepository($this->store);
         $this->categoryRepository = new JsonCategoryRepository($this->store);
         $this->slaPolicyRepository = new JsonSlaPolicyRepository($this->store);
+        $this->priorityRepository = new JsonPriorityRepository($this->store);
+        $this->priorityService = new PriorityService($this->priorityRepository, $this->auditLogger);
         $this->replyRepository = new JsonReplyRepository($this->store);
         $this->ticketLogRepository = new JsonTicketLogRepository($this->store);
 
@@ -120,7 +126,7 @@ final class Kernel
             $this->categoryRepository,
             $this->slaPolicyRepository,
             $this->slaCalculator,
-            PriorityDetector::fromFile($config . '/priority_keywords.json'),
+            $this->priorityRepository,
             new AssignmentService($this->userRepository, $this->ticketRepository),
             $this->clock,
         );
@@ -233,6 +239,26 @@ final class Kernel
     }
 
     /**
+     * Ekranlarda öncelik adını göstermek için id → ad listesi (pasifler dahil; eski talepler bozulmasın).
+     * Veri okunamazsa boş liste: hata sayfası yine de çizilebilsin.
+     *
+     * @return array<int, string>
+     */
+    private function priorityNames(): array
+    {
+        try {
+            $names = [];
+            foreach ($this->priorityRepository->findAll() as $priority) {
+                $names[(int) $priority->id] = $priority->name;
+            }
+
+            return $names;
+        } catch (StorageException) {
+            return [];
+        }
+    }
+
+    /**
      * Bir şablonu ortak verilerle (CSRF alanı, flash mesajlar, oturumdaki kullanıcı) HTML yanıtına çevirir.
      *
      * @param array<string, mixed> $data
@@ -241,6 +267,7 @@ final class Kernel
     {
         $token = $this->csrf->token();
         $this->view->share('csrfToken', $token);
+        $this->view->share('priorityNames', $this->priorityNames());
         $this->view->share('csrfField', static fn (): string => '<input type="hidden" name="_csrf" value="' . e($token) . '">');
         $this->view->share('flashSuccess', $this->session->pullFlash('success'));
         $this->view->share('flashError', $this->session->pullFlash('error'));
@@ -287,6 +314,16 @@ final class Kernel
     public function auditLogger(): AuditLogger
     {
         return $this->auditLogger;
+    }
+
+    public function priorityRepository(): PriorityRepositoryInterface
+    {
+        return $this->priorityRepository;
+    }
+
+    public function priorityService(): PriorityService
+    {
+        return $this->priorityService;
     }
 
     public function settingsService(): SettingsService

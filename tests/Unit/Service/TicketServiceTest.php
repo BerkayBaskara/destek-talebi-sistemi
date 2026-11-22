@@ -10,7 +10,6 @@ use App\Exception\ConflictException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
 use App\Model\Category;
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\SlaPolicy;
@@ -27,7 +26,8 @@ use App\Repository\Json\JsonUserRepository;
 use App\Service\AssignmentService;
 use App\Service\Observer\TicketLogObserver;
 use App\Service\Observer\TicketObserver;
-use App\Service\PriorityDetector;
+use App\Repository\Json\JsonPriorityRepository;
+use App\Service\PriorityService;
 use App\Service\SlaCalculatorService;
 use App\Service\TicketService;
 use DateTimeImmutable;
@@ -59,11 +59,15 @@ final class TicketServiceTest extends TestCase
         $this->replies = new JsonReplyRepository($store);
         $categories = new JsonCategoryRepository($store);
         $policies = new JsonSlaPolicyRepository($store);
+        $priorities = new JsonPriorityRepository($store);
+        foreach (PriorityService::defaults() as $priority) {
+            $priorities->save($priority);
+        }
 
         $categories->save(new Category(null, 'Donanım'));
         $categories->save(new Category(null, 'Ağ / Erişim'));
-        $policies->save(new SlaPolicy(null, 1, Priority::Urgent, 4));
-        $policies->save(new SlaPolicy(null, 1, Priority::Normal, 16));
+        $policies->save(new SlaPolicy(null, 1, 4, 4));
+        $policies->save(new SlaPolicy(null, 1, 2, 16));
 
         $this->service = new TicketService(
             $this->tickets,
@@ -71,7 +75,7 @@ final class TicketServiceTest extends TestCase
             $categories,
             $policies,
             new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json')),
-            new PriorityDetector([4 => ['çöktü', 'çalışmıyor'], 3 => ['yavaş']]),
+            $priorities,
             new AssignmentService($this->users, $this->tickets),
             $this->clock,
         );
@@ -102,7 +106,7 @@ final class TicketServiceTest extends TestCase
     {
         return $this->service->createTicket($creator ?? $this->customer, $override + [
             'category_id' => 1,
-            'priority' => Priority::Normal->value,
+            'priority' => 2,
             'title' => 'Yazıcıdan çıktı alamıyorum',
             'description' => 'Muhasebe yazıcısı kağıt sıkıştırıyor.',
         ]);
@@ -110,7 +114,7 @@ final class TicketServiceTest extends TestCase
 
     public function test_create_computes_deadline_with_policy(): void
     {
-        $ticket = $this->create(['priority' => Priority::Urgent->value]);
+        $ticket = $this->create(['priority' => 4]);
 
         self::assertSame('2026-11-16 13:30', $ticket->deadline->format('Y-m-d H:i'));
         self::assertSame('2026-11-13 17:30', $ticket->createdAt->format('Y-m-d H:i'));
@@ -118,7 +122,7 @@ final class TicketServiceTest extends TestCase
 
     public function test_create_without_policy_uses_priority_default(): void
     {
-        $ticket = $this->create(['category_id' => 2, 'priority' => Priority::Urgent->value]);
+        $ticket = $this->create(['category_id' => 2, 'priority' => 4]);
 
         // Kategori 2 için kural yok → Acil varsayılanı 4 sa
         self::assertSame('2026-11-16 13:30', $ticket->deadline->format('Y-m-d H:i'));
@@ -128,8 +132,8 @@ final class TicketServiceTest extends TestCase
     {
         $ticket = $this->create(['title' => 'Muhasebe sunucusu çöktü']);
 
-        self::assertSame(Priority::Urgent, $ticket->priority);
-        self::assertSame(Priority::Normal, $ticket->customerPriority);
+        self::assertSame(4, $ticket->priorityId);
+        self::assertSame(2, $ticket->customerPriorityId);
         self::assertTrue($ticket->priorityRaised());
     }
 
@@ -375,7 +379,7 @@ final class TicketServiceTest extends TestCase
     {
         $agent = $this->user('P000001', Role::Agent);
         $this->tickets->save(new Ticket(null, (int) $this->customer->id, null, 1, 'Havuzdaki talep', TicketStatus::Pending,
-            Priority::Normal, Priority::Normal, 0, self::at('2026-11-13 10:00'), self::at('2026-11-14 10:00'), null));
+            2, 2, 0, self::at('2026-11-13 10:00'), self::at('2026-11-14 10:00'), null));
 
         // Müşteri iptal ekranını açtığında talep Bekleniyor'du; bu arada personel talebi aldı.
         $stale = new class ($this->tickets) implements \App\Repository\TicketRepositoryInterface {
@@ -403,7 +407,7 @@ final class TicketServiceTest extends TestCase
         $this->tickets->assignIfUnassigned(1, (int) $agent->id);
 
         $service = new TicketService($stale, $this->replies, new JsonCategoryRepository($this->tempStore()), new JsonSlaPolicyRepository($this->tempStore()),
-            new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json')), new PriorityDetector([]),
+            new SlaCalculatorService(new JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json')), new JsonPriorityRepository($this->tempStore()),
             new AssignmentService($this->users, $this->tickets), $this->clock);
 
         try {
@@ -422,11 +426,11 @@ final class TicketServiceTest extends TestCase
     {
         $agent = $this->user('P000001', Role::Agent);
         $this->create(['title' => 'Yazıcı arızası']);
-        $this->create(['title' => 'VPN bağlantısı yok', 'priority' => Priority::Urgent->value]);
+        $this->create(['title' => 'VPN bağlantısı yok', 'priority' => 4]);
         $this->create(['title' => 'Başka müşterinin talebi'], $this->otherCustomer);
 
         self::assertSame(3, $this->service->searchAll(null, null, null, '', 1)['total'], 'Yönetici tüm müşterilerin taleplerini görür.');
-        self::assertSame(['VPN bağlantısı yok'], array_map(static fn (Ticket $t): string => $t->title, $this->service->searchAll(null, Priority::Urgent, null, '', 1)['items']));
+        self::assertSame(['VPN bağlantısı yok'], array_map(static fn (Ticket $t): string => $t->title, $this->service->searchAll(null, 4, null, '', 1)['items']));
         self::assertSame(3, $this->service->searchAll(TicketStatus::Taken, null, (int) $agent->id, '', 1)['total']);
         self::assertSame(0, $this->service->searchAll(null, null, 999, '', 1)['total']);
         self::assertSame(1, $this->service->searchAll(null, null, null, 'vpn', 1)['total']);

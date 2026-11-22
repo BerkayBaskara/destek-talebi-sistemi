@@ -1,6 +1,6 @@
 <?php
 /** @var list<\App\Model\Category> $categories */
-/** @var list<\App\Model\Enum\Priority> $priorities */
+/** @var list<\App\Model\Priority> $priorities */
 /** @var array<string, string> $old */
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
@@ -28,7 +28,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <label for="priority">Öncelik seviyesi</label>
             <select id="priority" name="priority" required>
                 <?php foreach ($priorities as $priority): ?>
-                    <option value="<?= e($priority->value) ?>"<?= ($old['priority'] ?? '2') === (string) $priority->value ? ' selected' : '' ?>><?= e($priority->label()) ?></option>
+                    <option value="<?= e($priority->id) ?>"<?= ($old['priority'] ?? '2') === (string) $priority->id ? ' selected' : '' ?>><?= e($priority->name) ?></option>
                 <?php endforeach; ?>
             </select>
             <?= $fieldError('priority') ?>

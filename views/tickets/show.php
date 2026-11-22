@@ -31,9 +31,9 @@ $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === R
         <div><strong>Kategori:</strong> <?= e($category->name ?? '-') ?></div>
         <div><strong>Açılış:</strong> <?= e($ticket->createdAt->format('d.m.Y H:i')) ?></div>
         <div>
-            <strong>Öncelik:</strong> <?= e($ticket->priority->label()) ?>
+            <strong>Öncelik:</strong> <?= e($priorityNames[$ticket->priorityId] ?? '-') ?>
             <?php if ($ticket->priorityRaised()): ?>
-                <span class="muted">(Sistem önceliği yükseltti; seçilen: <?= e($ticket->customerPriority->label()) ?>)</span>
+                <span class="muted">(Sistem önceliği yükseltti; seçilen: <?= e($priorityNames[$ticket->customerPriorityId] ?? '-') ?>)</span>
             <?php endif; ?>
         </div>
         <div><strong>Durum:</strong> <?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></div>

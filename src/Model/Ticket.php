@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Model;
 
-use App\Model\Enum\Priority;
 use App\Model\Enum\TicketStatus;
 use App\Model\State\TicketState;
 use DateTimeImmutable;
@@ -13,7 +12,7 @@ use DateTimeZone;
 /**
  * Destek talebi. Alan adları ER diyagramındaki tickets tablosuyla aynı; Aşama 2'de eklenenler:
  * title, customer_priority (müşterinin seçtiği öncelik), resolved_at (son çözüm zamanı).
- * `priority` sistemin etkin önceliğidir (anahtar kelimeyle yükseltilmiş olabilir, FR-03).
+ * `priority` sistemin etkin önceliğinin id'sidir (anahtar kelimeyle yükseltilmiş olabilir, FR-03).
  */
 final class Ticket
 {
@@ -24,8 +23,8 @@ final class Ticket
         public int $categoryId,
         public string $title,
         public TicketStatus $status,
-        public Priority $priority,
-        public Priority $customerPriority,
+        public int $priorityId,
+        public int $customerPriorityId,
         public int $attemptCount,
         public DateTimeImmutable $createdAt,
         public DateTimeImmutable $deadline,
@@ -55,7 +54,7 @@ final class Ticket
     /** Sistem önceliği müşterinin seçtiğinden yüksek mi (ekranda "Sistem önceliği yükseltti" notu). */
     public function priorityRaised(): bool
     {
-        return $this->priority->value > $this->customerPriority->value;
+        return $this->priorityId !== $this->customerPriorityId;
     }
 
     /** @param array<string, mixed> $row */
@@ -68,8 +67,8 @@ final class Ticket
             (int) ($row['category_id'] ?? 0),
             (string) ($row['title'] ?? ''),
             TicketStatus::from((string) ($row['status'] ?? 'pending')),
-            Priority::from((int) ($row['priority'] ?? 2)),
-            Priority::from((int) ($row['customer_priority'] ?? $row['priority'] ?? 2)),
+            (int) ($row['priority'] ?? 2),
+            (int) ($row['customer_priority'] ?? $row['priority'] ?? 2),
             (int) ($row['attempt_count'] ?? 0),
             self::date($row['created_at'] ?? null) ?? new DateTimeImmutable('now', new DateTimeZone('Europe/Istanbul')),
             self::date($row['deadline'] ?? null) ?? new DateTimeImmutable('now', new DateTimeZone('Europe/Istanbul')),
@@ -89,8 +88,8 @@ final class Ticket
             'category_id' => $this->categoryId,
             'title' => $this->title,
             'status' => $this->status->value,
-            'priority' => $this->priority->value,
-            'customer_priority' => $this->customerPriority->value,
+            'priority' => $this->priorityId,
+            'customer_priority' => $this->customerPriorityId,
             'attempt_count' => $this->attemptCount,
             'created_at' => $this->createdAt->format(DATE_ATOM),
             'deadline' => $this->deadline->format(DATE_ATOM),

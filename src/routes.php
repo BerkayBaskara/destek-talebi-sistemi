@@ -64,6 +64,7 @@ return static function (Router $router, Kernel $kernel): void {
         $kernel->userRepository(),
         $kernel->slaStatusService(),
         $kernel->slaCalculator(),
+        $kernel->priorityRepository(),
     ));
     $router->add('GET', '/yonetici', static fn (Request $r, array $p): Response => $admin->tickets($r));
     $router->add('GET', '/yonetici/ozet', static fn (Request $r, array $p): Response => $admin->summary());

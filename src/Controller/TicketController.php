@@ -9,7 +9,6 @@ use App\Core\Http\Response;
 use App\Exception\ConflictException;
 use App\Exception\ValidationException;
 use App\Kernel;
-use App\Model\Enum\Priority;
 use App\Model\Enum\Role;
 use App\Model\Enum\TicketStatus;
 use App\Model\State\InvalidTransitionException;
@@ -155,7 +154,7 @@ final class TicketController
         return [
             'title' => 'Yeni destek talebi',
             'categories' => $this->kernel->categoryRepository()->findAll(),
-            'priorities' => Priority::cases(),
+            'priorities' => $this->kernel->priorityRepository()->findActive(),
             'old' => $old,
             'errors' => $errors,
             'maxFiles' => $this->kernel->attachmentService()->maxFiles(),
