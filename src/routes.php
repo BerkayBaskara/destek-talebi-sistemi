@@ -9,6 +9,7 @@ use App\Controller\KanbanController;
 use App\Controller\AuthController;
 use App\Controller\CalendarController;
 use App\Controller\CatalogController;
+use App\Controller\HierarchyController;
 use App\Controller\SettingsController;
 use App\Controller\StaffController;
 use App\Controller\HomeController;
@@ -97,6 +98,13 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/yonetici/takvim/mesai', static fn (Request $r, array $p): Response => $calendar->saveHours($r));
     $router->add('POST', '/yonetici/takvim/tatil', static fn (Request $r, array $p): Response => $calendar->addHoliday($r));
     $router->add('POST', '/yonetici/takvim/tatil/sil', static fn (Request $r, array $p): Response => $calendar->removeHoliday($r));
+
+    $hierarchy = new HierarchyController($kernel);
+    $router->add('GET', '/yonetici/hiyerarsi', static fn (Request $r, array $p): Response => $hierarchy->index());
+    $router->add('POST', '/yonetici/hiyerarsi/{id}', static fn (Request $r, array $p): Response => $hierarchy->save($r, (int) $p['id']));
+    $router->add('GET', '/yonetici/izinler', static fn (Request $r, array $p): Response => $hierarchy->leaves());
+    $router->add('POST', '/yonetici/izinler', static fn (Request $r, array $p): Response => $hierarchy->addLeave($r));
+    $router->add('POST', '/yonetici/izinler/{id}/sil', static fn (Request $r, array $p): Response => $hierarchy->removeLeave((int) $p['id']));
 
     $staff = new StaffController($kernel);
     $router->add('GET', '/yonetici/personel', static fn (Request $r, array $p): Response => $staff->index());

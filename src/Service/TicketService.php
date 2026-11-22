@@ -150,10 +150,10 @@ final class TicketService
     {
         $assigned = 0;
         foreach ($this->tickets->getPoolTickets() as $ticket) {
-            if ($this->autoAssign($ticket) === null) {
-                break;
+            // Kategoriye göre uygun personel değişebildiği için biri atanamasa da diğerleri denenir.
+            if ($this->autoAssign($ticket) !== null) {
+                $assigned++;
             }
-            $assigned++;
         }
 
         return $assigned;
@@ -162,7 +162,7 @@ final class TicketService
     /** Sistem atamasi: uygun personel varsa talebi kilit içinde ona verir; yoksa null. */
     private function autoAssign(Ticket $ticket): ?Ticket
     {
-        $agent = $this->assignment->pickAgent();
+        $agent = $this->assignment->pickAgent($ticket->categoryId);
         if ($agent === null || !$this->tickets->assignIfUnassigned((int) $ticket->id, (int) $agent->id, $this->assignment->capacityOf($agent))) {
             return null;
         }
@@ -185,6 +185,9 @@ final class TicketService
             throw new AuthorizationException('Talebi yalnız personel üstlenebilir.');
         }
         $ticket = $this->mustFind($ticketId);
+        if ($agent->role === Role::Agent && !$this->assignment->canWork($ticket->categoryId, (int) $agent->id)) {
+            throw new AuthorizationException('Bu kategorideki talepleri üstlenme yetkiniz yok.');
+        }
         if ($ticket->agentId === null) {
             $ticket->state()->take($ticket); // iptal edilmiş vb. ise nedenini söyler
         }

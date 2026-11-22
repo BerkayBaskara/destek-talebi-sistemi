@@ -53,6 +53,12 @@ use App\Service\AssignmentService;
 use App\Service\AuditLogger;
 use App\Service\AuthService;
 use App\Service\BrandingService;
+use App\Service\HierarchyService;
+use App\Service\LeaveService;
+use App\Repository\HierarchyRepositoryInterface;
+use App\Repository\LeaveRepositoryInterface;
+use App\Repository\Json\JsonHierarchyRepository;
+use App\Repository\Json\JsonLeaveRepository;
 use App\Service\SettingsService;
 use App\Service\StaffService;
 use App\Service\Observer\TicketLogObserver;
@@ -85,6 +91,10 @@ final class Kernel
     private readonly SettingsService $settingsService;
     private readonly TicketActivityRepositoryInterface $ticketActivityRepository;
     private readonly BrandingService $brandingService;
+    private readonly HierarchyRepositoryInterface $hierarchyRepository;
+    private readonly LeaveRepositoryInterface $leaveRepository;
+    private readonly HierarchyService $hierarchyService;
+    private readonly LeaveService $leaveService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
     private readonly WorkCalendarRepositoryInterface $workCalendarRepository;
@@ -137,6 +147,10 @@ final class Kernel
         $config = $this->rootDir . '/storage/config';
         $this->workCalendarRepository = new JsonWorkCalendarRepository($this->store, null, new JsonCalendarRepository($config . '/calendar.json'));
         $this->calendarService = new CalendarService($this->workCalendarRepository, $this->auditLogger);
+        $this->hierarchyRepository = new JsonHierarchyRepository($this->store);
+        $this->leaveRepository = new JsonLeaveRepository($this->store);
+        $this->hierarchyService = new HierarchyService($this->hierarchyRepository, $this->categoryRepository, $this->userRepository, $this->auditLogger);
+        $this->leaveService = new LeaveService($this->leaveRepository, $this->userRepository, $this->auditLogger);
         $this->catalogService = new CatalogService($this->categoryRepository, $this->priorityRepository, $this->slaPolicyRepository, $this->auditLogger);
         $this->slaCalculator = new SlaCalculatorService($this->workCalendarRepository);
         $this->slaStatusService = new SlaStatusService($this->slaCalculator, $this->clock);
@@ -147,7 +161,7 @@ final class Kernel
             $this->slaPolicyRepository,
             $this->slaCalculator,
             $this->priorityRepository,
-            new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService),
+            new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService, $this->hierarchyRepository, $this->leaveRepository, $this->clock),
             $this->clock,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
@@ -386,6 +400,26 @@ final class Kernel
     public function settingsService(): SettingsService
     {
         return $this->settingsService;
+    }
+
+    public function hierarchyRepository(): HierarchyRepositoryInterface
+    {
+        return $this->hierarchyRepository;
+    }
+
+    public function leaveRepository(): LeaveRepositoryInterface
+    {
+        return $this->leaveRepository;
+    }
+
+    public function hierarchyService(): HierarchyService
+    {
+        return $this->hierarchyService;
+    }
+
+    public function leaveService(): LeaveService
+    {
+        return $this->leaveService;
     }
 
     public function brandingService(): BrandingService

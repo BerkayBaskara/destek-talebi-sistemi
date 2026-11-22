@@ -250,3 +250,4 @@ input.input-sm[type="number"] { width: 90px; min-width: 64px; padding: 8px; }
 @keyframes progress-fill { from { width: 0; } to { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .progress-bar { animation: none; width: 100%; } }
 
+.level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
