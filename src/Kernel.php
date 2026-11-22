@@ -49,6 +49,7 @@ use App\Repository\UserRepositoryInterface;
 use App\Service\AssignmentService;
 use App\Service\AuditLogger;
 use App\Service\AuthService;
+use App\Service\BrandingService;
 use App\Service\SettingsService;
 use App\Service\StaffService;
 use App\Service\Observer\TicketLogObserver;
@@ -79,6 +80,7 @@ final class Kernel
     private readonly AuditLogRepositoryInterface $auditLogRepository;
     private readonly AuditLogger $auditLogger;
     private readonly SettingsService $settingsService;
+    private readonly BrandingService $brandingService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
     private readonly WorkCalendarRepositoryInterface $workCalendarRepository;
@@ -113,6 +115,7 @@ final class Kernel
         $this->auditLogRepository = new JsonAuditLogRepository($this->store);
         $this->auditLogger = new AuditLogger($this->auditLogRepository, $this->clock);
         $this->settingsService = new SettingsService(new JsonSettingsRepository($this->store), $this->auditLogger);
+        $this->brandingService = new BrandingService($this->rootDir . '/public/branding', $this->settingsService, $this->auditLogger);
 
         $this->userRepository = new JsonUserRepository($this->store);
         $this->authService = new AuthService($this->userRepository);
@@ -288,6 +291,14 @@ final class Kernel
         $token = $this->csrf->token();
         $this->view->share('csrfToken', $token);
         $this->view->share('priorityNames', $this->priorityNames());
+        try {
+            $this->view->share('siteTitle', $this->settingsService->string('site.title'));
+            $this->view->share('siteLogo', $this->settingsService->string('site.logo_path'));
+        } catch (StorageException) {
+            // veri dosyası okunamazsa varsayılan başlıkla devam edilir (hata sayfası yine çizilsin)
+            $this->view->share('siteTitle', SettingsService::DEFAULTS['site.title']);
+            $this->view->share('siteLogo', '');
+        }
         $this->view->share('csrfField', static fn (): string => '<input type="hidden" name="_csrf" value="' . e($token) . '">');
         $this->view->share('flashSuccess', $this->session->pullFlash('success'));
         $this->view->share('flashError', $this->session->pullFlash('error'));
@@ -369,6 +380,11 @@ final class Kernel
     public function settingsService(): SettingsService
     {
         return $this->settingsService;
+    }
+
+    public function brandingService(): BrandingService
+    {
+        return $this->brandingService;
     }
 
     public function userRepository(): UserRepositoryInterface

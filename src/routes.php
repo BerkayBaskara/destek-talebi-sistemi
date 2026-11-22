@@ -7,6 +7,10 @@ use App\Controller\AgentController;
 use App\Controller\AttachmentController;
 use App\Controller\KanbanController;
 use App\Controller\AuthController;
+use App\Controller\CalendarController;
+use App\Controller\CatalogController;
+use App\Controller\SettingsController;
+use App\Controller\StaffController;
 use App\Controller\HomeController;
 use App\Controller\TicketController;
 use App\Core\Http\Request;
@@ -68,4 +72,33 @@ return static function (Router $router, Kernel $kernel): void {
     ));
     $router->add('GET', '/yonetici', static fn (Request $r, array $p): Response => $admin->tickets($r));
     $router->add('GET', '/yonetici/ozet', static fn (Request $r, array $p): Response => $admin->summary());
+
+    // Yönetici: Sistem Yapılandırması (site, kategori, öncelik, SLA, takvim, personel, denetim kaydı)
+    $settings = new SettingsController($kernel);
+    $router->add('GET', '/yonetici/ayarlar', static fn (Request $r, array $p): Response => $settings->index());
+    $router->add('GET', '/yonetici/ayarlar/site', static fn (Request $r, array $p): Response => $settings->siteForm());
+    $router->add('POST', '/yonetici/ayarlar/site', static fn (Request $r, array $p): Response => $settings->saveSite($r));
+    $router->add('POST', '/yonetici/ayarlar/logo', static fn (Request $r, array $p): Response => $settings->uploadLogo($r));
+    $router->add('GET', '/yonetici/denetim', static fn (Request $r, array $p): Response => $settings->audit());
+
+    $catalog = new CatalogController($kernel);
+    $router->add('GET', '/yonetici/kategoriler', static fn (Request $r, array $p): Response => $catalog->categories());
+    $router->add('POST', '/yonetici/kategoriler', static fn (Request $r, array $p): Response => $catalog->createCategory($r));
+    $router->add('POST', '/yonetici/kategoriler/{id}', static fn (Request $r, array $p): Response => $catalog->updateCategory($r, (int) $p['id']));
+    $router->add('GET', '/yonetici/oncelikler', static fn (Request $r, array $p): Response => $catalog->priorities());
+    $router->add('POST', '/yonetici/oncelikler', static fn (Request $r, array $p): Response => $catalog->createPriority($r));
+    $router->add('POST', '/yonetici/oncelikler/{id}', static fn (Request $r, array $p): Response => $catalog->updatePriority($r, (int) $p['id']));
+    $router->add('GET', '/yonetici/sla', static fn (Request $r, array $p): Response => $catalog->sla());
+    $router->add('POST', '/yonetici/sla', static fn (Request $r, array $p): Response => $catalog->saveSla($r));
+
+    $calendar = new CalendarController($kernel);
+    $router->add('GET', '/yonetici/takvim', static fn (Request $r, array $p): Response => $calendar->index());
+    $router->add('POST', '/yonetici/takvim/mesai', static fn (Request $r, array $p): Response => $calendar->saveHours($r));
+    $router->add('POST', '/yonetici/takvim/tatil', static fn (Request $r, array $p): Response => $calendar->addHoliday($r));
+    $router->add('POST', '/yonetici/takvim/tatil/sil', static fn (Request $r, array $p): Response => $calendar->removeHoliday($r));
+
+    $staff = new StaffController($kernel);
+    $router->add('GET', '/yonetici/personel', static fn (Request $r, array $p): Response => $staff->index());
+    $router->add('POST', '/yonetici/personel', static fn (Request $r, array $p): Response => $staff->create($r));
+    $router->add('POST', '/yonetici/personel/{id}', static fn (Request $r, array $p): Response => $staff->update($r, (int) $p['id']));
 };

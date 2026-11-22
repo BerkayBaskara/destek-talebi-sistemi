@@ -5,6 +5,8 @@
 /** @var string|null $flashError */
 /** @var \App\Model\User|null $currentUser */
 /** @var callable $csrfField */
+/** @var string $siteTitle */
+/** @var string $siteLogo */
 
 use App\Model\Enum\Role;
 
@@ -15,13 +17,16 @@ use App\Model\Enum\Role;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= e($csrfToken ?? '') ?>">
-    <title>Destek Talebi Sistemi<?= isset($title) ? ' · ' . e($title) : '' ?></title>
+    <title><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?><?= isset($title) ? ' · ' . e($title) : '' ?></title>
     <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
 <header class="topbar">
     <div class="container topbar-inner">
-        <a class="brand" href="/">Destek Talebi Sistemi</a>
+        <?php if (!empty($siteLogo)): ?>
+            <a class="brand-logo" href="/"><img src="<?= e($siteLogo) ?>" alt="" height="32"></a>
+        <?php endif; ?>
+        <a class="brand" href="/"><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?></a>
         <nav class="menu">
             <?php if (isset($currentUser)): ?>
                 <?php if ($currentUser->role === Role::Customer): ?>
@@ -35,6 +40,7 @@ use App\Model\Enum\Role;
                     <a href="/yonetici">Tüm Talepler</a>
                     <a href="/yonetici/ozet">Özet Rapor</a>
                     <a href="/havuz">Ortak Havuz</a>
+                    <a href="/yonetici/ayarlar">Sistem Yapılandırması</a>
                 <?php endif; ?>
                 <span class="who"><?= e($currentUser->fullName()) ?> (<?= e($currentUser->role->label()) ?>)</span>
                 <form method="post" action="/cikis">

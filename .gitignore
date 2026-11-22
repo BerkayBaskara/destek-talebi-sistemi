@@ -6,3 +6,5 @@ storage/data/*.lock
 storage/data/*.tmp
 storage/uploads/*
 !storage/uploads/.gitkeep
+public/branding/*
+!public/branding/.gitkeep

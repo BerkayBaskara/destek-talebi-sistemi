@@ -1,0 +1,52 @@
+<?php
+/** @var list<\App\Model\Category> $categories */
+/** @var array<int|string, array<string, string>> $old */
+/** @var array<int|string, array<string, string>> $errors */
+/** @var callable $csrfField */
+$fieldError = static fn (string $row, string $f): string => isset($errors[$row][$f]) ? '<div class="field-error">' . e($errors[$row][$f]) . '</div>' : '';
+?>
+<p><a href="/yonetici/ayarlar">← Sistem Yapılandırması</a></p>
+<section class="card">
+    <h1>Kategoriler</h1>
+    <p class="muted">Kategoriler silinmez; pasif yapılan kategori yeni talep formunda görünmez, eski talepler etkilenmez.</p>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>No</th><th>Ad</th><th>Durum</th><th><span class="sr-only">Kaydet</span></th></tr></thead>
+            <tbody>
+            <?php foreach ($categories as $category): ?>
+                <?php
+                $row = (string) $category->id;
+                $form = 'cat-' . $row;
+                $active = isset($old[$row]) ? ($old[$row]['active'] ?? '') === '1' : $category->active;
+                ?>
+                <tr>
+                    <td data-label="No"><?= e($category->id) ?></td>
+                    <td data-label="Ad">
+                        <form id="<?= e($form) ?>" method="post" action="/yonetici/kategoriler/<?= e($row) ?>"><?= $csrfField() ?></form>
+                        <label class="sr-only" for="<?= e($form) ?>-name">Kategori adı</label>
+                        <input type="text" id="<?= e($form) ?>-name" name="name" maxlength="60" form="<?= e($form) ?>" value="<?= e($old[$row]['name'] ?? $category->name) ?>">
+                        <?= $fieldError($row, 'name') ?>
+                    </td>
+                    <td>
+                        <label><input type="checkbox" name="active" value="1" form="<?= e($form) ?>"<?= $active ? ' checked' : '' ?>> Aktif</label>
+                        <?= $fieldError($row, 'active') ?>
+                    </td>
+                    <td><button type="submit" class="btn btn-light" form="<?= e($form) ?>">Kaydet</button></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
+<section class="card narrow-wide">
+    <h2>Yeni kategori</h2>
+    <form method="post" action="/yonetici/kategoriler" novalidate>
+        <?= $csrfField() ?>
+        <div class="form-row">
+            <label for="new-name">Kategori adı</label>
+            <input type="text" id="new-name" name="name" maxlength="60" value="<?= e($old['new']['name'] ?? '') ?>" required>
+            <?= $fieldError('new', 'name') ?>
+        </div>
+        <button type="submit" class="btn">Ekle</button>
+    </form>
+</section>
