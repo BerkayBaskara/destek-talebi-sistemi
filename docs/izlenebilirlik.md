@@ -55,12 +55,12 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ⏭ Aşama 3 (MySQ
 | NFR-09 | PSR-12, PHPStan 0 hata | `php vendor/bin/phpstan analyse` (seviye 6) → `[OK] No errors` | ✅ |
 | NFR-10 | 30 dk hareketsizlikte oturum kapanır | `AuthFlowTest::test_idle_30_minutes_logs_out`, `test_idle_timeout_on_form_post_redirects_to_login_not_csrf_error`, `test_login_form_posted_after_idle_expiry_still_logs_in`; `KanbanApiTest::test_sla_polling_does_not_keep_session_alive` | ✅ |
 | NFR-11 | 50 MB video, 5 MB görsel/PDF sınırı | `AttachmentServiceTest::test_accepts_mp4_and_webm_video`, `test_video_over_video_limit_rejected` (`settings.json` `max_video_bytes`); `public/.htaccess` ve README'deki `-d` ayarları PHP sınırını 50 MB'a çıkarır | ✅ (50 MB'lık gerçek video yüklemesi süre açısından elle ölçülmedi) |
-| NFR-12 | Şifre kuralı: en az 8 karakter, harf, rakam ve noktalama | `PasswordPolicyTest`; `AuthFlowTest::test_register_rejects_weak_password_and_keeps_values`, `test_register_page_shows_live_password_rules`; `SystemConfigTest::test_staff_create_shows_P_number` | ✅ |
 
 ## Güvenlik (hocanın ortak şartları)
 
 | Şart | Test |
 |---|---|
+| Şifre kuralı (en az 8 karakter, harf, rakam ve noktalama) | `PasswordPolicyTest`; `AuthFlowTest::test_register_rejects_weak_password_and_keeps_values`, `test_register_page_shows_live_password_rules`; `SystemConfigTest::test_staff_create_shows_P_number` |
 | `password_hash` | `AuthServiceTest::test_register_creates_customer_with_M_number` |
 | Çıktı kaçışı (XSS) | `TicketCreateTest::test_invalid_form_keeps_values_422`, `TicketDetailTest::test_reply_is_escaped` |
 | `session_regenerate_id` | `AuthFlowTest::test_session_id_regenerated_on_login` |
