@@ -65,8 +65,8 @@ Projede mimari zorunluluk olan Repository desenine ek olarak, dinamik bilet akı
 ![Müşteri Taleplerim](wireframes/musteri-taleplerim.png)
 
 
-## 7.3 Personel Talepler
-![Personel Talepler](wireframes/personel-talepler.png)
+## 7.3 Personel Görevler
+![Personel Görevler](wireframes/personel-gorevler.png)
 
 
 ## 7.4 Personel Detay
