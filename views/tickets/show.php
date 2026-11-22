@@ -37,7 +37,7 @@ $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === R
             <?php endif; ?>
         </div>
         <div><strong>Durum:</strong> <?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></div>
-        <div><strong>Personel:</strong> <?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Ortak havuzda') ?></div>
+        <div><strong>Personel:</strong> <?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></div>
         <div><strong>SLA bitişi:</strong> <?= e($ticket->deadline->format('d.m.Y H:i')) ?></div>
         <div><strong>SLA:</strong> <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></div>
         <?php if ($ticket->attemptCount > 0): ?>

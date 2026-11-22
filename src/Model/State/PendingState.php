@@ -7,7 +7,7 @@ namespace App\Model\State;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 
-/** Talep Bekleniyor: personel üstlenebilir veya müşteri iptal edebilir. */
+/** Beklemede: personel üstlenebilir veya müşteri iptal edebilir. */
 final class PendingState extends AbstractTicketState
 {
     public function take(Ticket $ticket): TicketStatus

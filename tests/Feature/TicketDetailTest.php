@@ -50,7 +50,7 @@ final class TicketDetailTest extends FeatureTestCase
         self::assertStringContainsString('Sabah geldiğimizden beri sunucuya bağlanamıyoruz.', $body);
         self::assertStringContainsString('Durum geçmişi', $body);
         self::assertStringContainsString('Sistem', $body, 'Otomatik atama satırı "Sistem" adıyla görünmeli.');
-        self::assertStringContainsString('Talep Bekleniyor → Talep Alındı', $body);
+        self::assertStringContainsString('Beklemede → Atandı', $body);
         self::assertStringContainsString('sla-badge', $body);
         self::assertStringContainsString('Ahmet Yılmaz', $body);
         self::assertStringContainsString('Zeynep Kaya', $body, 'Atanan personel görünmeli.');
@@ -102,7 +102,7 @@ final class TicketDetailTest extends FeatureTestCase
 
         $this->post('/talepler/1/islem', ['islem' => 'cancel']);
 
-        self::assertStringContainsString(e("'Talep Alındı' durumundaki talep iptal edilemez."), $this->get('/talepler/1')->body);
+        self::assertStringContainsString(e("'Atandı' durumundaki talep iptal edilemez."), $this->get('/talepler/1')->body);
         self::assertSame(TicketStatus::Taken, $this->kernel->ticketRepository()->findById(1)?->status);
     }
 
@@ -126,7 +126,7 @@ final class TicketDetailTest extends FeatureTestCase
         $ticket = $this->kernel->ticketRepository()->findById(1);
         self::assertSame(TicketStatus::InReview, $ticket?->status);
         self::assertSame(1, $ticket?->attemptCount);
-        self::assertStringContainsString('Talep Çözüldü → Talep İnceleniyor', $this->get('/talepler/1')->body);
+        self::assertStringContainsString('Çözüldü → İnceleniyor', $this->get('/talepler/1')->body);
 
         $this->switchTo($agent->customerNo);
         $this->post('/talepler/1/islem', ['islem' => 'resolve']);

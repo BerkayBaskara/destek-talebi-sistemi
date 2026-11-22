@@ -4,13 +4,13 @@
 /** @var \App\Core\View $view */
 ?>
 <section class="card">
-    <h1>Ortak Havuz</h1>
+    <h1>Talep Havuzu</h1>
     <p class="muted">Henüz hiçbir personele atanmamış talepler. Üzerinize aldığınız talep size atanır; aynı talebi iki kişi alamaz.</p>
     <?php if ($rows === []): ?>
         <p class="muted">Havuzda bekleyen talep yok.</p>
     <?php else: ?>
         <table class="table">
-            <thead><tr><th>ID</th><th>Konu Başlığı</th><th>Öncelik</th><th>Açılış</th><th>SLA Kalan Süre</th><th>İşlem</th></tr></thead>
+            <thead><tr><th>ID</th><th>Konu Başlığı</th><th>Öncelik</th><th>Açılış</th><th>SLA Kalan Süre</th><th><span class="sr-only">Üzerime al</span></th></tr></thead>
             <tbody>
             <?php foreach ($rows as ['ticket' => $ticket, 'sla' => $sla]): ?>
                 <tr>

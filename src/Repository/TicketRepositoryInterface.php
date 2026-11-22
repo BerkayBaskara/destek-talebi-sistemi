@@ -21,7 +21,7 @@ interface TicketRepositoryInterface
 
     public function findById(int $id): ?Ticket;
 
-    /** @return list<Ticket> Ortak havuz: kimseye atanmamış, Bekleniyor durumundaki talepler (eskiden yeniye). */
+    /** @return list<Ticket> Talep Havuzu: kimseye atanmamış, Beklemede durumundaki talepler (eskiden yeniye). */
     public function getPoolTickets(): array;
 
     /** @return list<Ticket> */

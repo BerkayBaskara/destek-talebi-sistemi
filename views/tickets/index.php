@@ -10,7 +10,7 @@ use App\Model\Enum\TicketStatus;
 <section class="card">
     <div class="card-head">
         <h1>Destek Taleplerim</h1>
-        <a class="btn" href="/talepler/yeni">+ Yeni Talep Aç</a>
+        <a class="btn btn-new" href="/talepler/yeni">+ Yeni Talep Aç</a>
     </div>
 
     <form class="filters" method="get" action="/talepler">
@@ -25,7 +25,7 @@ use App\Model\Enum\TicketStatus;
         </div>
         <div class="grow">
             <label for="q">Ara</label>
-            <input type="search" id="q" name="q" value="<?= e($query) ?>" placeholder="Konu veya talep no (#12)">
+            <input type="search" id="q" name="q" value="<?= e($query) ?>" placeholder="Konu başlığı ya da talep numarası giriniz">
         </div>
         <div><button type="submit" class="btn btn-light">Ara</button></div>
     </form>
@@ -35,16 +35,15 @@ use App\Model\Enum\TicketStatus;
     <?php else: ?>
         <table class="table">
             <thead>
-            <tr><th>Talep No</th><th>Konu Başlığı</th><th>Durum</th><th>Tarih</th><th>İşlem</th></tr>
+            <tr><th>Talep No</th><th>Konu Başlığı</th><th>Durum</th><th>Tarih</th></tr>
             </thead>
             <tbody>
             <?php foreach ($result['items'] as $ticket): ?>
-                <tr>
+                <tr class="row-link" data-href="/talepler/<?= e($ticket->id) ?>">
                     <td data-label="Talep No">#<?= e($ticket->id) ?></td>
-                    <td data-label="Konu"><?= e($ticket->title) ?></td>
+                    <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="Tarih"><?= e($ticket->createdAt->format('d.m.Y H:i')) ?></td>
-                    <td><a class="btn btn-light" href="/talepler/<?= e($ticket->id) ?>">Detay</a></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

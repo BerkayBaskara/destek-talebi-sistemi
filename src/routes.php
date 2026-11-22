@@ -52,7 +52,7 @@ return static function (Router $router, Kernel $kernel): void {
     $attachments = new AttachmentController($kernel, $kernel->attachmentService());
     $router->add('GET', '/ekler/{id}', static fn (Request $r, array $p): Response => $attachments->download((int) $p['id']));
 
-    // Personel: ortak havuz, atanan talepler, Kanban (AJAX)
+    // Personel: Talep Havuzu, Görevlerim, Kanban (AJAX)
     $agent = new AgentController($kernel, $kernel->ticketService());
     $kanban = new KanbanController($kernel, $kernel->ticketService());
     $router->add('GET', '/havuz', static fn (Request $r, array $p): Response => $agent->pool());

@@ -7,7 +7,7 @@ namespace App\Model\State;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 
-/** Talep Çözüldü: müşteri onaylar (Kapalı) veya reddeder (tekrar İnceleniyor). */
+/** Çözüldü: müşteri onaylar (Tamamlandı) veya reddeder (tekrar İnceleniyor). */
 final class ResolvedState extends AbstractTicketState
 {
     public function close(Ticket $ticket): TicketStatus

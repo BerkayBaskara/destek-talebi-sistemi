@@ -41,7 +41,7 @@ final class KanbanApiTest extends FeatureTestCase
     {
         $body = $this->get('/kanban')->body;
 
-        foreach (['Talep Alındı', 'Talep İnceleniyor', 'Talep Çözüldü', 'Yazıcı arızası', 'data-status="in_review"', 'kanban.js'] as $needle) {
+        foreach (['Atandı', 'İnceleniyor', 'Çözüldü', 'Yazıcı arızası', 'data-status="in_review"', 'kanban.js'] as $needle) {
             self::assertStringContainsString($needle, $body);
         }
     }
@@ -54,7 +54,7 @@ final class KanbanApiTest extends FeatureTestCase
         self::assertSame(200, $response->status);
         self::assertTrue($data['ok']);
         self::assertSame('in_review', $data['status']);
-        self::assertSame('Talep İnceleniyor', $data['label']);
+        self::assertSame('İnceleniyor', $data['label']);
         self::assertArrayHasKey('level', $data['sla']);
         self::assertSame(TicketStatus::InReview, $this->kernel->ticketRepository()->findById(1)?->status);
     }

@@ -90,7 +90,7 @@ final class TicketStateTest extends TestCase
             $ticket->state()->startReview($ticket);
             self::fail('İstisna bekleniyordu.');
         } catch (InvalidTransitionException $e) {
-            self::assertSame("'Kapalı' durumundaki talep incelemeye alınamaz.", $e->getMessage());
+            self::assertSame("'Tamamlandı' durumundaki talep incelemeye alınamaz.", $e->getMessage());
         }
     }
 
@@ -108,7 +108,7 @@ final class TicketStateTest extends TestCase
         self::assertSame('İşlemde', TicketStatus::InReview->hocaLabel());
         self::assertSame('Çözüldü', TicketStatus::Resolved->hocaLabel());
         self::assertSame('Kapalı', TicketStatus::Closed->hocaLabel());
-        self::assertSame('Talep İnceleniyor', TicketStatus::InReview->label());
+        self::assertSame('İnceleniyor', TicketStatus::InReview->label());
     }
 
     public function test_priority_labels_and_default_hours(): void

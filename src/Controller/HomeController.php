@@ -8,7 +8,7 @@ use App\Core\Http\Response;
 use App\Kernel;
 use App\Model\Enum\Role;
 
-/** Ana sayfa: kullanıcıyı rolüne göre kendi paneline yönlendirir. */
+/** Ana sayfa: misafire yöneticinin yazdığı tanıtım sayfası; giriş yapmış kullanıcı kendi paneline yönlendirilir. */
 final class HomeController
 {
     public function __construct(private readonly Kernel $kernel)
@@ -19,7 +19,13 @@ final class HomeController
     {
         $user = $this->kernel->currentUser();
         if ($user === null) {
-            return Response::redirect('/giris');
+            $settings = $this->kernel->settingsService();
+
+            return $this->kernel->render('home', [
+                'title' => 'Ana Sayfa',
+                'heading' => $settings->string('site.home_heading'),
+                'text' => $settings->string('site.home_text'),
+            ]);
         }
 
         return Response::redirect(match ($user->role) {

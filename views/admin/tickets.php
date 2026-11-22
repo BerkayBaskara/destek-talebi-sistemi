@@ -45,7 +45,7 @@ use App\Model\Enum\TicketStatus;
         </div>
         <div class="grow">
             <label for="q">Ara</label>
-            <input type="search" id="q" name="q" value="<?= e($filters['q']) ?>" placeholder="Konu veya talep no (#12)">
+            <input type="search" id="q" name="q" value="<?= e($filters['q']) ?>" placeholder="Konu başlığı ya da talep numarası giriniz">
         </div>
         <div><button type="submit" class="btn btn-light">Filtrele</button></div>
     </form>
@@ -57,11 +57,11 @@ use App\Model\Enum\TicketStatus;
             <thead><tr><th>ID</th><th>Konu</th><th>Müşteri</th><th>Personel</th><th>Öncelik</th><th>Durum</th><th>SLA</th></tr></thead>
             <tbody>
             <?php foreach ($result['items'] as $i => $ticket): ?>
-                <tr>
+                <tr class="row-link" data-href="/talepler/<?= e($ticket->id) ?>">
                     <td data-label="ID">#<?= e($ticket->id) ?></td>
                     <td data-label="Konu"><a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->title) ?></a></td>
                     <td data-label="Müşteri"><?= e($names[$ticket->creatorId] ?? '-') ?></td>
-                    <td data-label="Personel"><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Havuzda') ?></td>
+                    <td data-label="Personel"><?= e($ticket->agentId !== null ? ($names[$ticket->agentId] ?? '-') : 'Talep Havuzu') ?></td>
                     <td data-label="Öncelik"><?= e($priorityNames[$ticket->priorityId] ?? '-') ?></td>
                     <td data-label="Durum"><?= $view->partial('partials/status_badge', ['status' => $ticket->status]) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $slas[$i], 'ticketId' => $ticket->id]) ?></td>

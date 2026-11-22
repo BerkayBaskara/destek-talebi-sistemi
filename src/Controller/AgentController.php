@@ -12,7 +12,7 @@ use App\Model\State\InvalidTransitionException;
 use App\Model\Ticket;
 use App\Service\TicketService;
 
-/** Personel ekranları: ortak havuz ("üzerime al") ve bana atanan talepler listesi. */
+/** Personel ekranları: Talep Havuzu ("üzerime al") ve Görevlerim (personele atanan talepler). */
 final class AgentController
 {
     public function __construct(private readonly Kernel $kernel, private readonly TicketService $tickets)
@@ -24,7 +24,7 @@ final class AgentController
         $this->kernel->requireRole(Role::Agent, Role::Admin);
 
         return $this->kernel->render('agent/pool', [
-            'title' => 'Ortak Havuz',
+            'title' => 'Talep Havuzu',
             'rows' => $this->rows($this->kernel->ticketRepository()->getPoolTickets()),
         ]);
     }
@@ -46,14 +46,14 @@ final class AgentController
         return Response::redirect('/talepler/' . $id);
     }
 
-    /** Wireframe: "Bana Atanan Talepler" (aktif olanlar önce, SLA'sı en yakın olan en üstte). */
+    /** Görevlerim: personele atanan talepler (aktif olanlar önce, SLA'sı en yakın olan en üstte). */
     public function myTickets(): Response
     {
         $agent = $this->kernel->requireRole(Role::Agent);
         $tickets = $this->kernel->ticketRepository()->findByAgent((int) $agent->id);
         usort($tickets, static fn (Ticket $a, Ticket $b): int => [$a->status->isFinal(), $a->deadline] <=> [$b->status->isFinal(), $b->deadline]);
 
-        return $this->kernel->render('agent/tickets', ['title' => 'Bana Atanan Talepler', 'rows' => $this->rows($tickets)]);
+        return $this->kernel->render('agent/tickets', ['title' => 'Görevlerim', 'rows' => $this->rows($tickets)]);
     }
 
     /**

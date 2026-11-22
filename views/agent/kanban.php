@@ -8,9 +8,8 @@ use App\Controller\KanbanController;
 <section class="card">
     <div class="card-head">
         <h1>Kanban</h1>
-        <a class="btn btn-light" href="/havuz">Ortak havuz</a>
+        <a class="btn btn-light" href="/havuz">Talep Havuzu</a>
     </div>
-    <p class="muted">Kartı sürükleyip sonraki sütuna bırakın (Alındı → İnceleniyor → Çözüldü). Telefonda kart altındaki menüyü kullanın. Değişiklik sayfa yenilenmeden kaydedilir.</p>
     <div id="kanban-error" class="alert alert-error" role="alert" hidden></div>
     <div class="kanban">
         <?php foreach ($columns as $value => $column): ?>

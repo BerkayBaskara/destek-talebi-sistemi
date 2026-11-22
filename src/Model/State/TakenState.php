@@ -7,7 +7,7 @@ namespace App\Model\State;
 use App\Model\Enum\TicketStatus;
 use App\Model\Ticket;
 
-/** Talep Alındı: personel incelemeye başlayabilir. */
+/** Atandı: personel incelemeye başlayabilir. */
 final class TakenState extends AbstractTicketState
 {
     public function startReview(Ticket $ticket): TicketStatus

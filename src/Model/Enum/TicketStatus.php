@@ -28,11 +28,11 @@ enum TicketStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Talep Bekleniyor',
-            self::Taken => 'Talep Alındı',
-            self::InReview => 'Talep İnceleniyor',
-            self::Resolved => 'Talep Çözüldü',
-            self::Closed => 'Kapalı',
+            self::Pending => 'Beklemede',
+            self::Taken => 'Atandı',
+            self::InReview => 'İnceleniyor',
+            self::Resolved => 'Çözüldü',
+            self::Closed => 'Tamamlandı',
             self::Cancelled => 'İptal Edildi',
         };
     }

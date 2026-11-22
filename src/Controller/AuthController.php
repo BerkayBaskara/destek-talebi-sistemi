@@ -50,7 +50,6 @@ final class AuthController
     public function logout(): Response
     {
         $this->kernel->logOut();
-        $this->kernel->session()->flash('success', 'Çıkış yaptınız.');
 
         return Response::redirect('/giris');
     }

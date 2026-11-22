@@ -19,27 +19,33 @@ use App\Model\Enum\Role;
     <meta name="csrf-token" content="<?= e($csrfToken ?? '') ?>">
     <title><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?><?= isset($title) ? ' · ' . e($title) : '' ?></title>
     <link rel="stylesheet" href="/assets/app.css">
+    <script src="/assets/menu.js" defer></script>
 </head>
 <body>
 <header class="topbar">
     <div class="container topbar-inner">
-        <?php if (!empty($siteLogo)): ?>
-            <a class="brand-logo" href="/"><img src="<?= e($siteLogo) ?>" alt="" height="32"></a>
-        <?php endif; ?>
-        <a class="brand" href="/"><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?></a>
-        <nav class="menu">
+        <div class="brand-group">
+            <?php if (!empty($siteLogo)): ?>
+                <a class="brand-logo" href="/"><img src="<?= e($siteLogo) ?>" alt="" height="32"></a>
+            <?php endif; ?>
+            <a class="brand" href="/"><?= e($siteTitle ?? 'Destek Talebi Sistemi') ?></a>
+        </div>
+        <button type="button" class="menu-toggle" aria-controls="main-menu" aria-expanded="false" aria-label="Menüyü aç" hidden>
+            <span class="menu-toggle-bar" aria-hidden="true"></span>
+        </button>
+        <nav class="menu" id="main-menu" aria-label="Ana menü">
             <?php if (isset($currentUser)): ?>
                 <?php if ($currentUser->role === Role::Customer): ?>
                     <a href="/talepler">Taleplerim</a>
                     <a href="/talepler/yeni">Yeni Talep</a>
                 <?php elseif ($currentUser->role === Role::Agent): ?>
                     <a href="/kanban">Kanban</a>
-                    <a href="/havuz">Ortak Havuz</a>
-                    <a href="/personel/talepler">Taleplerim</a>
+                    <a href="/havuz">Talep Havuzu</a>
+                    <a href="/personel/talepler">Görevlerim</a>
                 <?php else: ?>
                     <a href="/yonetici">Tüm Talepler</a>
                     <a href="/yonetici/ozet">Özet Rapor</a>
-                    <a href="/havuz">Ortak Havuz</a>
+                    <a href="/havuz">Talep Havuzu</a>
                     <a href="/yonetici/ayarlar">Sistem Yapılandırması</a>
                 <?php endif; ?>
                 <span class="who"><?= e($currentUser->fullName()) ?> (<?= e($currentUser->role->label()) ?>)</span>
@@ -48,7 +54,7 @@ use App\Model\Enum\Role;
                     <button type="submit" class="linklike">Çıkış</button>
                 </form>
             <?php else: ?>
-                <a href="/giris">Giriş</a>
+                <a class="btn btn-login btn-sm" href="/giris">Giriş</a>
                 <a href="/kayit">Kayıt ol</a>
             <?php endif; ?>
         </nav>
