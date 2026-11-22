@@ -229,4 +229,74 @@ final class AttachmentServiceTest extends TestCase
         self::assertSame(20, $files[1]['size']);
         self::assertSame([], AttachmentService::normalizeFiles(null));
     }
+
+    /** ATT-005: Windows çalıştırılabilir dosyası reddedilir. */
+    public function test_rejects_exe(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->service()->store(1, $this->user, $this->file('kurulum.exe', "MZ\x90\x00" . str_repeat("\x00", 200)));
+    }
+
+    /** ATT-014: tür içerikten belirlenir; büyük harfli uzantı sorun değildir. */
+    public function test_uppercase_extension_is_accepted_by_content(): void
+    {
+        $attachment = $this->service()->store(1, $this->user, $this->file('FOTO.JPG', self::image('jpg')));
+
+        self::assertSame('image/jpeg', $attachment->fileType);
+        self::assertStringEndsWith('.jpg', $attachment->filePath);
+    }
+
+    /** ATT-015: çift uzantı (.jpg.php) gerçek görselse bile .php olarak saklanmaz; PHP içerikse reddedilir. */
+    public function test_double_extension_is_stored_safely_or_rejected(): void
+    {
+        $attachment = $this->service()->store(1, $this->user, $this->file('foto.jpg.php', self::image('jpg')));
+        self::assertStringEndsWith('.jpg', $attachment->filePath);
+        self::assertStringNotContainsString('.php', $attachment->filePath);
+
+        $this->expectException(ValidationException::class);
+        $this->service()->store(1, $this->user, $this->file('kabuk.jpg.php', '<?php echo "kabuk"; ?>'));
+    }
+
+    /** ATT-018: bozuk görsel (başlığı PNG, içeriği bozuk) reddedilir. */
+    public function test_corrupt_image_is_rejected(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->service()->store(1, $this->user, $this->file('bozuk.png', "\x89PNG\r\n\x1a\n" . random_bytes(300)));
+    }
+
+    /** ATT-019: içeriği video olmayan .mp4 reddedilir. */
+    public function test_fake_mp4_is_rejected(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->service()->store(1, $this->user, $this->file('video.mp4', str_repeat('bu bir video değil ', 50)));
+    }
+
+    /** PERF-008: büyük görselin küçültülmesi en fazla 2 saniye. */
+    public function test_downscale_finishes_within_two_seconds(): void
+    {
+        $file = $this->file('buyuk.png', self::image('png', 2400, 1600));
+        $start = microtime(true);
+        $this->service()->store(1, $this->user, $file);
+
+        self::assertLessThan(2.0, microtime(true) - $start);
+    }
+
+    /** PERF-009: 50 MB video doğrulanıp saklanması 1600 ms altında (video yeniden işlenmez). */
+    public function test_large_video_is_stored_quickly(): void
+    {
+        $header = "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom";
+        $tmp = $this->work . '/video.tmp';
+        $h = fopen($tmp, 'wb');
+        self::assertNotFalse($h);
+        fwrite($h, $header);
+        ftruncate($h, 50 * 1024 * 1024 - 1);
+        fclose($h);
+        $file = ['name' => 'buyuk.mp4', 'type' => 'video/mp4', 'tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK, 'size' => (int) filesize($tmp)];
+
+        $start = microtime(true);
+        $attachment = $this->service()->store(1, $this->user, $file);
+
+        self::assertLessThan(1.6, microtime(true) - $start);
+        self::assertSame('video/mp4', $attachment->fileType);
+    }
 }

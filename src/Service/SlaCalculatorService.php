@@ -31,6 +31,7 @@ final class SlaCalculatorService
     public function calculateWithJson(DateTimeImmutable $start, int $durationMinutes): DateTimeImmutable
     {
         $config = $this->calendar->getConfig();
+        $start = self::local($start, $config->timezone); // başka saat diliminde verilen an da takvim saatine çevrilir
         $remaining = max(0, $durationMinutes);
         $day = $start->setTime(0, 0);
         $minute = self::minuteOfDay($start);
@@ -60,7 +61,7 @@ final class SlaCalculatorService
     public function addBusinessDays(DateTimeImmutable $from, int $days): DateTimeImmutable
     {
         $config = $this->calendar->getConfig();
-        $date = $from;
+        $date = self::local($from, $config->timezone);
         $guard = 0;
         while ($days > 0 && $guard++ < 3660) {
             $date = $date->modify('+1 day');
@@ -80,6 +81,8 @@ final class SlaCalculatorService
         }
 
         $config = $this->calendar->getConfig();
+        $from = self::local($from, $config->timezone);
+        $to = self::local($to, $config->timezone);
         $day = $from->setTime(0, 0);
         $lastDay = $to->setTime(0, 0);
         $total = 0;
@@ -98,6 +101,12 @@ final class SlaCalculatorService
         }
 
         return $total;
+    }
+
+    /** SLA-010: hesap her zaman takvimin saat diliminde yapılır (UTC ile verilen an aynı sonucu verir). */
+    private static function local(DateTimeImmutable $moment, string $timezone): DateTimeImmutable
+    {
+        return $moment->setTimezone(new \DateTimeZone($timezone));
     }
 
     private static function minuteOfDay(DateTimeImmutable $moment): int
