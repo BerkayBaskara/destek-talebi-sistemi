@@ -10,6 +10,7 @@ use App\Model\Category;
 use App\Service\CalendarService;
 use App\Service\PriorityService;
 use App\Model\Enum\Role;
+use App\Model\Enum\TicketStatus;
 use App\Model\SlaPolicy;
 use App\Model\Ticket;
 use App\Model\User;
@@ -71,11 +72,17 @@ final class DemoSeeder
             [Role::Agent, 'P000003', 'Elif', 'Şahin'],
         ]));
         $this->seedWorkedTickets($now);
+        $this->seedGroupTwo($now);
 
         // Her personelin kapasitesi elindeki aktif talep sayısına eşitlenir; böylece sonra açılan talepler
         // uygun personel bulamaz ve Görev Havuzu'nda bekler (yer açılınca otomatik atanır).
         $this->fillCapacities();
         $this->seedPool($now);
+
+        // SLA'sı aşılmış talepler, sitenin ilk açılışında olacağı gibi şimdi işlenir: müşteri kararı beklenir.
+        $this->clock->set($now);
+        $this->kernel->slaMonitor()->run();
+        $this->fillCapacities(); // aşım nedeniyle personelden alınan talepler kapasite açmasın; havuz örneği korunur
 
         $this->clock->set($now);
 
@@ -136,6 +143,30 @@ final class DemoSeeder
         }
 
         return $created;
+    }
+
+    /**
+     * 2. grup örnekleri: kategori hiyerarşisi (Zeynep ve Murat 1. seviye, Elif 2. seviye), Donanım için isteğe bağlı
+     * ek alan, Murat'a gelecek hafta izin ve bir manuel eskalasyon.
+     */
+    private function seedGroupTwo(DateTimeImmutable $now): void
+    {
+        $hierarchy = $this->kernel->hierarchyRepository();
+        foreach ($this->kernel->categoryRepository()->findAll() as $category) {
+            $hierarchy->setLevel((int) $category->id, (int) $this->users['P000001']->id, 1);
+            $hierarchy->setLevel((int) $category->id, (int) $this->users['P000002']->id, 1);
+            $hierarchy->setLevel((int) $category->id, (int) $this->users['P000003']->id, 2);
+        }
+        $this->kernel->categoryFieldRepository()->add(1, 'Cihaz seri no', 'text', false);
+        $this->kernel->leaveRepository()->add((int) $this->users['P000002']->id, $now->modify('+7 days')->format('Y-m-d'), $now->modify('+8 days')->format('Y-m-d'), 'Yıllık izin');
+
+        // Zeynep'in SLA'sı dolmamış bir talebini gerekçeyle üst seviyeye (Elif) aktarır.
+        foreach ($this->kernel->ticketRepository()->findAll() as $ticket) {
+            if ($ticket->status === TicketStatus::Taken && $ticket->agentId === $this->users['P000001']->id && $ticket->deadline > $now) {
+                $this->kernel->escalationService()->escalateManually((int) $ticket->id, $this->users['P000001'], 'Sunucu yönetici yetkisi gerekiyor');
+                break;
+            }
+        }
     }
 
     private function fillCapacities(): void

@@ -104,6 +104,17 @@ final class SeedTest extends FeatureTestCase
         self::assertNotNull($admin);
         self::assertSame(Role::Admin, $admin->role);
 
+        // 2. grup örnekleri: hiyerarşi, ek alan, izin, eskalasyon ve müşteri kararı bekleyen (SLA aşılmış) talepler.
+        self::assertCount(3, $this->kernel->hierarchyRepository()->levelsFor(1));
+        self::assertNotSame([], $this->kernel->categoryFieldRepository()->forCategory(1));
+        self::assertNotSame([], $this->kernel->leaveRepository()->all());
+        self::assertNotSame([], $this->kernel->escalationRepository()->all(), 'En az bir eskalasyon örneği.');
+        $held = array_filter($this->kernel->ticketRepository()->findAll(), static fn ($t): bool => $t->holdUntil !== null);
+        self::assertGreaterThanOrEqual(1, count($held), 'SLA aşımında müşteri kararı bekleyen talep olmalı.');
+        foreach ($this->kernel->ticketRepository()->findAll() as $ticket) {
+            self::assertMatchesRegularExpression('/^[A-Z2-9]{6}$/', (string) $ticket->code);
+        }
+
         // Havuzdaki talepler personel olmadığı için değil, herkesin kapasitesi dolu olduğu için bekliyor.
         self::assertNotSame([], $this->kernel->ticketRepository()->getPoolTickets());
         $load = $this->kernel->ticketRepository()->countActiveByAgent();

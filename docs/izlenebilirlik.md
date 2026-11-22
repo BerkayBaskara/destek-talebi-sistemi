@@ -15,15 +15,24 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ⏭ Aşama 3 (MySQ
 | FR-05 | Mesai, öğle arası ve tatile duyarlı SLA bitişi (**çekirdek**) | `SlaCalculatorServiceTest::test_deadline_matches_case_table` (12 vaka: hocanın Cuma 17:30 örneği, öğle arası, molada/mesai öncesi/sonrası/hafta sonu/tatilde açılan, çok günlü), `test_corrupt_calendar_uses_default_hours`, `test_business_minutes_between_skips_break_and_weekend`; `TicketServiceTest::test_create_computes_deadline_with_policy`, `test_create_without_policy_uses_priority_default` | ✅ |
 | FR-06 | State deseniyle durum geçişlerinin kısıtlanması | `TicketStateTest` (izinli 6, izinsiz 8 geçiş + mesaj); `TicketServiceTest::test_customer_cancels_pending_but_not_others_ticket`, `test_reject_increments_attempt_and_returns_to_review`; `TicketDetailTest::test_invalid_action_shows_reason` | ✅ |
 | FR-07 | SLA %80 sarı, %100 kırmızı | `SlaStatusServiceTest` (13 test: tam %80, %80 altı, bitiş anı, çözülmüş/geç çözülmüş); `KanbanApiTest::test_sla_endpoint_returns_levels_for_visible_tickets_only` | ✅ |
-| FR-08 | SLA dolunca otomatik eskalasyon | Observer altyapısı hazır (`TicketServiceTest::test_observer_receives_events`); `EscalationObserver` | ⏭ |
+| FR-08 | SLA aşımında müşteriye sorma, bekleme ve üst seviyeye otomatik eskalasyon | `EscalationTest` (9 test: havuza alma ve soru, aynı aşımın bir kez işlenmesi, "devam" ile ek SLA, "sorun çözüldü" ile kapanış, yanıtsızlıkta üst seviye, üst seviye yoksa yöneticiye kalma, bekleme 0 ile hemen eskalasyon, yalnız talep sahibinin kararı, kural ayarları) | ✅ |
 | FR-09 | AJAX Kanban (sayfa yenilemeden) | `KanbanApiTest::test_kanban_page_shows_three_columns_with_cards`, `test_move_taken_to_in_review_returns_json`, `test_invalid_move_returns_422_with_reason`, `test_other_agents_ticket_returns_403_json`; `TicketServiceTest::test_move_on_kanban`; tarayıcıda sürükle-bırak ve mobil menü | ✅ 👁 |
 | FR-10 | SLA kurallarının yönetimi (kategori × öncelik tablosu) | `CatalogServiceTest::test_set_sla_overrides_default_for_new_tickets_only`, `test_clearing_sla_falls_back_to_priority_default`, `test_sla_hours_out_of_range_rejected`; `SystemConfigTest::test_sla_grid_saves_and_clears` | ✅ |
 | FR-11 | Tarih seçerek resmi tatil ekleme | `CalendarServiceTest::test_holiday_add_remove_and_affects_sla`, `test_duplicate_or_invalid_holiday_rejected`; `SystemConfigTest::test_calendar_rejects_no_working_day_and_keeps_old` | ✅ |
 | FR-12 | Personel bazında SLA uyum oranı ve ortalama çözüm süresi | – | ⏭ |
 | FR-13 | SLA hesabında yöneticinin girdiği mesai günleri ve saatleri | `CalendarServiceTest::test_saved_hours_change_sla`, `test_save_rejects_calendar_without_working_days_and_keeps_old`, `test_save_rejects_break_outside_day`, `test_empty_tables_use_legacy_file_until_admin_saves` | ✅ |
-| FR-14 – FR-18 | Ek süre, puan, yönetici talebi, oto-kapanış, bildirimler | – | ⏭ |
+| FR-14 | Ek SLA (eskalasyon ve müşteri itirazında) | `EscalationTest::test_customer_continue_returns_to_same_agent_with_extra_sla`, `test_no_response_escalates_to_next_level_with_extra_sla`; `ResolutionTest::test_did_not_work_applies_extra_sla` | ✅ |
+| FR-15, FR-16 | Puanlama, yöneticinin talep açması | – | ⏭ |
+| FR-17, FR-21 | Çözüm onayı (İşe yaradı / İşe yaramadı), yanıtsız çözümün otomatik tamamlanması, 3. retten sonra eskalasyon | `ResolutionTest::test_customer_sees_worked_and_did_not_work_buttons`, `test_third_rejection_escalates_to_next_level`, `test_unanswered_resolution_is_auto_completed`, `test_resolution_is_not_auto_completed_early` | ✅ |
+| FR-18 | Uygulama içi bildirimler | `NotificationTest` (5 test) | ✅ |
+| FR-20 | Personel izinleri ve aktiflik | `AssignmentServiceTest::test_agent_on_leave_is_skipped`; `HierarchyAndLeaveTest::test_leave_page_adds_and_removes_and_agent_on_leave_gets_no_ticket` | ✅ |
+| Hiyerarşi | Kategori bazlı hiyerarşi ve hiyerarşik atama/eskalasyon | `AssignmentServiceTest::test_hierarchy_prefers_lowest_level_then_next_level_when_full`, `test_above_level_skips_failing_level_and_lower`; `HierarchyAndLeaveTest` | ✅ |
+| Manuel işlemler | Manuel eskalasyon, yöneticinin elle ataması (kapasite istisnası gerekçeli), çözülemez kapatma | `ResolutionTest::test_agent_escalates_manually_with_reason`, `test_admin_assigns_waiting_ticket_and_capacity_exception_needs_reason`, `test_admin_closes_as_unresolvable_with_reason` | ✅ |
+| Talep kodu, işlem geçmişi | 6 karakterli kod, Günlük'te atama/yanıt/eskalasyon/SLA uzatma/kapanış | `TicketCodeTest`; `TicketServiceTest::test_created_ticket_gets_unique_code_and_is_found_by_it`, `test_assignment_and_reply_are_recorded_as_activity`; `TicketDetailTest::test_detail_and_lists_show_ticket_code_and_activity` | ✅ |
+| Rapor, ek alanlar, yedek | Ayrıntılı rapor ve CSV, kategoriye özel ek alanlar, veri yedeği | `AdvancedAdminTest` (5 test) | ✅ |
+| Dosya sınırları, güvenlik soruları | Yönetici ayarı, kendi güvenlik sorusu, şifre sıfırlama deneme sınırı | `SecurityAndLimitsTest` (4 test) | ✅ |
 | FR-19 | Kronolojik durum geçmişi | `TicketServiceTest::test_create_auto_assigns_least_loaded_and_logs`, `test_full_flow_resolve_sets_resolved_at_and_approve_closes`; `TicketDetailTest::test_owner_sees_messages_timeline_and_sla`, `test_agent_works_and_customer_rejects_then_approves` | ✅ |
-| FR-20 – FR-22 | İzinli personel, 3 hak kuralı, soru hakkı | `attempt_count` ve `is_question` alanları hazır | ⏭ |
+| FR-22 | Personelin soru hakkı | `is_question` alanı hazır | ⏭ |
 
 ## Kullanıcı hikayeleri (Aşama 2'de karşılananlar)
 

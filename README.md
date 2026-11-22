@@ -65,7 +65,12 @@ Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her
 | Kayıt / giriş / gizli soruyla şifre sıfırlama, 3 rol, arama + filtre, Aşama 2 özet raporu | ✅ |
 | Sistem Yapılandırması: site ayarları ve logo, kategoriler, öncelik seviyeleri ve anahtar kelimeler, SLA tablosu (FR-10), çalışma takvimi ve tatiller (FR-11, FR-13), personel hesapları, aktif/pasif durum ve kapasite, denetim kaydı | ✅ |
 | Görev Havuzu: uygun personel yoksa talep bekler, yer açılınca otomatik atanır; "Üzerime Al" kapasiteye uyar | ✅ |
-| FR-08 eskalasyon, FR-12, FR-14–18, FR-20–22, MySQL | Aşama 3 |
+| Kategori bazlı personel hiyerarşisi ve personel izinleri; hiyerarşiye göre atama | ✅ |
+| SLA aşımı kuralı: müşteriye sorulur ("aynı personelle devam" / "sorun çözüldü"), bekleme süresi, ek SLA, üst seviyeye eskalasyon (FR-08, FR-14) | ✅ |
+| Çözüm onayı ("İşe yaradı / İşe yaramadı"), 3. retten sonra eskalasyon, yanıtsız çözümün otomatik tamamlanması, manuel eskalasyon, yöneticinin elle ataması, "çözülemedi" kapanışı | ✅ |
+| Uygulama içi bildirimler (çan), 6 karakterli talep kodu, işlem geçmişi (Günlük) | ✅ |
+| Ayrıntılı rapor ve CSV, kategoriye özel ek alanlar, dosya sınırları ve güvenlik soruları ayarı, şifre sıfırlama deneme sınırı, veri yedeği indirme | ✅ |
+| Puanlama (FR-15), MySQL | Aşama 3 |
 
 Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test).
 
@@ -87,6 +92,12 @@ php bin/create-admin.php <ad> <soyad> <şifre>
 ```
 
 Komut yeni yöneticinin giriş numarasını (`Y` ile başlar) yazdırır. Personel hesapları yönetici panelindeki **Sistem Yapılandırması → Personel** ekranından açılır.
+
+**SLA denetimi:** zamana bağlı kurallar (aşım sorusu, bekleme sonunda eskalasyon, çözüm onayının otomatik tamamlanması) uygulama açıkken her istekte en fazla dakikada bir çalışır; cron gerekmez. Site kapalıyken de çalıştırmak için:
+
+```bash
+php bin/sla-monitor.php
+```
 
 **Şifre kuralı:** en az 8 karakter; en az bir harf, bir rakam ve bir noktalama işareti. Kayıt, şifre sıfırlama ve personel oluşturma formlarında kural anlık gösterilir; asıl kontrol sunucudadır.
 
@@ -130,6 +141,10 @@ Yönetici menüsündeki **Sistem Yapılandırması** ekranından:
 - **SLA Süreleri:** kategori × öncelik tablosu (iş saati). Boş hücrede önceliğin varsayılan süresi kullanılır.
 - **Çalışma Takvimi:** çalışma günleri, mesai ve öğle arası saatleri, resmi tatiller.
 - **Personel:** personel hesabı açma, aktif/pasif yapma ve kapasite.
+- **Personel Hiyerarşisi** ve **Personel İzinleri:** her kategoride personelin seviyesi (1 ilk basamak); izinli personel yeni talep almaz.
+- **SLA Süreleri** sayfasındaki kurallar: müşteri kararı için bekleme (varsayılan 1 iş günü; 0 = hemen eskalasyon), ek SLA oranı (varsayılan %33), çözüm onayı için otomatik tamamlama süresi (varsayılan 3 iş günü).
+- **Site Ayarları** sayfasındaki dosya sınırları ve güvenlik soruları; **Veri Yedeği** (zip indirme).
+- **Kategoriler** sayfasında kategoriye özel ek talep alanları. Yönetici menüsünde **Ayrıntılı Rapor** (süzgeç + CSV).
 - **Denetim Kaydı:** yöneticilerin yaptığı son 100 değişiklik (eski ve yeni değerleriyle).
 
 Yapılan değişiklikler yeni taleplere uygulanır; açılmış taleplerin SLA bitiş zamanı yeniden hesaplanmaz.
@@ -137,11 +152,12 @@ Yapılan değişiklikler yeni taleplere uygulanır; açılmış taleplerin SLA b
 ### Yapılandırma dosyaları (`storage/config/`)
 
 - `calendar.json`: örnek verinin ilk takvimi (mesai, öğle arası, 2026–2027 resmi tatilleri). `php bin/seed.php` bu dosyayı takvim tablolarına aktarır; sonrasında takvim yönetici ekranından düzenlenir. Takvim verisi okunamazsa sistem varsayılan mesaiye (Pzt–Cum 09:00–18:00, öğle 12:00–13:00) döner.
-- `settings.json`: ek dosya sınırları.
+- Ek dosya sınırları artık yönetici ayarındadır (Site Ayarları → Dosya sınırları).
 
 ## 🗄️ Aşama 3 için notlar (MySQL)
 
 - ER diyagramına eklenen alanlar: `tickets.title`, `tickets.customer_priority`, `tickets.resolved_at`, `users.surname`. Talep açıklaması `replies` tablosuna ilk mesaj olarak yazılır.
+- 2. grupla eklenen tablolar: `category_staff` (hiyerarşi), `staff_leaves`, `escalations`, `notifications`, `ticket_activities` (işlem geçmişi), `category_fields`, `attempts`, `runtime_state`. Bilete eklenen alanlar: `code`, `original_deadline`, `previous_agent_id`, `hold_until`, `closure_reason`, `breach_handled_at`, `awaiting_admin`, `extra_fields`.
 - Yapılandırma için eklenen tablolar: `system_settings` (anahtar/değer), `admin_audit_logs` (yalnız ekleme), `priorities` (ad, sıra, varsayılan SLA, aktiflik, anahtar kelimeler), `work_hours` (7 gün), `holidays`. Eklenen alanlar: `users.active`, `users.capacity`, `categories.active`. `tickets.priority` ve `tickets.customer_priority` artık `priorities` tablosuna yabancı anahtardır.
 - Eşzamanlılık: `TicketRepositoryInterface::assignIfUnassigned` ve `saveIfStatus` koşullu güncellemedir; MySQL karşılığı `UPDATE ... WHERE agent_id IS NULL AND status = 'pending'` / `WHERE status = ?` (veya `SELECT ... FOR UPDATE`).
 - Observer: `TicketService` olayları (`ticket_created`, `status_changed`, `customer_replied` ...) yayınlar; `EscalationObserver` ve `SlaExtensionObserver` `src/Kernel.php`'de `attachObserver` ile eklenir.

@@ -294,3 +294,33 @@ Ekip içi gözden geçirmeden sonra Aşama 2 aşağıdaki değişikliklerle geni
 - Çözüldü durumundaki talebe personel ve yönetici yanıt yazamaz (müşterinin onayı ya da reddi beklenir); SLA süresi aşılmış talebe yazmak serbesttir.
 - Arayüz: herkese açık ana sayfa, logo ve site başlığı ayardan, durum simgeleri, iki sütunlu talep detayı ("Günlük" bölümü), durum değişikliklerinde onay penceresi, talep oluşturulunca 5 saniyelik geri sayımlı başarı ekranı, kayıt sonunda otomatik yönlendirmesiz başarı ekranı.
 
+## 19. 2. grup: hiyerarşi, eskalasyon ve bildirimler
+
+**SLA aşımı kuralı (ekip kararı):** SLA aşıldığında talep hemen devredilmez. Talep personelden alınır, Görev Havuzu'nda "müşteri kararı bekleniyor" olarak durur ve müşteriye sorulur. Bekleme süresi iş günüyle ölçülür (varsayılan 1, yönetici ayarı; 0 = hemen eskalasyon).
+
+- Müşteri "aynı personelle devam" derse talep o personele döner ve ek SLA alır. Ek SLA, ilk SLA süresinin ayardaki oranıdır (varsayılan %33).
+- Müşteri "sorun çözüldü" derse talep Tamamlandı olur, kapanış nedeni "Müşteri tarafından çözüldü".
+- Yanıt gelmezse talep, çözemeyen personelin bir üst seviyesinden başlayarak en alt uygun seviyeye aktarılır (ek SLA ile). Uygun kimse yoksa talep yönetici müdahalesi için havuzda kalır ve yöneticilere bildirim gider.
+- Bekleyen talep otomatik atamaya ve "Üzerime al"a girmez; bu kilit içindeki atamada da denetlenir.
+
+**Zamanlama:** cron yoktur. `SlaMonitorService` her istekte en fazla dakikada bir çalışır (tek isteğin çalışması `runtime_state` kilidiyle sağlanır); `php bin/sla-monitor.php` ile elle de çalışır. Aynı aşım iki kez işlenmez: işlenen bitiş zamanı talepte saklanır.
+
+**Hiyerarşi:** `category_staff` tablosu her kategoride personelin seviyesini tutar (1 ilk basamak). Atama en alt uygun seviyeden yapılır. Uygun personel aktif, izinde değil ve kapasitesi dolmamış olandır. Hiyerarşisi tanımlanmamış kategoride bütün personel adaydır (eski davranış).
+
+**Çözüm onayı:** müşteri "İşe yaradı" ya da "İşe yaramadı" der. "İşe yaramadı" ek SLA verir; 3. retten sonra talep üst seviyeye aktarılır (`EscalationObserver`). Çözüldü talep ayardaki iş günü boyunca yanıtsız kalırsa "Otomatik tamamlandı" nedeniyle kapanır.
+
+**Diğerleri:**
+- Uygulama içi bildirimler (çan, 60 sn yoklama; oturum süresini uzatmaz).
+- 6 karakterli talep kodu (karışan 0/O, 1/I yok).
+- `ticket_activities` işlem geçmişi; durum günlüğüyle birlikte "Günlük"te gösterilir.
+- Manuel eskalasyon (gerekçeli); yöneticinin elle ataması (kapasitesi dolu personele gerekçeyle); "çözülemedi" kapanışı.
+- Kategoriye özel ek alanlar.
+- Ayrıntılı rapor ve CSV (Excel için UTF-8 BOM, noktalı virgül, formül hücreleri korunur).
+- Dosya sınırları ve güvenlik soruları yönetici ayarında; kullanıcı kendi güvenlik sorusunu yazabilir; şifre sıfırlamada 15 dakikada 5 hatalı deneme sınırı.
+- Veri yedeği yalnız indirilir; geri yükleme web'den yapılmaz.
+
+**Yapılmayanlar ve nedenleri:**
+- SSE yerine mevcut yoklama kullanılır, çünkü yerleşik PHP sunucusu tek iş parçacıklıdır.
+- Güvenlik sorusunda "%90 benzerlik" yoktur, çünkü soru ekranda zaten gösteriliyor.
+- Puanlama (FR-15) Aşama 3'e kaldı.
+
