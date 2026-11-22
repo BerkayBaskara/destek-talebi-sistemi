@@ -277,3 +277,16 @@ input.input-name[type="text"] { max-width: 140px; padding: 6px 8px; margin-botto
 .inline-check { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
 .sla-paused { background: #e3ecfb; color: #1d4f9c; }
 
+/* Aylık takvim */
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.month-head { font-weight: 600; text-align: center; color: var(--muted); font-size: 0.85em; }
+.month-day { min-height: 56px; border-radius: 6px; padding: 4px 6px; font-size: 0.85em; overflow: hidden; }
+.day-num { font-weight: 700; display: block; }
+.day-note { display: block; font-size: 0.75em; line-height: 1.2; }
+.day-work { background: var(--ok-bg); }
+.day-special { background: var(--warn-bg); }
+.day-holiday { background: var(--danger-bg); }
+.day-off { background: #eef1f4; color: var(--muted); }
+.month-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-size: 0.85em; }
+.legend { padding: 2px 8px; border-radius: 6px; }
+

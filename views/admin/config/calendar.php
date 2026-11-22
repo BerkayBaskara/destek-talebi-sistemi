@@ -5,6 +5,12 @@
 /** @var array{date: string, description: string} $holiday */
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
+/** @var string $monthTitle */
+/** @var string $prevMonth */
+/** @var string $nextMonth */
+/** @var list<array{date: \DateTimeImmutable, type: string, note: string}> $grid */
+/** @var list<array{date: string, start: string, end: string, description: string}> $specialDays */
+/** @var bool $recalculateOpen */
 $fields = ['start' => 'Başlangıç', 'end' => 'Bitiş', 'break_start' => 'Öğle arası başı', 'break_end' => 'Öğle arası sonu'];
 ?>
 <p><a href="/yonetici/ayarlar">← Sistem Yapılandırması</a></p>
@@ -79,3 +85,97 @@ $fields = ['start' => 'Başlangıç', 'end' => 'Bitiş', 'break_start' => 'Öğl
         <div><button type="submit" class="btn">Tatil ekle</button></div>
     </form>
 </section>
+<section class="card">
+    <h2>Özel günler (yarım gün, telafi günü)</h2>
+    <p class="muted">Belirli bir tarihte haftalık mesai yerine bu saatler geçerli olur. Ör. arife günü 09:00–13:00 ya da cumartesi telafi günü.</p>
+    <?php if ($specialDays !== []): ?>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Tarih</th><th>Saatler</th><th>Açıklama</th><th><span class="sr-only">Sil</span></th></tr></thead>
+                <tbody>
+                <?php foreach ($specialDays as $sd): ?>
+                    <tr>
+                        <td data-label="Tarih"><?= e(implode('.', array_reverse(explode('-', $sd['date'])))) ?></td>
+                        <td data-label="Saatler"><?= e($sd['start'] . '–' . $sd['end']) ?></td>
+                        <td data-label="Açıklama"><?= e($sd['description']) ?></td>
+                        <td>
+                            <form method="post" action="/yonetici/takvim/ozel-gun/sil">
+                                <?= $csrfField() ?>
+                                <input type="hidden" name="date" value="<?= e($sd['date']) ?>">
+                                <button type="submit" class="btn btn-light">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+    <form method="post" action="/yonetici/takvim/ozel-gun" class="filters" novalidate>
+        <?= $csrfField() ?>
+        <div>
+            <label for="special-date">Tarih</label>
+            <input type="date" id="special-date" name="date" required>
+            <?php if (isset($errors['special_date'])): ?><div class="field-error"><?= e($errors['special_date']) ?></div><?php endif; ?>
+        </div>
+        <div>
+            <label for="special-start">Başlangıç</label>
+            <input type="time" id="special-start" name="start" value="09:00">
+        </div>
+        <div>
+            <label for="special-end">Bitiş</label>
+            <input type="time" id="special-end" name="end" value="13:00">
+            <?php if (isset($errors['special_time'])): ?><div class="field-error"><?= e($errors['special_time']) ?></div><?php endif; ?>
+        </div>
+        <div class="grow">
+            <label for="special-desc">Açıklama</label>
+            <input type="text" id="special-desc" name="description" maxlength="100">
+        </div>
+        <div><button type="submit" class="btn">Özel gün ekle</button></div>
+    </form>
+</section>
+<section class="card">
+    <div class="card-head">
+        <h2><?= e($monthTitle) ?></h2>
+        <div class="actions">
+            <a class="btn btn-light" href="/yonetici/takvim?ay=<?= e($prevMonth) ?>">‹ Önceki ay</a>
+            <a class="btn btn-light" href="/yonetici/takvim?ay=<?= e($nextMonth) ?>">Sonraki ay ›</a>
+        </div>
+    </div>
+    <div class="month-legend">
+        <span class="day-work legend">Çalışma günü</span> <span class="day-special legend">Özel gün</span>
+        <span class="day-holiday legend">Tatil</span> <span class="day-off legend">Çalışılmayan gün</span>
+    </div>
+    <div class="month-grid">
+        <?php foreach (['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] as $wd): ?>
+            <div class="month-head"><?= e($wd) ?></div>
+        <?php endforeach; ?>
+        <?php for ($i = 1; $i < (int) $grid[0]['date']->format('N'); $i++): ?>
+            <div class="month-empty"></div>
+        <?php endfor; ?>
+        <?php foreach ($grid as $cell): ?>
+            <div class="month-day day-<?= e($cell['type']) ?>" title="<?= e($cell['note']) ?>">
+                <span class="day-num"><?= e($cell['date']->format('j')) ?></span>
+                <?php if ($cell['note'] !== ''): ?><span class="day-note"><?= e($cell['note']) ?></span><?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<section class="card">
+    <h2>Takvim dosyası yükle ve uygulama kuralı</h2>
+    <form method="post" action="/yonetici/takvim/yukle" enctype="multipart/form-data" class="filters" novalidate>
+        <?= $csrfField() ?>
+        <div class="grow">
+            <label for="takvim">Takvim dosyası (JSON; çalışma günleri, tatiller ve özel günler). Yüklenen dosya mevcut takvimin yerine geçer.</label>
+            <input type="file" id="takvim" name="takvim" accept=".json,application/json" required>
+            <?php if (isset($errors['takvim'])): ?><div class="field-error"><?= e($errors['takvim']) ?></div><?php endif; ?>
+        </div>
+        <div><button type="submit" class="btn">Dosyayı yükle</button></div>
+    </form>
+    <form method="post" action="/yonetici/takvim/kural">
+        <?= $csrfField() ?>
+        <div class="form-row"><label class="inline-check"><input type="checkbox" name="recalculate_open" value="1"<?= $recalculateOpen ? ' checked' : '' ?>> Takvim değişikliği açık taleplerin bitiş zamanına da uygulansın (kalan süre yeni takvimle yeniden hesaplanır; ilk SLA bitişi kayıtta kalır)</label></div>
+        <button type="submit" class="btn btn-light">Kuralı kaydet</button>
+    </form>
+</section>
+

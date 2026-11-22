@@ -25,6 +25,16 @@ interface WorkCalendarRepositoryInterface extends CalendarRepositoryInterface
 
     public function removeHoliday(string $date): void;
 
+    /** @return list<array{date: string, start: string, end: string, description: string}> tarih sırasıyla (FR-13.2) */
+    public function specialDays(): array;
+
+    public function addSpecialDay(string $date, string $start, string $end, string $description): void;
+
+    public function removeSpecialDay(string $date): void;
+
+    /** @param list<array{date: string, start: string, end: string, description: string}> $days */
+    public function replaceSpecialDays(array $days): void;
+
     /**
      * Takvimi baştan yazar (örnek veri ve eski calendar.json'dan aktarım için).
      *

@@ -21,6 +21,7 @@ final class JsonWorkCalendarRepository implements WorkCalendarRepositoryInterfac
 {
     private const HOURS = 'work_hours';
     private const HOLIDAYS = 'holidays';
+    private const SPECIAL = 'special_days';
 
     /** @var callable(string): void */
     private $logger;
@@ -170,6 +171,50 @@ final class JsonWorkCalendarRepository implements WorkCalendarRepositoryInterfac
         $this->config = null;
     }
 
+    public function specialDays(): array
+    {
+        $list = [];
+        foreach ($this->store->all(self::SPECIAL) as $row) {
+            $list[] = [
+                'date' => (string) ($row['date'] ?? ''),
+                'start' => (string) ($row['start'] ?? ''),
+                'end' => (string) ($row['end'] ?? ''),
+                'description' => (string) ($row['description'] ?? ''),
+            ];
+        }
+        usort($list, static fn (array $a, array $b): int => $a['date'] <=> $b['date']);
+
+        return $list;
+    }
+
+    public function addSpecialDay(string $date, string $start, string $end, string $description): void
+    {
+        $this->importLegacyIfEmpty();
+        $this->store->insert(self::SPECIAL, ['date' => $date, 'start' => $start, 'end' => $end, 'description' => $description]);
+        $this->config = null;
+    }
+
+    public function removeSpecialDay(string $date): void
+    {
+        foreach ($this->store->all(self::SPECIAL) as $row) {
+            if (($row['date'] ?? null) === $date) {
+                $this->store->delete(self::SPECIAL, (int) $row['id']);
+            }
+        }
+        $this->config = null;
+    }
+
+    public function replaceSpecialDays(array $days): void
+    {
+        foreach ($this->specialDays() as $day) {
+            $this->removeSpecialDay($day['date']);
+        }
+        foreach ($days as $day) {
+            $this->store->insert(self::SPECIAL, $day);
+        }
+        $this->config = null;
+    }
+
     /** Tablolar boşken yapılan ilk değişiklikten önce eski takvimi (ve o ana kadar eklenmiş tatilleri) tablolara yazar. */
     private function importLegacyIfEmpty(): void
     {
@@ -232,9 +277,10 @@ final class JsonWorkCalendarRepository implements WorkCalendarRepositoryInterfac
      *
      * @param array<int, array{works: bool, start: string, end: string, break_start: ?string, break_end: ?string}> $days
      * @param list<string> $holidays
+     * @param list<array{date: string, start: string, end: string, description: string}> $specialDays
      * @return array<string, mixed>
      */
-    public static function toSchema(array $days, array $holidays): array
+    public static function toSchema(array $days, array $holidays, array $specialDays = []): array
     {
         $workDays = [];
         foreach ($days as $day => $data) {
@@ -247,7 +293,12 @@ final class JsonWorkCalendarRepository implements WorkCalendarRepositoryInterfac
             $workDays[(string) $day] = ['start' => $data['start'], 'end' => $data['end'], 'breaks' => $breaks];
         }
 
-        return ['timezone' => 'Europe/Istanbul', 'work_days' => $workDays, 'holidays' => $holidays];
+        $special = [];
+        foreach ($specialDays as $day) {
+            $special[$day['date']] = ['start' => $day['start'], 'end' => $day['end']];
+        }
+
+        return ['timezone' => 'Europe/Istanbul', 'work_days' => $workDays, 'holidays' => $holidays, 'special_days' => $special];
     }
 
     private function load(): CalendarConfig
@@ -261,7 +312,7 @@ final class JsonWorkCalendarRepository implements WorkCalendarRepositoryInterfac
                 throw new InvalidArgumentException('mesai saatleri tanımlanmamış');
             }
 
-            return CalendarConfig::fromArray(self::toSchema($days, array_column($this->storedHolidays(), 'date')));
+            return CalendarConfig::fromArray(self::toSchema($days, array_column($this->storedHolidays(), 'date'), $this->specialDays()));
         } catch (InvalidArgumentException $e) {
             ($this->logger)('Takvim okunamadı, varsayılan mesai kullanılıyor: ' . $e->getMessage());
 

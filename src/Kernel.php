@@ -166,7 +166,7 @@ final class Kernel
 
         $config = $this->rootDir . '/storage/config';
         $this->workCalendarRepository = new JsonWorkCalendarRepository($this->store, null, new JsonCalendarRepository($config . '/calendar.json'));
-        $this->calendarService = new CalendarService($this->workCalendarRepository, $this->auditLogger);
+        $this->calendarService = new CalendarService($this->workCalendarRepository, $this->auditLogger, new \App\Service\OpenTicketRecalculator($this->ticketRepository, new \App\Service\SlaCalculatorService($this->workCalendarRepository), $this->settingsService, $this->clock));
         $this->hierarchyRepository = new JsonHierarchyRepository($this->store);
         $this->leaveRepository = new JsonLeaveRepository($this->store);
         $this->hierarchyService = new HierarchyService($this->hierarchyRepository, $this->categoryRepository, $this->userRepository, $this->auditLogger);

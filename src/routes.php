@@ -123,7 +123,11 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/yonetici/sla/kurallar', static fn (Request $r, array $p): Response => $catalog->saveSlaRules($r));
 
     $calendar = new CalendarController($kernel);
-    $router->add('GET', '/yonetici/takvim', static fn (Request $r, array $p): Response => $calendar->index());
+    $router->add('GET', '/yonetici/takvim', static fn (Request $r, array $p): Response => $calendar->index($r));
+    $router->add('POST', '/yonetici/takvim/ozel-gun', static fn (Request $r, array $p): Response => $calendar->addSpecialDay($r));
+    $router->add('POST', '/yonetici/takvim/ozel-gun/sil', static fn (Request $r, array $p): Response => $calendar->removeSpecialDay($r));
+    $router->add('POST', '/yonetici/takvim/yukle', static fn (Request $r, array $p): Response => $calendar->import($r));
+    $router->add('POST', '/yonetici/takvim/kural', static fn (Request $r, array $p): Response => $calendar->saveRule($r));
     $router->add('POST', '/yonetici/takvim/mesai', static fn (Request $r, array $p): Response => $calendar->saveHours($r));
     $router->add('POST', '/yonetici/takvim/tatil', static fn (Request $r, array $p): Response => $calendar->addHoliday($r));
     $router->add('POST', '/yonetici/takvim/tatil/sil', static fn (Request $r, array $p): Response => $calendar->removeHoliday($r));

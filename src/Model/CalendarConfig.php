@@ -18,11 +18,13 @@ final class CalendarConfig
     /**
      * @param array<int, list<array{0: int, 1: int}>> $workDays ISO gün numarası (1=Pzt … 7=Paz) => aralıklar
      * @param array<string, true> $holidays 'Y-m-d' anahtarlı küme (isset ile sabit sürede bakılır)
+     * @param array<string, list<array{0: int, 1: int}>> $specialDays 'Y-m-d' → o güne özel çalışma aralığı (yarım gün, telafi günü; FR-13.2)
      */
     public function __construct(
         public readonly array $workDays,
         public readonly array $holidays,
         public readonly string $timezone = 'Europe/Istanbul',
+        public readonly array $specialDays = [],
     ) {
     }
 
@@ -87,9 +89,24 @@ final class CalendarConfig
             $holidays[$holiday] = true;
         }
 
+        $specialDays = [];
+        foreach (is_array($data['special_days'] ?? null) ? $data['special_days'] : [] as $date => $special) {
+            $date = (string) $date;
+            $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+            if ($parsed === false || $parsed->format('Y-m-d') !== $date || !is_array($special)) {
+                throw new InvalidArgumentException('Geçersiz özel gün: ' . $date);
+            }
+            $start = self::minutes($special['start'] ?? null);
+            $end = self::minutes($special['end'] ?? null);
+            if ($start >= $end) {
+                throw new InvalidArgumentException('Özel gün başlangıcı bitişten önce olmalı (' . $date . ').');
+            }
+            $specialDays[$date] = [[$start, $end]];
+        }
+
         $timezone = is_string($data['timezone'] ?? null) ? $data['timezone'] : 'Europe/Istanbul';
 
-        return new self($workDays, $holidays, $timezone);
+        return new self($workDays, $holidays, $timezone, $specialDays);
     }
 
     /**
@@ -99,11 +116,12 @@ final class CalendarConfig
      */
     public function intervalsFor(DateTimeImmutable $day): array
     {
-        if (isset($this->holidays[$day->format('Y-m-d')])) {
+        $date = $day->format('Y-m-d');
+        if (isset($this->holidays[$date])) {
             return [];
         }
 
-        return $this->workDays[(int) $day->format('N')] ?? [];
+        return $this->specialDays[$date] ?? $this->workDays[(int) $day->format('N')] ?? [];
     }
 
     private static function minutes(mixed $time): int
