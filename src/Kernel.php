@@ -55,6 +55,11 @@ use App\Service\AuthService;
 use App\Service\BrandingService;
 use App\Service\HierarchyService;
 use App\Service\NotificationService;
+use App\Service\EscalationService;
+use App\Service\SlaMonitorService;
+use App\Repository\EscalationRepositoryInterface;
+use App\Repository\Json\JsonEscalationRepository;
+use App\Repository\Json\JsonRuntimeStateRepository;
 use App\Service\Observer\NotificationObserver;
 use App\Repository\NotificationRepositoryInterface;
 use App\Repository\Json\JsonNotificationRepository;
@@ -100,6 +105,10 @@ final class Kernel
     private readonly HierarchyService $hierarchyService;
     private readonly NotificationRepositoryInterface $notificationRepository;
     private readonly NotificationService $notificationService;
+    private readonly AssignmentService $assignmentService;
+    private readonly EscalationRepositoryInterface $escalationRepository;
+    private readonly EscalationService $escalationService;
+    private readonly SlaMonitorService $slaMonitor;
     private readonly LeaveService $leaveService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
@@ -167,7 +176,7 @@ final class Kernel
             $this->slaPolicyRepository,
             $this->slaCalculator,
             $this->priorityRepository,
-            new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService, $this->hierarchyRepository, $this->leaveRepository, $this->clock),
+            $this->assignmentService = new AssignmentService($this->userRepository, $this->ticketRepository, $this->staffService, $this->hierarchyRepository, $this->leaveRepository, $this->clock),
             $this->clock,
         );
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
@@ -176,6 +185,18 @@ final class Kernel
         $this->notificationRepository = new JsonNotificationRepository($this->store);
         $this->notificationService = new NotificationService($this->notificationRepository, $this->userRepository, $this->clock);
         $this->ticketService->attachObserver(new NotificationObserver($this->notificationService));
+        $this->escalationRepository = new JsonEscalationRepository($this->store);
+        $this->escalationService = new EscalationService(
+            $this->ticketRepository,
+            $this->ticketService,
+            $this->assignmentService,
+            $this->slaCalculator,
+            $this->settingsService,
+            $this->escalationRepository,
+            $this->notificationService,
+            $this->clock,
+        );
+        $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
         $this->attachmentService = AttachmentService::fromSettingsFile(
@@ -216,6 +237,7 @@ final class Kernel
                 }
             }
 
+            $this->runSlaMonitor();
             $response = $this->router->dispatch($request);
         } catch (RedirectException $e) {
             $response = $request->isApi()
@@ -416,6 +438,21 @@ final class Kernel
         return $this->settingsService;
     }
 
+    public function escalationRepository(): EscalationRepositoryInterface
+    {
+        return $this->escalationRepository;
+    }
+
+    public function escalationService(): EscalationService
+    {
+        return $this->escalationService;
+    }
+
+    public function slaMonitor(): SlaMonitorService
+    {
+        return $this->slaMonitor;
+    }
+
     public function notificationRepository(): NotificationRepositoryInterface
     {
         return $this->notificationRepository;
@@ -520,6 +557,16 @@ final class Kernel
      * NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner.
      * Sayfanın kendi kendine yaptığı SLA yoklaması (/api/sla) kullanıcı etkinliği sayılmaz.
      */
+    /** Zamana bağlı SLA kuralları (cron yok): her istekte en fazla dakikada bir. Hata isteği bozmaz, günlüğe yazılır. */
+    private function runSlaMonitor(): void
+    {
+        try {
+            $this->slaMonitor->runIfDue();
+        } catch (Throwable $e) {
+            error_log('SLA denetimi çalışmadı: ' . $e->getMessage());
+        }
+    }
+
     /** Sayfanın kendi kendine yaptığı yoklamalar; kullanıcı etkinliği sayılmaz. */
     private const PASSIVE_POLLS = ['/api/sla', '/api/bildirimler/sayi'];
 

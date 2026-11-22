@@ -131,6 +131,34 @@ final class CatalogController
         return $this->saved('/yonetici/sla');
     }
 
+    /** SLA aşımı kuralları: bekleme (iş günü), ek SLA oranı (%), çözüm onayı için otomatik tamamlama süresi (iş günü). */
+    public function saveSlaRules(Request $request): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $rules = [];
+        foreach (self::RULE_FIELDS as $field => $key) {
+            $rules[$field] = trim($request->string($field));
+        }
+        try {
+            $this->kernel->settingsService()->update($admin, array_combine(array_values(self::RULE_FIELDS), array_values($rules)));
+        } catch (ValidationException $e) {
+            $errors = [];
+            foreach ($e->errors() as $key => $message) {
+                $errors[(string) array_search($key, self::RULE_FIELDS, true)] = $message;
+            }
+
+            return $this->slaView([], [], 422, $rules, $errors);
+        }
+
+        return $this->saved('/yonetici/sla');
+    }
+
+    private const RULE_FIELDS = [
+        'breach_wait_days' => 'sla.breach_wait_days',
+        'extra_percent' => 'sla.extra_percent',
+        'auto_close_days' => 'sla.auto_close_days',
+    ];
+
     private function saved(string $url): Response
     {
         $this->kernel->session()->flash('success', SettingsController::SAVED);
@@ -181,10 +209,19 @@ final class CatalogController
     /**
      * @param array<int, array<int, string>> $old
      * @param array<string, string> $errors "kategori-öncelik" → hata
+     * @param array<string, string> $rules SLA kuralları formu (boşsa ayardaki değerler)
+     * @param array<string, string> $ruleErrors
      */
-    private function slaView(array $old, array $errors, int $status = 200): Response
+    private function slaView(array $old, array $errors, int $status = 200, array $rules = [], array $ruleErrors = []): Response
     {
+        $settings = $this->kernel->settingsService();
+        foreach (self::RULE_FIELDS as $field => $key) {
+            $rules[$field] ??= $settings->string($key);
+        }
+
         return $this->kernel->render('admin/config/sla', [
+            'rules' => $rules,
+            'ruleErrors' => $ruleErrors,
             'title' => 'SLA Süreleri',
             'categories' => $this->kernel->categoryRepository()->findAll(),
             'priorities' => $this->kernel->priorityRepository()->findAll(),

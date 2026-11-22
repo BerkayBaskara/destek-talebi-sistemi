@@ -151,6 +151,24 @@ final class TicketController
         return Response::redirect('/talepler/' . $id . '#mesajlar');
     }
 
+    /** SLA aşımı sonrası müşterinin kararı: aynı personelle devam ya da sorun çözüldü. */
+    public function decide(Request $request, int $id): Response
+    {
+        $customer = $this->kernel->requireRole(Role::Customer);
+        $this->tickets->findVisible($id, $customer);
+
+        try {
+            $ticket = $this->kernel->escalationService()->decide($id, $customer, $request->string('karar'));
+            $this->kernel->session()->flash('success', $ticket->status === TicketStatus::Closed
+                ? 'Talebiniz "sorun çözüldü" olarak kapatıldı.'
+                : 'Talebiniz aynı personelle devam ediyor. Yeni bitiş: ' . $ticket->deadline->format('d.m.Y H:i') . '.');
+        } catch (ValidationException $e) {
+            $this->kernel->session()->flash('error', $e->getMessage());
+        }
+
+        return Response::redirect('/talepler/' . $id);
+    }
+
     /** Durum eylemi (iptal, incelemeye al, çözüldü, onayla, reddet). İzinsiz geçişin nedeni kullanıcıya gösterilir. */
     public function action(Request $request, int $id): Response
     {

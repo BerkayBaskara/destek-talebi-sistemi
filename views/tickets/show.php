@@ -28,6 +28,11 @@ $actionLabels = [
 ];
 $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === Role::Agent ? '/kanban' : '/yonetici');
 $date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
+$closureReasons = [
+    'customer_resolved' => 'Müşteri tarafından çözüldü',
+    'auto_closed' => 'Otomatik tamamlandı (müşteri yanıt vermedi)',
+    'unresolvable' => 'Çözülemedi',
+];
 ?>
 <p><a href="<?= e($backUrl) ?>">&lsaquo; Geri dön</a></p>
 <section class="card">
@@ -50,8 +55,37 @@ $date = static fn (\DateTimeImmutable $d): string => $d->format('d.m.Y H:i');
             <?php if ($ticket->attemptCount > 0): ?>
                 <div><dt>Reddedilen Çözüm</dt><dd><?= e($ticket->attemptCount) ?></dd></div>
             <?php endif; ?>
+            <?php if ($ticket->firstDeadline()->getTimestamp() !== $ticket->deadline->getTimestamp()): ?>
+                <div><dt>İlk SLA Bitişi</dt><dd><?= e($date($ticket->firstDeadline())) ?></dd></div>
+            <?php endif; ?>
+            <?php if ($ticket->closureReason !== null): ?>
+                <div><dt>Kapanış Nedeni</dt><dd><?= e($closureReasons[$ticket->closureReason] ?? $ticket->closureReason) ?></dd></div>
+            <?php endif; ?>
         </dl>
     </div>
+
+    <?php if ($ticket->holdUntil !== null && $viewer->id === $ticket->creatorId): ?>
+        <div class="decision-box" role="region" aria-label="Karar bekleniyor">
+            <h2>Talebinizin çözüm süresi aşıldı</h2>
+            <p>Ne yapmak istersiniz? <?= e($ticket->holdUntil->format('d.m.Y H:i')) ?> tarihine kadar seçim yapmazsanız talebiniz üst seviye personele aktarılır.</p>
+            <div class="actions">
+                <form method="post" action="/talepler/<?= e($ticket->id) ?>/karar" data-confirm="Talebiniz aynı personelle ve ek süreyle devam edecek. Onaylıyor musunuz?">
+                    <?= $csrfField() ?>
+                    <input type="hidden" name="karar" value="devam">
+                    <button type="submit" class="btn">Aynı personelle devam et</button>
+                </form>
+                <form method="post" action="/talepler/<?= e($ticket->id) ?>/karar" data-confirm="Talebiniz &quot;sorun çözüldü&quot; olarak kapatılacak. Onaylıyor musunuz?">
+                    <?= $csrfField() ?>
+                    <input type="hidden" name="karar" value="cozuldu">
+                    <button type="submit" class="btn btn-new">Sorun çözüldü, talebi kapat</button>
+                </form>
+            </div>
+        </div>
+    <?php elseif ($ticket->holdUntil !== null): ?>
+        <p class="alert alert-warning">SLA aşıldı; müşterinin kararı bekleniyor (<?= e($ticket->holdUntil->format('d.m.Y H:i')) ?> tarihine kadar).</p>
+    <?php elseif ($ticket->awaitingAdmin): ?>
+        <p class="alert alert-error">Uygun üst seviye personel bulunamadı; talep yönetici müdahalesi bekliyor.</p>
+    <?php endif; ?>
 
     <?php if ($actions !== []): ?>
         <div class="actions">

@@ -20,10 +20,17 @@
                     <td data-label="Açılış"><?= e($ticket->createdAt->format('d.m.Y H:i')) ?></td>
                     <td data-label="SLA"><?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?></td>
                     <td>
-                        <form method="post" action="/havuz/<?= e($ticket->id) ?>/al">
-                            <?= $csrfField() ?>
-                            <button type="submit" class="btn">Üzerime al</button>
-                        </form>
+                        <?php if ($ticket->holdUntil !== null): ?>
+                            <span class="badge status-in_review">Müşteri kararı bekleniyor</span>
+                            <div class="muted"><?= e($ticket->holdUntil->format('d.m.Y H:i')) ?> tarihine kadar</div>
+                        <?php elseif ($ticket->awaitingAdmin): ?>
+                            <span class="badge status-cancelled">Yönetici müdahalesi bekliyor</span>
+                        <?php else: ?>
+                            <form method="post" action="/havuz/<?= e($ticket->id) ?>/al">
+                                <?= $csrfField() ?>
+                                <button type="submit" class="btn">Üzerime al</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

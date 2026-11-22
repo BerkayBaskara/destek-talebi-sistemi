@@ -150,6 +150,9 @@ final class TicketService
     {
         $assigned = 0;
         foreach ($this->tickets->getPoolTickets() as $ticket) {
+            if ($ticket->isOnHold()) {
+                continue; // müşteri kararı ya da yönetici müdahalesi bekleniyor
+            }
             // Kategoriye göre uygun personel değişebildiği için biri atanamasa da diğerleri denenir.
             if ($this->autoAssign($ticket) !== null) {
                 $assigned++;

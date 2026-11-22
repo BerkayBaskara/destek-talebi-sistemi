@@ -56,7 +56,7 @@ final class NotificationObserver implements TicketObserver
     {
         $old = $context['old'] ?? null;
         $new = $context['new'] ?? $ticket->status;
-        if (!$new instanceof TicketStatus || $old === null) {
+        if (!$new instanceof TicketStatus || $old === null || ($context['quiet'] ?? false) === true) {
             return;
         }
         $code = $ticket->displayCode();

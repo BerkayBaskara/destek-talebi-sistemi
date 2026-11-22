@@ -259,3 +259,7 @@ input.input-sm[type="number"] { width: 90px; min-width: 64px; padding: 8px; }
 .notification-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .notification-list li.unread a { font-weight: 700; }
 
+/* SLA aşımı kararı */
+.decision-box { border: 2px solid var(--warn); background: var(--warn-bg); border-radius: var(--radius); padding: 16px; margin: 16px 0; }
+.decision-box h2 { margin: 0 0 6px; font-size: 1.1rem; }
+

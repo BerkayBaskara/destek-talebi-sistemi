@@ -49,6 +49,23 @@ final class JsonTicketRepository implements TicketRepositoryInterface
         });
     }
 
+    public function saveIfUnchanged(Ticket $ticket, TicketStatus $expectedStatus, ?int $expectedAgentId): bool
+    {
+        $id = (int) $ticket->id;
+
+        return (bool) $this->store->transaction([self::TABLE], function (JsonStore $store) use ($ticket, $id, $expectedStatus, $expectedAgentId): bool {
+            $row = $store->find(self::TABLE, $id);
+            if ($row === null || ($row['status'] ?? null) !== $expectedStatus->value || ($row['agent_id'] ?? null) !== $expectedAgentId) {
+                return false;
+            }
+            $data = $ticket->toArray();
+            unset($data['id']);
+            $store->update(self::TABLE, $id, $data);
+
+            return true;
+        });
+    }
+
     public function findByCode(string $code): ?Ticket
     {
         foreach ($this->store->all(self::TABLE) as $row) {
@@ -112,6 +129,9 @@ final class JsonTicketRepository implements TicketRepositoryInterface
             $row = $store->find(self::TABLE, $ticketId);
             if ($row === null || ($row['agent_id'] ?? null) !== null || ($row['status'] ?? null) !== TicketStatus::Pending->value) {
                 return false; // başka biri önce aldı, iptal edildi ya da talep yok
+            }
+            if (($row['hold_until'] ?? null) !== null || ($row['awaiting_admin'] ?? false) === true) {
+                return false; // müşteri kararı ya da yönetici müdahalesi bekleniyor
             }
             $active = 0;
             foreach ($store->all(self::TABLE) as $other) {

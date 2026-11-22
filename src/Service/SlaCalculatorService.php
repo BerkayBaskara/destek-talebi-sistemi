@@ -53,6 +53,25 @@ final class SlaCalculatorService
         throw new RuntimeException('Takvimde iş günü bulunamadı; SLA hesaplanamıyor.');
     }
 
+    /**
+     * Verilen andan N iş günü sonrasının aynı saati (çalışılmayan günler ve tatiller atlanır). 0 → aynı an.
+     * Örn. Çarşamba 11:00 + 1 iş günü = Perşembe 11:00; Cuma 11:00 + 1 = Pazartesi 11:00.
+     */
+    public function addBusinessDays(DateTimeImmutable $from, int $days): DateTimeImmutable
+    {
+        $config = $this->calendar->getConfig();
+        $date = $from;
+        $guard = 0;
+        while ($days > 0 && $guard++ < 3660) {
+            $date = $date->modify('+1 day');
+            if ($config->intervalsFor($date) !== []) {
+                $days--;
+            }
+        }
+
+        return $date;
+    }
+
     /** İki an arasındaki iş dakikası (mesai dışı, mola ve tatil sayılmaz). Sıra tersse 0. */
     public function businessMinutesBetween(DateTimeImmutable $from, DateTimeImmutable $to): int
     {

@@ -391,6 +391,7 @@ final class TicketServiceTest extends TestCase
             }
 
             public function findByCode(string $code): ?Ticket { return $this->inner->findByCode($code); }
+            public function saveIfUnchanged(Ticket $ticket, TicketStatus $expectedStatus, ?int $expectedAgentId): bool { return $this->inner->saveIfUnchanged($ticket, $expectedStatus, $expectedAgentId); }
             public function findById(int $id): ?Ticket
             {
                 return $this->snapshot !== null ? clone $this->snapshot : null; // eski kopya

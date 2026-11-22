@@ -74,6 +74,21 @@ final class AssignmentService
         return $best;
     }
 
+    /**
+     * Eskalasyon hedefi (FR-56): çözemeyen personelin bir üst seviyesinden başlayarak en alt uygun seviye.
+     * Kategoride hiyerarşi yoksa üst seviye tanımsızdır → null.
+     */
+    public function pickEscalationTarget(int $categoryId, ?int $failingAgentId): ?User
+    {
+        if ($this->levelsFor($categoryId) === []) {
+            return null;
+        }
+        $level = $failingAgentId !== null ? ($this->levelOf($categoryId, $failingAgentId) ?? 0) : 0;
+        $agent = $this->pickAgent($categoryId, $level);
+
+        return $agent !== null && $agent->id !== $failingAgentId ? $agent : null;
+    }
+
     /** Personelin kategorideki seviyesi; hiyerarşide yoksa null. */
     public function levelOf(int $categoryId, int $userId): ?int
     {

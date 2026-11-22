@@ -50,6 +50,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/talepler/{id}/olusturuldu', static fn (Request $r, array $p): Response => $tickets->created((int) $p['id']));
     $router->add('POST', '/talepler/{id}/yanit', static fn (Request $r, array $p): Response => $tickets->reply($r, (int) $p['id']));
     $router->add('POST', '/talepler/{id}/islem', static fn (Request $r, array $p): Response => $tickets->action($r, (int) $p['id']));
+    $router->add('POST', '/talepler/{id}/karar', static fn (Request $r, array $p): Response => $tickets->decide($r, (int) $p['id']));
 
     // Bildirimler (FR-18)
     $notifications = new NotificationController($kernel);
@@ -100,6 +101,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('POST', '/yonetici/oncelikler/{id}', static fn (Request $r, array $p): Response => $catalog->updatePriority($r, (int) $p['id']));
     $router->add('GET', '/yonetici/sla', static fn (Request $r, array $p): Response => $catalog->sla());
     $router->add('POST', '/yonetici/sla', static fn (Request $r, array $p): Response => $catalog->saveSla($r));
+    $router->add('POST', '/yonetici/sla/kurallar', static fn (Request $r, array $p): Response => $catalog->saveSlaRules($r));
 
     $calendar = new CalendarController($kernel);
     $router->add('GET', '/yonetici/takvim', static fn (Request $r, array $p): Response => $calendar->index());

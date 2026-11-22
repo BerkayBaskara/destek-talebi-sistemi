@@ -43,6 +43,8 @@ final class Ticket
         public ?string $closureReason = null,
         /** Aşımı işlenmiş son bitiş zamanı (aynı aşım iki kez işlenmesin). */
         public ?DateTimeImmutable $breachHandledAt = null,
+        /** Eskalasyonda uygun üst seviye personel bulunamadı; yönetici elle atayana kadar havuzda bekler (FR-57). */
+        public bool $awaitingAdmin = false,
     ) {
     }
 
@@ -57,9 +59,10 @@ final class Ticket
         return $this->originalDeadline ?? $this->deadline;
     }
 
+    /** Müşteri kararı ya da yönetici müdahalesi bekleniyor: otomatik atamaya ve "Üzerime al"a girmez. */
     public function isOnHold(): bool
     {
-        return $this->holdUntil !== null;
+        return $this->holdUntil !== null || $this->awaitingAdmin;
     }
 
     /** Mevcut durumun kurallarını taşıyan State nesnesi (sınıf diyagramı: currentState). */
@@ -109,6 +112,7 @@ final class Ticket
             self::date($row['hold_until'] ?? null),
             isset($row['closure_reason']) && $row['closure_reason'] !== '' ? (string) $row['closure_reason'] : null,
             self::date($row['breach_handled_at'] ?? null),
+            (bool) ($row['awaiting_admin'] ?? false),
         );
     }
 
@@ -136,6 +140,7 @@ final class Ticket
             'hold_until' => $this->holdUntil?->format(DATE_ATOM),
             'closure_reason' => $this->closureReason,
             'breach_handled_at' => $this->breachHandledAt?->format(DATE_ATOM),
+            'awaiting_admin' => $this->awaitingAdmin,
         ];
     }
 

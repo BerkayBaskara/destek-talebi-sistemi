@@ -5,6 +5,9 @@
 /** @var array<int, array<int, string>> $old */
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
+/** @var array<string, string> $rules */
+/** @var array<string, string> $ruleErrors */
+$ruleError = static fn (string $f): string => isset($ruleErrors[$f]) ? '<div class="field-error">' . e($ruleErrors[$f]) . '</div>' : '';
 ?>
 <p><a href="/yonetici/ayarlar">← Sistem Yapılandırması</a></p>
 <section class="card">
@@ -48,5 +51,28 @@
             </table>
         </div>
         <button type="submit" class="btn">Kaydet</button>
+    </form>
+</section>
+<section class="card">
+    <h2>SLA aşımı ve çözüm onayı kuralları</h2>
+    <p class="muted">SLA aşılınca talep personelden alınır ve müşteriye "aynı personelle devam" ya da "sorun çözüldü" diye sorulur. Bekleme süresince talep Görev Havuzu'nda kalır; yanıt gelmezse bir üst seviyeye aktarılır. Bekleme 0 ise talep hemen üst seviyeye aktarılır.</p>
+    <form method="post" action="/yonetici/sla/kurallar" class="filters" novalidate>
+        <?= $csrfField() ?>
+        <div>
+            <label for="breach_wait_days">Müşteri kararı için bekleme (iş günü)</label>
+            <input type="number" id="breach_wait_days" name="breach_wait_days" min="0" max="10" value="<?= e($rules['breach_wait_days']) ?>">
+            <?= $ruleError('breach_wait_days') ?>
+        </div>
+        <div>
+            <label for="extra_percent">Ek SLA oranı (ilk sürenin %)</label>
+            <input type="number" id="extra_percent" name="extra_percent" min="1" max="100" value="<?= e($rules['extra_percent']) ?>">
+            <?= $ruleError('extra_percent') ?>
+        </div>
+        <div>
+            <label for="auto_close_days">Çözüm onayı yanıtsızsa otomatik tamamlama (iş günü)</label>
+            <input type="number" id="auto_close_days" name="auto_close_days" min="1" max="30" value="<?= e($rules['auto_close_days']) ?>">
+            <?= $ruleError('auto_close_days') ?>
+        </div>
+        <div><button type="submit" class="btn">Kuralları kaydet</button></div>
     </form>
 </section>

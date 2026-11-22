@@ -21,6 +21,9 @@ final class SettingsService
         'site.home_heading' => 'Destek talebinizi kolayca oluşturun',
         'site.home_text' => 'Sorununuzu iletin, talebiniz mesai saatlerine göre hesaplanan süre içinde uzman personelimize ulaşsın.',
         'staff.default_capacity' => '5',
+        'sla.breach_wait_days' => '1',
+        'sla.extra_percent' => '33',
+        'sla.auto_close_days' => '3',
     ];
 
     public function __construct(
@@ -88,8 +91,16 @@ final class SettingsService
             'site.home_text' => $length <= 2000 ? null : 'Ana sayfa metni en fazla 2000 karakter olabilir.',
             'staff.default_capacity' => preg_match('/^\d+$/', $value) === 1 && (int) $value >= 1 && (int) $value <= 100
                 ? null : 'Kapasite 1 ile 100 arasında bir tam sayı olmalı.',
+            'sla.breach_wait_days' => self::intIn($value, 0, 10) ? null : 'Bekleme süresi 0 ile 10 iş günü arasında olmalı.',
+            'sla.extra_percent' => self::intIn($value, 1, 100) ? null : 'Ek SLA oranı 1 ile 100 arasında olmalı.',
+            'sla.auto_close_days' => self::intIn($value, 1, 30) ? null : 'Otomatik tamamlama süresi 1 ile 30 iş günü arasında olmalı.',
             default => null,
         };
+    }
+
+    private static function intIn(string $value, int $min, int $max): bool
+    {
+        return preg_match('/^\d+$/', $value) === 1 && (int) $value >= $min && (int) $value <= $max;
     }
 
     private function assertKnown(string $key): void

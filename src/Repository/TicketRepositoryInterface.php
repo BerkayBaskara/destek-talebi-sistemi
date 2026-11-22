@@ -21,6 +21,12 @@ interface TicketRepositoryInterface
 
     public function findById(int $id): ?Ticket;
 
+    /**
+     * Kayıttaki durum ve personel beklenenle aynıysa talebi yazar (personeli değiştiren sistem işlemleri için:
+     * SLA aşımında havuza alma, eskalasyon, müşteri kararı). Tek kilit içinde yapılır.
+     */
+    public function saveIfUnchanged(Ticket $ticket, \App\Model\Enum\TicketStatus $expectedStatus, ?int $expectedAgentId): bool;
+
     /** 6 karakterli talep koduna göre (büyük harf). */
     public function findByCode(string $code): ?Ticket;
 
