@@ -149,4 +149,50 @@ final class CalendarServiceTest extends TestCase
             }
         }
     }
+
+    private function legacyRepo(): JsonWorkCalendarRepository
+    {
+        $legacy = new \App\Repository\Json\JsonCalendarRepository(__DIR__ . '/../../fixtures/calendar.json');
+
+        return new JsonWorkCalendarRepository(new \App\Core\Storage\JsonStore($this->tempDir), fn (string $m) => $this->logged[] = $m, $legacy);
+    }
+
+    public function test_screen_shows_legacy_calendar_until_first_save(): void
+    {
+        $repo = $this->legacyRepo();
+
+        $days = $repo->workHours();
+        self::assertCount(7, $days);
+        self::assertSame(['works' => true, 'start' => '09:00', 'end' => '18:00', 'break_start' => '12:00', 'break_end' => '13:00'], $days[1]);
+        self::assertFalse($days[6]['works']);
+        self::assertContains('2026-10-29', array_column($repo->holidays(), 'date'));
+    }
+
+    public function test_holiday_added_before_first_save_keeps_legacy_calendar(): void
+    {
+        $repo = $this->legacyRepo();
+        $service = new CalendarService($repo, new AuditLogger(new JsonAuditLogRepository(new \App\Core\Storage\JsonStore($this->tempDir)), new FixedClock(new DateTimeImmutable('2026-11-24 10:00'))));
+
+        $service->addHoliday($this->admin, '2026-11-25', 'Şirket günü');
+
+        self::assertSame([], $repo->getConfig()->intervalsFor(self::at('2026-11-25')), 'Yeni tatil SLA hesabına girmeli.');
+        self::assertSame([], $repo->getConfig()->intervalsFor(self::at('2026-10-29')), 'Dosyadaki tatil kaybolmamalı.');
+        self::assertSame([[540, 720], [780, 1080]], $repo->getConfig()->intervalsFor(self::at('2026-11-23')), 'Mesai dosyadaki gibi kalmalı.');
+        self::assertTrue($repo->workHours()[1]['works']);
+    }
+
+    public function test_half_filled_break_is_rejected(): void
+    {
+        $this->importFixture();
+        $days = $this->weekdays();
+        $days[1]['break_end'] = null;
+
+        try {
+            $this->service->saveWorkHours($this->admin, $days);
+            self::fail('Yalnız bir ucu girilmiş öğle arası kabul edilmemeli.');
+        } catch (ValidationException $e) {
+            self::assertSame('Öğle arasının başlangıç ve bitiş saati birlikte girilmeli (Pazartesi).', $e->errors()['days']);
+        }
+        self::assertSame('13:00', $this->repo->workHours()[1]['break_end']);
+    }
 }

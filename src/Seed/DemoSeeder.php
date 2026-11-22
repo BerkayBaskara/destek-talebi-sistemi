@@ -100,9 +100,10 @@ final class DemoSeeder
         $policies = $this->kernel->slaPolicyRepository();
         foreach (['Donanım', 'Yazılım', 'Ağ / Erişim', 'Hesap'] as $name) {
             $category = $categories->save(new Category(null, $name));
-            foreach ($priorities->findAll() as $priority) {
-                $hours = $name === 'Ağ / Erişim' && $priority->id === self::TOP ? 2 : $priority->defaultSlaHours;
-                $policies->save(new SlaPolicy(null, (int) $category->id, (int) $priority->id, $hours));
+            // Yalnız gerçek istisnalar kural olarak yazılır; diğer hücreler önceliğin varsayılan süresini kullanır
+            // (yönetici önceliğin varsayılan süresini değiştirince yeni taleplere yansısın).
+            if ($name === 'Ağ / Erişim') {
+                $policies->save(new SlaPolicy(null, (int) $category->id, self::TOP, 2));
             }
         }
     }

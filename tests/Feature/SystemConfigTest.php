@@ -233,4 +233,15 @@ final class SystemConfigTest extends FeatureTestCase
         self::assertStringContainsString('Kategori', $page);
         self::assertStringContainsString('Yazıcı', $page);
     }
+
+    public function test_priority_default_sla_change_applies_to_new_ticket_in_seeded_category(): void
+    {
+        $this->loginAdmin();
+        $this->post('/yonetici/oncelikler/2', ['name' => 'Normal', 'rank' => '3', 'default_sla_hours' => '1', 'active' => '1', 'keywords' => '']);
+        $this->post('/cikis');
+
+        $this->openTicketAsCustomer('Kısa süreli talep'); // Donanım × Normal; Pazartesi 10:00
+
+        self::assertSame('2026-11-09 11:00', $this->kernel->ticketRepository()->findById(1)?->deadline->format('Y-m-d H:i'));
+    }
 }

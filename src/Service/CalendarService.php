@@ -18,6 +18,8 @@ use InvalidArgumentException;
  */
 final class CalendarService
 {
+    public const DAY_NAMES = [1 => 'Pazartesi', 2 => 'Salı', 3 => 'Çarşamba', 4 => 'Perşembe', 5 => 'Cuma', 6 => 'Cumartesi', 7 => 'Pazar'];
+
     public function __construct(
         private readonly WorkCalendarRepositoryInterface $repo,
         private readonly AuditLogger $audit,
@@ -32,6 +34,11 @@ final class CalendarService
     {
         if (array_filter($days, static fn (array $d): bool => $d['works']) === []) {
             throw new ValidationException(['days' => 'En az bir çalışma günü olmalı.']);
+        }
+        foreach ($days as $day => $d) {
+            if ($d['works'] && ($d['break_start'] === null) !== ($d['break_end'] === null)) {
+                throw new ValidationException(['days' => 'Öğle arasının başlangıç ve bitiş saati birlikte girilmeli (' . (self::DAY_NAMES[$day] ?? (string) $day) . ').']);
+            }
         }
         try {
             CalendarConfig::fromArray(JsonWorkCalendarRepository::toSchema($days, []));

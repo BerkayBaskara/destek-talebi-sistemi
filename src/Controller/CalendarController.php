@@ -9,11 +9,12 @@ use App\Core\Http\Response;
 use App\Exception\ValidationException;
 use App\Kernel;
 use App\Model\Enum\Role;
+use App\Service\CalendarService;
 
 /** Çalışma saatleri ve resmî tatiller (yalnız yönetici). SLA bitiş zamanları bu takvime göre hesaplanır. */
 final class CalendarController
 {
-    public const DAY_NAMES = [1 => 'Pazartesi', 2 => 'Salı', 3 => 'Çarşamba', 4 => 'Perşembe', 5 => 'Cuma', 6 => 'Cumartesi', 7 => 'Pazar'];
+    public const DAY_NAMES = CalendarService::DAY_NAMES;
 
     public function __construct(private readonly Kernel $kernel)
     {
