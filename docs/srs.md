@@ -134,8 +134,6 @@ Aşağıdaki özellikler **kapsam dışı** bırakılmıştır:
 
 *   **US-45 – Sistem Bildirimlerini Yönetme:** Yönetici olarak, sistem içerisinde gösterilecek bildirimlerin türlerini ve ilgili kurallarını yönetebilmek istiyorum; böylece kullanıcıların doğru zamanda bilgilendirilmesini sağlayabilirim.
 
-Bu hikâyeler doğrudan müşteri, personel veya yönetici etkileşimi gerektirmeyen; sistemin otomatik olarak gerçekleştirmesi gereken işlevleri tanımlar.
-
 *   **US-46 – Otomatik Talep Atama:** Sistem olarak, yeni destek taleplerini kategori hiyerarşisi, personel yetkinliği, aktiflik durumu ve mevcut iş yükünü dikkate alarak uygun personele atamalıyım; böylece talepler dengeli dağıtılmalıdır.
 
 *   **US-47 – Otomatik SLA Eskalasyonu:** Sistem olarak, SLA süresi ihlal edilen talepleri tanımlanmış eskalasyon kurallarına göre üst personele veya yöneticiye aktarmalıyım; böylece geciken taleplerin takibi sağlanmalıdır.
@@ -206,143 +204,143 @@ Bu hikâyeler doğrudan müşteri, personel veya yönetici etkileşimi gerektirm
 
 *   **FR-22 - Personel yanıt ve soru işlemleri:** Sistem, personelin aynı destek talebi kapsamında müşteriye yöneltebileceği soru sayısını yönetici tarafından yapılandırılabilir bir sınırla kısıtlamalıdır (varsayılan olarak en fazla iki soru). Personel müşteriye soru gönderdiğinde ilgili talebin SLA süresi duraklatılmalı ve müşterinin soruyu yanıtlaması için varsayılan 12 saatlik bir yanıt süresi tanımlanmalıdır. Yönetici bu yanıt süresini değiştirebilmelidir. Müşteri soruyu yanıtladığında SLA süresi duraklatıldığı noktadan itibaren kalan süre üzerinden devam etmelidir.
 
-**FR-23 – Müşteri Kaydı:** Sistem, ziyaretçilerin müşteri rolünde yeni kullanıcı hesabı oluşturabilmesine izin vermelidir. Kayıt işlemi sırasında girilen kullanıcı bilgileri doğrulanmalı ve başarılı kayıt sonrasında müşteriye benzersiz bir kullanıcı kimliği atanmalıdır.
+*   **FR-23 – Müşteri Kaydı:** Sistem, ziyaretçilerin müşteri rolünde yeni kullanıcı hesabı oluşturabilmesine izin vermelidir. Kayıt işlemi sırasında girilen kullanıcı bilgileri doğrulanmalı ve başarılı kayıt sonrasında müşteriye benzersiz bir kullanıcı kimliği atanmalıdır.
 
-**FR-24 – Personel Hesabı Oluşturma:** Sistem, personel hesaplarının yalnızca yetkili yönetici tarafından oluşturulmasına izin vermelidir. Yetkisiz kullanıcıların personel hesabı oluşturması engellenmelidir.
+*   **FR-24 – Personel Hesabı Oluşturma:** Sistem, personel hesaplarının yalnızca yetkili yönetici tarafından oluşturulmasına izin vermelidir. Yetkisiz kullanıcıların personel hesabı oluşturması engellenmelidir.
 
-**FR-25 – Yönetici Hesabı Oluşturma:** Sistem, ilk yönetici hesabının güvenli bir komut satırı (CLI) veya kurulum komutu aracılığıyla oluşturulmasını desteklemelidir. Bu işlem sırasında yönetici hesabının güvenli biçimde oluşturulması sağlanmalıdır.
+*   **FR-25 – Yönetici Hesabı Oluşturma:** Sistem, ilk yönetici hesabının güvenli bir komut satırı (CLI) veya kurulum komutu aracılığıyla oluşturulmasını desteklemelidir. Bu işlem sırasında yönetici hesabının güvenli biçimde oluşturulması sağlanmalıdır.
 
-**FR-26 – Rol Bazlı Kullanıcı Kimliği:** Sistem, müşteri, personel ve yönetici hesapları için sırasıyla M, P ve Y öneklerini kullanan benzersiz kullanıcı kimlikleri oluşturmalıdır.
+*   **FR-26 – Rol Bazlı Kullanıcı Kimliği:** Sistem, müşteri, personel ve yönetici hesapları için sırasıyla M, P ve Y öneklerini kullanan benzersiz kullanıcı kimlikleri oluşturmalıdır.
 
-**FR-27 – Güvenlik Sorusu ile Parola Kurtarma:** Sistem, kullanıcıların e-posta kullanmadan güvenlik sorusu ve cevabı aracılığıyla parola sıfırlama işlemi gerçekleştirmesine izin vermelidir.
+*   **FR-27 – Güvenlik Sorusu ile Parola Kurtarma:** Sistem, kullanıcıların e-posta kullanmadan güvenlik sorusu ve cevabı aracılığıyla parola sıfırlama işlemi gerçekleştirmesine izin vermelidir.
 
-**FR-28 – Güvenlik Sorusu Seçimi:** Sistem, parola kurtarma işlemi sırasında kullanıcının yönetici tarafından tanımlanmış güvenlik sorularından birini seçmesine veya kendi güvenlik sorusunu yazmasına izin vermelidir.
+*   **FR-28 – Güvenlik Sorusu Seçimi:** Sistem, parola kurtarma işlemi sırasında kullanıcının yönetici tarafından tanımlanmış güvenlik sorularından birini seçmesine veya kendi güvenlik sorusunu yazmasına izin vermelidir.
 
-**FR-29 – Güvenlik Sorusu Benzerlik Kontrolü:** Sistem, kullanıcının parola kurtarma sırasında girdiği güvenlik sorusunu kayıtlı güvenlik sorusuyla karşılaştırmalı ve en az %90 benzerlik sağlanması durumunda soru doğrulamasını başarılı kabul etmelidir.
+*   **FR-29 – Güvenlik Sorusu Benzerlik Kontrolü:** Sistem, kullanıcının parola kurtarma sırasında girdiği güvenlik sorusunu kayıtlı güvenlik sorusuyla karşılaştırmalı ve en az %90 benzerlik sağlanması durumunda soru doğrulamasını başarılı kabul etmelidir.
 
-**FR-30 – Güvenlik Cevabı Doğrulama:** Sistem, güvenlik sorusunun doğrulanmasının ardından kullanıcının cevabını normalize ederek kayıtlı güvenlik cevabının hash değeriyle karşılaştırmalı ve yalnızca tam eşleşme sağlandığında doğrulamayı başarılı kabul etmelidir.
+*   **FR-30 – Güvenlik Cevabı Doğrulama:** Sistem, güvenlik sorusunun doğrulanmasının ardından kullanıcının cevabını normalize ederek kayıtlı güvenlik cevabının hash değeriyle karşılaştırmalı ve yalnızca tam eşleşme sağlandığında doğrulamayı başarılı kabul etmelidir.
 
-**FR-31 – Parola Kurtarma Deneme Sınırı:** Sistem, güvenlik sorusu ve cevabıyla parola kurtarma işlemlerinde başarısız deneme sayısını sınırlandırmalı ve belirlenen sınır aşıldığında yeni denemeleri geçici olarak engellemelidir.
+*   **FR-31 – Parola Kurtarma Deneme Sınırı:** Sistem, güvenlik sorusu ve cevabıyla parola kurtarma işlemlerinde başarısız deneme sayısını sınırlandırmalı ve belirlenen sınır aşıldığında yeni denemeleri geçici olarak engellemelidir.
 
-**FR-32 – Güvenlik Sorusu Yönetimi:** Sistem, yöneticinin güvenlik sorularını eklemesine, düzenlemesine ve pasifleştirmesine izin vermelidir. Pasifleştirilen sorular yeni parola kurtarma işlemlerinde kullanılamamalıdır.
+*   **FR-32 – Güvenlik Sorusu Yönetimi:** Sistem, yöneticinin güvenlik sorularını eklemesine, düzenlemesine ve pasifleştirmesine izin vermelidir. Pasifleştirilen sorular yeni parola kurtarma işlemlerinde kullanılamamalıdır.
 
-**FR-33 – Kullanıcı Aktiflik Yönetimi:** Sistem, yöneticinin kullanıcı ve personel hesaplarının aktif veya pasif durumlarını yönetmesine izin vermelidir. Pasif durumdaki kullanıcıların sisteme giriş yapması engellenmelidir.
+*   **FR-33 – Kullanıcı Aktiflik Yönetimi:** Sistem, yöneticinin kullanıcı ve personel hesaplarının aktif veya pasif durumlarını yönetmesine izin vermelidir. Pasif durumdaki kullanıcıların sisteme giriş yapması engellenmelidir.
 
-**FR-34 – Talep Kodu Oluşturma:** Sistem, oluşturulan her destek talebi için altı karakterden oluşan benzersiz bir alfanümerik talep kodu üretmelidir.
+*   **FR-34 – Talep Kodu Oluşturma:** Sistem, oluşturulan her destek talebi için altı karakterden oluşan benzersiz bir alfanümerik talep kodu üretmelidir.
 
-**FR-35 – Dahili Talep Kimliği:** Sistem, her destek talebinin dahili sayısal kimliğini kullanıcıya gösterilen talep kodundan bağımsız olarak saklamalı ve dahili işlemlerde bu kimliği kullanmalıdır.
+*   **FR-35 – Dahili Talep Kimliği:** Sistem, her destek talebinin dahili sayısal kimliğini kullanıcıya gösterilen talep kodundan bağımsız olarak saklamalı ve dahili işlemlerde bu kimliği kullanmalıdır.
 
-**FR-36 – Dinamik Form Oluşturma:** Sistem, yöneticinin destek taleplerinde kullanılmak üzere yeni dinamik formlar oluşturmasına izin vermelidir.
+*   **FR-36 – Dinamik Form Oluşturma:** Sistem, yöneticinin destek taleplerinde kullanılmak üzere yeni dinamik formlar oluşturmasına izin vermelidir.
 
-**FR-37 – Form Alanı Yönetimi:** Sistem, yöneticinin dinamik formlara alan eklemesine, alanları düzenlemesine ve silmesine izin vermelidir. Yönetici, her alanın türünü, etiketini, zorunluluk durumunu ve doğrulama kurallarını belirleyebilmelidir.
+*   **FR-37 – Form Alanı Yönetimi:** Sistem, yöneticinin dinamik formlara alan eklemesine, alanları düzenlemesine ve silmesine izin vermelidir. Yönetici, her alanın türünü, etiketini, zorunluluk durumunu ve doğrulama kurallarını belirleyebilmelidir.
 
-**FR-38 – Kategoriye Göre Form Atama:** Sistem, yöneticinin oluşturulan dinamik formları destek talebi kategorileriyle ilişkilendirmesine izin vermelidir.
+*   **FR-38 – Kategoriye Göre Form Atama:** Sistem, yöneticinin oluşturulan dinamik formları destek talebi kategorileriyle ilişkilendirmesine izin vermelidir.
 
-**FR-39 – Dinamik Form Doldurma:** Sistem, müşteriye talep oluşturma sırasında seçilen kategoriye atanmış dinamik formu göstermeli ve müşterinin form alanlarını doldurmasına izin vermelidir.
+*   **FR-39 – Dinamik Form Doldurma:** Sistem, müşteriye talep oluşturma sırasında seçilen kategoriye atanmış dinamik formu göstermeli ve müşterinin form alanlarını doldurmasına izin vermelidir.
 
-**FR-40 – Dinamik Form Doğrulama:** Sistem, gönderilen dinamik form cevaplarını ilgili alanların tür, zorunluluk ve doğrulama kurallarına göre kontrol etmeli ve geçersiz cevaplarla talep oluşturulmasını engellemelidir.
+*   **FR-40 – Dinamik Form Doğrulama:** Sistem, gönderilen dinamik form cevaplarını ilgili alanların tür, zorunluluk ve doğrulama kurallarına göre kontrol etmeli ve geçersiz cevaplarla talep oluşturulmasını engellemelidir.
 
-**FR-41 – Form Cevaplarını Saklama:** Sistem, destek talebi oluşturulurken gönderilen dinamik form cevaplarını ilgili taleple ilişkilendirerek saklamalıdır.
+*   **FR-41 – Form Cevaplarını Saklama:** Sistem, destek talebi oluşturulurken gönderilen dinamik form cevaplarını ilgili taleple ilişkilendirerek saklamalıdır.
 
-**FR-42 – Form Sürüm Geçmişi:** Sistem, dinamik formlarda yapılan değişikliklerde önceki form sürümlerini ve bu sürümlerle oluşturulmuş taleplerin cevaplarını korumalıdır. Form değişiklikleri geçmiş taleplerin kayıtlı form yapısını değiştirmemelidir.
+*   **FR-42 – Form Sürüm Geçmişi:** Sistem, dinamik formlarda yapılan değişikliklerde önceki form sürümlerini ve bu sürümlerle oluşturulmuş taleplerin cevaplarını korumalıdır. Form değişiklikleri geçmiş taleplerin kayıtlı form yapısını değiştirmemelidir.
 
-**FR-43 – Personel Hiyerarşisi Yönetimi:** Sistem, yöneticinin kategori bazında personel hiyerarşisi oluşturmasına, görüntülemesine ve düzenlemesine izin vermelidir.
+*   **FR-43 – Personel Hiyerarşisi Yönetimi:** Sistem, yöneticinin kategori bazında personel hiyerarşisi oluşturmasına, görüntülemesine ve düzenlemesine izin vermelidir.
 
-**FR-44 – Personel Yetkinlik Yönetimi:** Sistem, yöneticinin personellerin hangi destek kategorilerinde görev alabileceğini ve hangi kategorilerde yetkin olduğunu tanımlamasına izin vermelidir.
+*   **FR-44 – Personel Yetkinlik Yönetimi:** Sistem, yöneticinin personellerin hangi destek kategorilerinde görev alabileceğini ve hangi kategorilerde yetkin olduğunu tanımlamasına izin vermelidir.
 
-**FR-45 – Personel Görev Kapasitesi:** Sistem, yöneticinin her personel için üstlenebileceği aktif görev kapasitesini belirlemesine ve düzenlemesine izin vermelidir.
+*   **FR-45 – Personel Görev Kapasitesi:** Sistem, yöneticinin her personel için üstlenebileceği aktif görev kapasitesini belirlemesine ve düzenlemesine izin vermelidir.
 
-**FR-46 – Personel İş Yükü Hesaplama:** Sistem, her personelin mevcut aktif görev sayısını hesaplamalı ve bu değeri tanımlanmış görev kapasitesiyle karşılaştırarak kapasite doluluk durumunu belirlemelidir.
+*   **FR-46 – Personel İş Yükü Hesaplama:** Sistem, her personelin mevcut aktif görev sayısını hesaplamalı ve bu değeri tanımlanmış görev kapasitesiyle karşılaştırarak kapasite doluluk durumunu belirlemelidir.
 
-**FR-47 – Personel İzin ve Müsaitlik Kontrolü:** Sistem, otomatik görev atama sırasında personelin izin ve müsaitlik durumunu kontrol etmeli ve uygun olmayan personeli normal otomatik atama sürecinin dışında tutmalıdır.
+*   **FR-47 – Personel İzin ve Müsaitlik Kontrolü:** Sistem, otomatik görev atama sırasında personelin izin ve müsaitlik durumunu kontrol etmeli ve uygun olmayan personeli normal otomatik atama sürecinin dışında tutmalıdır.
 
-**FR-48 – Hiyerarşik Otomatik Atama:** Sistem, yeni destek taleplerini ilgili kategoriye ait personel hiyerarşisine göre atamalıdır. Sistem öncelikle uygun alt personeli değerlendirmeli, uygun alt personel bulunamadığında hiyerarşideki üst personele ilerlemelidir.
+*   **FR-48 – Hiyerarşik Otomatik Atama:** Sistem, yeni destek taleplerini ilgili kategoriye ait personel hiyerarşisine göre atamalıdır. Sistem öncelikle uygun alt personeli değerlendirmeli, uygun alt personel bulunamadığında hiyerarşideki üst personele ilerlemelidir.
 
-**FR-49 – Personel Hareketsizlik Kontrolü:** Sistem, belirlenen süre boyunca aktif olmayan personelleri tanımlanmış kurallara göre otomatik olarak pasifleştirebilmelidir.
+*   **FR-49 – Personel Hareketsizlik Kontrolü:** Sistem, belirlenen süre boyunca aktif olmayan personelleri tanımlanmış kurallara göre otomatik olarak pasifleştirebilmelidir.
 
-**FR-50 – İşten Ayrılan Personelin Pasifleştirilmesi:** Sistem, yöneticinin işten ayrılan personelin hesabını pasifleştirmesine izin vermelidir. Pasifleştirilen personel yeni otomatik görev atamalarında değerlendirilmemelidir.
+*   **FR-50 – İşten Ayrılan Personelin Pasifleştirilmesi:** Sistem, yöneticinin işten ayrılan personelin hesabını pasifleştirmesine izin vermelidir. Pasifleştirilen personel yeni otomatik görev atamalarında değerlendirilmemelidir.
 
-**FR-51 – Manuel Görev Atama:** Sistem, yetkili yöneticinin destek taleplerini otomatik atama kurallarından bağımsız olarak istediği uygun personele manuel biçimde atamasına izin vermelidir.
+*   **FR-51 – Manuel Görev Atama:** Sistem, yetkili yöneticinin destek taleplerini otomatik atama kurallarından bağımsız olarak istediği uygun personele manuel biçimde atamasına izin vermelidir.
 
-**FR-52 – Kapasite İstisnası ile Görev Atama:** Sistem, yöneticinin kapasitesi dolmuş personele istisnai olarak yeni görev ataması yapmasına izin vermelidir. Bu işlem sırasında yönetici tarafından belirtilen gerekçe ve atama bilgileri kayıt altına alınmalıdır.
+*   **FR-52 – Kapasite İstisnası ile Görev Atama:** Sistem, yöneticinin kapasitesi dolmuş personele istisnai olarak yeni görev ataması yapmasına izin vermelidir. Bu işlem sırasında yönetici tarafından belirtilen gerekçe ve atama bilgileri kayıt altına alınmalıdır.
 
-**FR-53 – Kategori Bazlı SLA Yapılandırması:** Sistem, yöneticinin destek kategorileri için ayrı SLA kuralları tanımlamasına ve mevcut kuralları düzenlemesine izin vermelidir.
+*   **FR-53 – Kategori Bazlı SLA Yapılandırması:** Sistem, yöneticinin destek kategorileri için ayrı SLA kuralları tanımlamasına ve mevcut kuralları düzenlemesine izin vermelidir.
 
-**FR-54 – SLA İhlali Takibi:** Sistem, zamanlanmış görevler aracılığıyla destek taleplerinin SLA sürelerini düzenli olarak kontrol etmeli ve süresi dolan talepleri tespit etmelidir.
+*   **FR-54 – SLA İhlali Takibi:** Sistem, zamanlanmış görevler aracılığıyla destek taleplerinin SLA sürelerini düzenli olarak kontrol etmeli ve süresi dolan talepleri tespit etmelidir.
 
-**FR-55 – Manuel Eskalasyon:** Sistem, personelin bir destek talebini gerekçe belirterek üst personele veya yöneticiye manuel olarak eskale etmesine izin vermelidir.
+*   **FR-55 – Manuel Eskalasyon:** Sistem, personelin bir destek talebini gerekçe belirterek üst personele veya yöneticiye manuel olarak eskale etmesine izin vermelidir.
 
-**FR-56 – Eskalasyon Ataması:** Sistem, otomatik veya manuel eskalasyon sırasında ilgili kategoriye ait personel hiyerarşisini kullanarak uygun üst personeli belirlemeli ve destek talebini bu personele aktarmalıdır.
+*   **FR-56 – Eskalasyon Ataması:** Sistem, otomatik veya manuel eskalasyon sırasında ilgili kategoriye ait personel hiyerarşisini kullanarak uygun üst personeli belirlemeli ve destek talebini bu personele aktarmalıdır.
 
-**FR-57 – Uygun Personel Bulunamaması:** Sistem, eskalasyon sürecinde uygun personel bulunamadığında destek talebini yönetici müdahalesi için bekleyen talep havuzunda tutmalı ve yöneticiye uygulama içi bildirim oluşturmalıdır.
+*   **FR-57 – Uygun Personel Bulunamaması:** Sistem, eskalasyon sürecinde uygun personel bulunamadığında destek talebini yönetici müdahalesi için bekleyen talep havuzunda tutmalı ve yöneticiye uygulama içi bildirim oluşturmalıdır.
 
-**FR-58 – Eskalasyon Geçmişi:** Sistem, her eskalasyon işleminde işlem nedenini, önceki sorumlu personeli, yeni sorumlu personeli ve işlem tarihini kaydetmelidir. Eskalasyonla ilişkili SLA bilgileri de talep geçmişinde korunmalıdır.
+*   **FR-58 – Eskalasyon Geçmişi:** Sistem, her eskalasyon işleminde işlem nedenini, önceki sorumlu personeli, yeni sorumlu personeli ve işlem tarihini kaydetmelidir. Eskalasyonla ilişkili SLA bilgileri de talep geçmişinde korunmalıdır.
 
-**FR-59 – Ek SLA Kaydı:** Sistem, eskalasyon veya müşteri çözüm itirazı sonucunda oluşturulan ek SLA sürelerini ilk SLA kaydından ayrı olarak saklamalı ve önceki SLA kayıtlarını korumalıdır.
+*   **FR-59 – Ek SLA Kaydı:** Sistem, eskalasyon veya müşteri çözüm itirazı sonucunda oluşturulan ek SLA sürelerini ilk SLA kaydından ayrı olarak saklamalı ve önceki SLA kayıtlarını korumalıdır.
 
-**FR-60 – Talep Yanıt Yetkisi Kontrolü:** Sistem, SLA süresi dolmuş veya çözüldü durumundaki destek taleplerine personel tarafından yeni yanıt gönderilmesini engellemelidir.
+*   **FR-60 – Talep Yanıt Yetkisi Kontrolü:** Sistem, SLA süresi dolmuş veya çözüldü durumundaki destek taleplerine personel tarafından yeni yanıt gönderilmesini engellemelidir.
 
-**FR-61 – Çözüm Onayı Sürecini Başlatma:** Sistem, personel tarafından çözüldü durumuna getirilen destek taleplerini müşteri çözüm onayı sürecine aktarmalı ve müşteriye geri bildirimde bulunabileceği bir arayüz sunmalıdır.
+*   **FR-61 – Çözüm Onayı Sürecini Başlatma:** Sistem, personel tarafından çözüldü durumuna getirilen destek taleplerini müşteri çözüm onayı sürecine aktarmalı ve müşteriye geri bildirimde bulunabileceği bir arayüz sunmalıdır.
 
-**FR-62 – Müşteri Çözüm Geri Bildirimi:** Sistem, müşterinin çözülen destek talebi için çözümün işe yarayıp yaramadığını belirtmesine izin vermelidir.
+*   **FR-62 – Müşteri Çözüm Geri Bildirimi:** Sistem, müşterinin çözülen destek talebi için çözümün işe yarayıp yaramadığını belirtmesine izin vermelidir.
 
-**FR-63 – Aynı Personelle Devam Etme veya Personel Değiştirme:** Sistem, müşteri çözümü reddettiğinde müşteriye aynı personelle devam etme veya başka bir personel isteme seçeneklerini sunmalıdır. Müşterinin seçimi ilgili görev yönetimi sürecine aktarılmalıdır.
+*   **FR-63 – Aynı Personelle Devam Etme veya Personel Değiştirme:** Sistem, müşteri çözümü reddettiğinde müşteriye aynı personelle devam etme veya başka bir personel isteme seçeneklerini sunmalıdır. Müşterinin seçimi ilgili görev yönetimi sürecine aktarılmalıdır.
 
-**FR-64 – Çözüm İtirazında Eskalasyon:** Sistem, müşterinin başka personel istemesi durumunda destek talebini ilgili personel hiyerarşisine göre uygun üst personele eskale etmelidir.
+*   **FR-64 – Çözüm İtirazında Eskalasyon:** Sistem, müşterinin başka personel istemesi durumunda destek talebini ilgili personel hiyerarşisine göre uygun üst personele eskale etmelidir.
 
-**FR-65 – Müşteri Yanıt Süresi Sonunda Otomatik Tamamlama:** Sistem, çözüme sunulan destek talebi için müşteri tarafından belirlenen yanıt süresi içinde geri bildirim verilmemesi durumunda talebi yapılandırılmış süre sonunda otomatik olarak tamamlamalıdır. Varsayılan otomatik tamamlama süresi üç gün olmalıdır.
+*   **FR-65 – Müşteri Yanıt Süresi Sonunda Otomatik Tamamlama:** Sistem, çözüme sunulan destek talebi için müşteri tarafından belirlenen yanıt süresi içinde geri bildirim verilmemesi durumunda talebi yapılandırılmış süre sonunda otomatik olarak tamamlamalıdır. Varsayılan otomatik tamamlama süresi üç gün olmalıdır.
 
-**FR-66 – Otomatik Tamamlama Süresi Yönetimi:** Sistem, yöneticinin müşteri çözüm geri bildirimi için tanımlanan otomatik tamamlama süresini görüntülemesine ve değiştirmesine izin vermelidir.
+*   **FR-66 – Otomatik Tamamlama Süresi Yönetimi:** Sistem, yöneticinin müşteri çözüm geri bildirimi için tanımlanan otomatik tamamlama süresini görüntülemesine ve değiştirmesine izin vermelidir.
 
-**FR-67 – İtiraz ve Yeniden Atama Ek SLA Hesaplama:** Sistem, müşteri çözüm itirazı veya yeniden görevlendirme sonucunda oluşturulacak ek SLA süresini ilk SLA süresinin varsayılan olarak üçte biri üzerinden hesaplamalıdır. Yönetici bu oranı değiştirebilmelidir.
+*   **FR-67 – İtiraz ve Yeniden Atama Ek SLA Hesaplama:** Sistem, müşteri çözüm itirazı veya yeniden görevlendirme sonucunda oluşturulacak ek SLA süresini ilk SLA süresinin varsayılan olarak üçte biri üzerinden hesaplamalıdır. Yönetici bu oranı değiştirebilmelidir.
 
-**FR-68 – Çözülemez Olarak Kapatma:** Sistem, yöneticinin çözüme ulaştırılamayan destek taleplerini gerekçe belirterek çözülemez olarak kapatmasına izin vermelidir. Gerekçe girilmeden bu işlem gerçekleştirilememelidir.
+*   **FR-68 – Çözülemez Olarak Kapatma:** Sistem, yöneticinin çözüme ulaştırılamayan destek taleplerini gerekçe belirterek çözülemez olarak kapatmasına izin vermelidir. Gerekçe girilmeden bu işlem gerçekleştirilememelidir.
 
-**FR-69 – Kapanış Türünü Kaydetme:** Sistem, çözülemez olarak kapatılan talepleri normal tamamlanan taleplerden ayrı bir kapanış türüyle kaydetmelidir. Çözülemez olarak kapatılan talepler müşteriler tarafından yeniden açılamamalıdır.
+*   **FR-69 – Kapanış Türünü Kaydetme:** Sistem, çözülemez olarak kapatılan talepleri normal tamamlanan taleplerden ayrı bir kapanış türüyle kaydetmelidir. Çözülemez olarak kapatılan talepler müşteriler tarafından yeniden açılamamalıdır.
 
-**FR-70 – Yeni Atama Bildirimleri:** Sistem, bir destek talebi personele atandığında ilgili personele uygulama içi bildirim oluşturmalıdır.
+*   **FR-70 – Yeni Atama Bildirimleri:** Sistem, bir destek talebi personele atandığında ilgili personele uygulama içi bildirim oluşturmalıdır.
 
-**FR-71 – SLA Bildirimleri:** Sistem, destek taleplerinin SLA uyarı ve ihlal durumlarında ilgili kullanıcılara uygulama içi bildirim oluşturmalıdır.
+*   **FR-71 – SLA Bildirimleri:** Sistem, destek taleplerinin SLA uyarı ve ihlal durumlarında ilgili kullanıcılara uygulama içi bildirim oluşturmalıdır.
 
-**FR-72 – Eskalasyon ve Çözüm Bildirimleri:** Sistem, destek taleplerinin eskale edilmesi veya müşteri çözüm onayı sürecinin başlatılması durumunda ilgili kullanıcılara uygulama içi bildirim oluşturmalıdır.
+*   **FR-72 – Eskalasyon ve Çözüm Bildirimleri:** Sistem, destek taleplerinin eskale edilmesi veya müşteri çözüm onayı sürecinin başlatılması durumunda ilgili kullanıcılara uygulama içi bildirim oluşturmalıdır.
 
-**FR-73 – Yönetici Müdahale Bildirimleri:** Sistem, yönetici müdahalesi gerektiren bekleyen eskalasyon ve işlemler için yöneticilere uygulama içi bildirim oluşturmalıdır.
+*   **FR-73 – Yönetici Müdahale Bildirimleri:** Sistem, yönetici müdahalesi gerektiren bekleyen eskalasyon ve işlemler için yöneticilere uygulama içi bildirim oluşturmalıdır.
 
-**FR-74 – Bildirim Yönetimi:** Sistem, kullanıcıların kendilerine gönderilen bildirimleri görüntülemesine ve bildirimlerin okundu veya okunmadı durumlarını yönetmesine izin vermelidir.
+*   **FR-74 – Bildirim Yönetimi:** Sistem, kullanıcıların kendilerine gönderilen bildirimleri görüntülemesine ve bildirimlerin okundu veya okunmadı durumlarını yönetmesine izin vermelidir.
 
-**FR-75 – Site Kimliği Yönetimi:** Sistem, yöneticinin site adını ve logosunu yönetim paneli üzerinden değiştirmesine izin vermelidir. Yapılan değişiklikler sistemin ilgili arayüzlerinde görüntülenmelidir.
+*   **FR-75 – Site Kimliği Yönetimi:** Sistem, yöneticinin site adını ve logosunu yönetim paneli üzerinden değiştirmesine izin vermelidir. Yapılan değişiklikler sistemin ilgili arayüzlerinde görüntülenmelidir.
 
-**FR-76 – Ana Sayfa İçerik Yönetimi:** Sistem, yöneticinin ana sayfada kullanılan görselleri ve metinleri yönetim paneli üzerinden eklemesine, düzenlemesine ve kaldırmasına izin vermelidir.
+*   **FR-76 – Ana Sayfa İçerik Yönetimi:** Sistem, yöneticinin ana sayfada kullanılan görselleri ve metinleri yönetim paneli üzerinden eklemesine, düzenlemesine ve kaldırmasına izin vermelidir.
 
-**FR-77 – Öncelik Yönetimi:** Sistem, yöneticinin destek talebi önceliklerini ve bu önceliklere bağlı varsayılan SLA sürelerini yönetmesine izin vermelidir.
+*   **FR-77 – Öncelik Yönetimi:** Sistem, yöneticinin destek talebi önceliklerini ve bu önceliklere bağlı varsayılan SLA sürelerini yönetmesine izin vermelidir.
 
-**FR-78 – Kategori ve Personel Yönetimi:** Sistem, yöneticinin destek kategorilerini ve personel hesaplarını oluşturmasına, görüntülemesine, düzenlemesine ve gerekli durumlarda pasifleştirmesine izin vermelidir.
+*   **FR-78 – Kategori ve Personel Yönetimi:** Sistem, yöneticinin destek kategorilerini ve personel hesaplarını oluşturmasına, görüntülemesine, düzenlemesine ve gerekli durumlarda pasifleştirmesine izin vermelidir.
 
-**FR-79 – Sistem Parametreleri Yönetimi:** Sistem, yöneticinin dosya yükleme limitlerini ve otomatik talep tamamlama süresini yönetim paneli üzerinden yapılandırmasına izin vermelidir.
+*   **FR-79 – Sistem Parametreleri Yönetimi:** Sistem, yöneticinin dosya yükleme limitlerini ve otomatik talep tamamlama süresini yönetim paneli üzerinden yapılandırmasına izin vermelidir.
 
-**FR-80 – Ayrıntılı Raporlama:** Sistem, destek taleplerine, personel performansına, SLA süreçlerine ve eskalasyon işlemlerine ilişkin ayrıntılı raporlar oluşturmalıdır.
+*   **FR-80 – Ayrıntılı Raporlama:** Sistem, destek taleplerine, personel performansına, SLA süreçlerine ve eskalasyon işlemlerine ilişkin ayrıntılı raporlar oluşturmalıdır.
 
-**FR-81 – Rapor Filtreleme:** Sistem, yetkili kullanıcıların raporları tarih aralığı, talep durumu, öncelik, kategori ve personel gibi filtre ölçütlerine göre görüntülemesine izin vermelidir.
+*   **FR-81 – Rapor Filtreleme:** Sistem, yetkili kullanıcıların raporları tarih aralığı, talep durumu, öncelik, kategori ve personel gibi filtre ölçütlerine göre görüntülemesine izin vermelidir.
 
-**FR-82 – CSV Dışa Aktarma:** Sistem, yetkili yöneticilerin görüntülenen rapor verilerini CSV formatında dışa aktarmasına izin vermelidir.
+*   **FR-82 – CSV Dışa Aktarma:** Sistem, yetkili yöneticilerin görüntülenen rapor verilerini CSV formatında dışa aktarmasına izin vermelidir.
 
-**FR-83 – Canlı Rapor Güncelleme:** Sistem, rapor ekranlarında görüntülenen verilerin sunucu tarafından gönderilen SSE (Server-Sent Events) olayları aracılığıyla canlı olarak güncellenmesini sağlamalıdır.
+*   **FR-83 – Canlı Rapor Güncelleme:** Sistem, rapor ekranlarında görüntülenen verilerin sunucu tarafından gönderilen SSE (Server-Sent Events) olayları aracılığıyla canlı olarak güncellenmesini sağlamalıdır.
 
-**FR-84 – İlişkisel Veritabanı Kullanımı:** Sistem, uygulama verilerinin kalıcı olarak saklanması için MySQL veya MariaDB ilişkisel veritabanlarından birini kullanmalıdır.
+*   **FR-84 – İlişkisel Veritabanı Kullanımı:** Sistem, uygulama verilerinin kalıcı olarak saklanması için MySQL veya MariaDB ilişkisel veritabanlarından birini kullanmalıdır.
 
-**FR-85 – JSON Verilerinin Veritabanına Aktarılması:** Sistem, mevcut JSON dosyalarında saklanan verilerin MySQL veya MariaDB veritabanına aktarılmasını desteklemelidir. Aktarım sırasında mevcut kayıtların ve aralarındaki ilişkilerin korunması sağlanmalıdır.
+*   **FR-85 – JSON Verilerinin Veritabanına Aktarılması:** Sistem, mevcut JSON dosyalarında saklanan verilerin MySQL veya MariaDB veritabanına aktarılmasını desteklemelidir. Aktarım sırasında mevcut kayıtların ve aralarındaki ilişkilerin korunması sağlanmalıdır.
 
-**FR-86 – Veritabanı Migration Yönetimi:** Sistem, veritabanı tablolarının oluşturulması ve şema değişikliklerinin uygulanması için migration mekanizması sağlamalıdır.
+*   **FR-86 – Veritabanı Migration Yönetimi:** Sistem, veritabanı tablolarının oluşturulması ve şema değişikliklerinin uygulanması için migration mekanizması sağlamalıdır.
 
-**FR-87 – Veri Yedekleme:** Sistem, yetkili yöneticinin uygulama verilerinin ve gerekli veritabanı kayıtlarının yedeğini oluşturmasına izin vermelidir.
+*   **FR-87 – Veri Yedekleme:** Sistem, yetkili yöneticinin uygulama verilerinin ve gerekli veritabanı kayıtlarının yedeğini oluşturmasına izin vermelidir.
 
-**FR-88 – Veri Geri Yükleme:** Sistem, yetkili yöneticinin oluşturulmuş yedeklerden sistem verilerini geri yüklemesine izin vermelidir.
+*   **FR-88 – Veri Geri Yükleme:** Sistem, yetkili yöneticinin oluşturulmuş yedeklerden sistem verilerini geri yüklemesine izin vermelidir.
 
-**FR-89 – Zamanlanmış Görev Yönetimi:** Sistem, SLA kontrolü, otomatik eskalasyon, müşteri yanıt süresi kontrolü, otomatik talep tamamlama ve personel pasifleştirme gibi zamanlanmış işlemleri otomatik olarak çalıştırmalıdır.
+*   **FR-89 – Zamanlanmış Görev Yönetimi:** Sistem, SLA kontrolü, otomatik eskalasyon, müşteri yanıt süresi kontrolü, otomatik talep tamamlama ve personel pasifleştirme gibi zamanlanmış işlemleri otomatik olarak çalıştırmalıdır.
 
-**FR-90 – Zamanlanmış Görev Çakışmalarının Önlenmesi:** Sistem, aynı zamanlanmış görevin eşzamanlı olarak birden fazla kez çalışmasını ve aynı işlemin birden fazla kez uygulanmasını engellemelidir.
+*   **FR-90 – Zamanlanmış Görev Çakışmalarının Önlenmesi:** Sistem, aynı zamanlanmış görevin eşzamanlı olarak birden fazla kez çalışmasını ve aynı işlemin birden fazla kez uygulanmasını engellemelidir.
 
-**FR-91 – Denetim Kayıtları:** Sistem, kritik kullanıcı işlemlerini ve yönetici tarafından gerçekleştirilen sistem ayarı değişikliklerini denetim kayıtlarına kaydetmelidir. Kayıtlarda işlemi gerçekleştiren kullanıcı, işlem türü, işlem zamanı ve ilgili işlem bilgileri tutulmalıdır.
+*   **FR-91 – Denetim Kayıtları:** Sistem, kritik kullanıcı işlemlerini ve yönetici tarafından gerçekleştirilen sistem ayarı değişikliklerini denetim kayıtlarına kaydetmelidir. Kayıtlarda işlemi gerçekleştiren kullanıcı, işlem türü, işlem zamanı ve ilgili işlem bilgileri tutulmalıdır.
 
 
 ## 10. İşlevsel Olmayan Gereksinimler (Non-Functional Requirements - NFR)
