@@ -156,12 +156,17 @@ final class TicketService
                 }
                 continue;
             }
+            $max = $field['max_length'] ?? 200;
             if ($field['type'] === 'number' && !is_numeric($value)) {
                 $errors[$key] = $field['label'] . ' alanı sayı olmalı.';
             } elseif ($field['type'] === 'date' && (\DateTimeImmutable::createFromFormat('!Y-m-d', $value) === false)) {
                 $errors[$key] = $field['label'] . ' alanı geçerli bir tarih olmalı.';
-            } elseif (Text::length($value) > 200) {
-                $errors[$key] = $field['label'] . ' en fazla 200 karakter olabilir.';
+            } elseif ($field['type'] === 'select' && !in_array($value, $field['options'], true)) {
+                $errors[$key] = $field['label'] . ' için listeden bir seçenek seçin.';
+            } elseif ($field['type'] === 'email' && filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                $errors[$key] = $field['label'] . ' geçerli bir e-posta adresi olmalı.';
+            } elseif (Text::length($value) > $max) {
+                $errors[$key] = $field['label'] . ' en fazla ' . $max . ' karakter olabilir.';
             }
             $values[$field['label']] = $value;
         }

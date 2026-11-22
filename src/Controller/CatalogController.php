@@ -31,10 +31,11 @@ final class CatalogController
     {
         $admin = $this->kernel->requireRole(Role::Admin);
         $name = $request->string('name');
+        $parent = (int) $request->string('parent_id');
         try {
-            $this->kernel->catalogService()->createCategory($admin, $name);
+            $this->kernel->catalogService()->createCategory($admin, $name, $parent > 0 ? $parent : null);
         } catch (ValidationException $e) {
-            return $this->categoriesView(['new' => ['name' => $name]], ['new' => $e->errors()], 422);
+            return $this->categoriesView(['new' => ['name' => $name, 'parent_id' => (string) $parent]], ['new' => $e->errors()], 422);
         }
 
         return $this->saved('/yonetici/kategoriler');
@@ -58,7 +59,7 @@ final class CatalogController
     {
         $admin = $this->kernel->requireRole(Role::Admin);
         try {
-            $this->kernel->catalogService()->addField($admin, $categoryId, $request->string('label'), $request->string('type'), $request->string('required') === '1');
+            $this->kernel->catalogService()->addField($admin, $categoryId, $request->string('label'), $request->string('type'), $request->string('required') === '1', $request->string('options'), $request->string('max_length'));
         } catch (ValidationException $e) {
             return $this->categoriesView([], ['field-' . $categoryId => $e->errors()], 422);
         }
@@ -219,6 +220,7 @@ final class CatalogController
         return $this->kernel->render('admin/config/categories', [
             'title' => 'Kategoriler',
             'fields' => $fields,
+            'labels' => $this->kernel->catalogService()->labels(),
             'fieldTypes' => \App\Service\CatalogService::FIELD_TYPES,
             'categories' => $this->kernel->categoryRepository()->findAll(),
             'old' => $old,

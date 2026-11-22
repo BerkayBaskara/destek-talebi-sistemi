@@ -31,15 +31,17 @@ final class JsonCategoryFieldRepository implements CategoryFieldRepositoryInterf
                 'label' => (string) ($row['label'] ?? ''),
                 'type' => (string) ($row['type'] ?? 'text'),
                 'required' => (bool) ($row['required'] ?? false),
+                'options' => array_values(array_map('strval', is_array($row['options'] ?? null) ? $row['options'] : [])),
+                'max_length' => isset($row['max_length']) ? (int) $row['max_length'] : null,
             ];
         }
 
         return $list;
     }
 
-    public function add(int $categoryId, string $label, string $type, bool $required): int
+    public function add(int $categoryId, string $label, string $type, bool $required, array $options = [], ?int $maxLength = null): int
     {
-        return $this->store->insert(self::TABLE, ['category_id' => $categoryId, 'label' => $label, 'type' => $type, 'required' => $required]);
+        return $this->store->insert(self::TABLE, ['category_id' => $categoryId, 'label' => $label, 'type' => $type, 'required' => $required, 'options' => $options, 'max_length' => $maxLength]);
     }
 
     public function remove(int $id): void

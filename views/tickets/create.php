@@ -5,10 +5,11 @@
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
 /** @var int $maxFiles */
-/** @var list<array{id: int, category_id: int, label: string, type: string, required: bool}> $extraFields */
+/** @var list<array{id: int, category_id: int, label: string, type: string, required: bool, options: list<string>, max_length: ?int}> $extraFields */
 /** @var array<mixed> $oldExtra */
 /** @var list<\App\Model\User> $customers */
 /** @var string $oldCustomer */
+/** @var array<int, string> $categoryLabels */
 /** @var int $maxImageMb */
 /** @var int $maxVideoMb */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
@@ -36,7 +37,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <select id="category_id" name="category_id" required>
                 <option value="">Seçiniz</option>
                 <?php foreach ($categories as $category): ?>
-                    <option value="<?= e($category->id) ?>"<?= ($old['category_id'] ?? '') === (string) $category->id ? ' selected' : '' ?>><?= e($category->name) ?></option>
+                    <option value="<?= e($category->id) ?>"<?= ($old['category_id'] ?? '') === (string) $category->id ? ' selected' : '' ?>><?= e($categoryLabels[(int) $category->id] ?? $category->name) ?></option>
                 <?php endforeach; ?>
             </select>
             <?= $fieldError('category_id') ?>
@@ -56,7 +57,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             $categoryName = '';
             foreach ($categories as $category) {
                 if ((int) $category->id === $field['category_id']) {
-                    $categoryName = $category->name;
+                    $categoryName = $categoryLabels[(int) $category->id] ?? $category->name;
                 }
             }
             if ($categoryName === '') {
@@ -66,7 +67,16 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             ?>
             <div class="form-row extra-field" data-category="<?= e($field['category_id']) ?>">
                 <label for="extra-<?= e($fid) ?>"><?= e($field['label']) ?><?= $field['required'] ? '' : ' (isteğe bağlı)' ?> <span class="muted extra-field-category">· <?= e($categoryName) ?></span></label>
-                <input type="<?= $field['type'] === 'number' ? 'number' : ($field['type'] === 'date' ? 'date' : 'text') ?>" id="extra-<?= e($fid) ?>" name="extra[<?= e($fid) ?>]" maxlength="200" value="<?= e(is_string($value) ? $value : '') ?>">
+                <?php if ($field['type'] === 'select'): ?>
+                    <select id="extra-<?= e($fid) ?>" name="extra[<?= e($fid) ?>]">
+                        <option value="">Seçiniz</option>
+                        <?php foreach ($field['options'] as $option): ?>
+                            <option value="<?= e($option) ?>"<?= $value === $option ? ' selected' : '' ?>><?= e($option) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                <?php else: ?>
+                    <input type="<?= ['number' => 'number', 'date' => 'date', 'email' => 'email'][$field['type']] ?? 'text' ?>" id="extra-<?= e($fid) ?>" name="extra[<?= e($fid) ?>]" maxlength="<?= e($field['max_length'] ?? 200) ?>" value="<?= e(is_string($value) ? $value : '') ?>">
+                <?php endif; ?>
                 <?= $fieldError('extra_' . $fid) ?>
             </div>
         <?php endforeach; ?>

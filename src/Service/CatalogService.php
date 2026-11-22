@@ -30,10 +30,25 @@ final class CatalogService
     ) {
     }
 
-    public const FIELD_TYPES = ['text' => 'Metin', 'number' => 'Sayı', 'date' => 'Tarih'];
+    public const FIELD_TYPES = ['text' => 'Metin', 'number' => 'Sayı', 'date' => 'Tarih', 'select' => 'Seçim listesi', 'email' => 'E-posta'];
+
+    /** @return array<int, string> kategori id → ekranda gösterilen ad ("Ana › Alt") */
+    public function labels(): array
+    {
+        $byId = [];
+        foreach ($this->categories->findAll() as $category) {
+            $byId[(int) $category->id] = $category;
+        }
+        $labels = [];
+        foreach ($byId as $id => $category) {
+            $labels[$id] = $category->pathLabel($byId);
+        }
+
+        return $labels;
+    }
 
     /** Kategoriye ek talep alanı ekler (FR-01). @throws ValidationException */
-    public function addField(User $admin, int $categoryId, string $label, string $type, bool $required): int
+    public function addField(User $admin, int $categoryId, string $label, string $type, bool $required, string $options = '', string $maxLength = ''): int
     {
         if ($this->categories->findById($categoryId) === null) {
             throw new NotFoundException('Kategori bulunamadı.');
@@ -46,11 +61,19 @@ final class CatalogService
         if (!isset(self::FIELD_TYPES[$type])) {
             $errors['field_type'] = 'Geçerli bir alan türü seçin.';
         }
+        $choices = array_values(array_unique(array_filter(array_map('trim', explode(',', $options)), static fn (string $o): bool => $o !== '')));
+        if ($type === 'select' && $choices === []) {
+            $errors['field_options'] = 'Seçim alanı için en az bir seçenek yazın.';
+        }
+        $max = trim($maxLength);
+        if ($max !== '' && (preg_match('/^\d+$/', $max) !== 1 || (int) $max < 1 || (int) $max > 200)) {
+            $errors['field_max_length'] = 'En fazla uzunluk 1 ile 200 arasında olmalı.';
+        }
         if ($errors !== [] || $this->fields === null) {
             throw new ValidationException($errors);
         }
-        $id = $this->fields->add($categoryId, $label, $type, $required);
-        $this->audit->record($admin, 'create', 'category_field', $id, null, ['category_id' => $categoryId, 'label' => $label, 'type' => $type, 'required' => $required]);
+        $id = $this->fields->add($categoryId, $label, $type, $required, $type === 'select' ? $choices : [], $max !== '' ? (int) $max : null);
+        $this->audit->record($admin, 'create', 'category_field', $id, null, ['category_id' => $categoryId, 'label' => $label, 'type' => $type, 'required' => $required, 'options' => $choices, 'max_length' => $max]);
 
         return $id;
     }
@@ -68,10 +91,16 @@ final class CatalogService
     }
 
     /** @throws ValidationException */
-    public function createCategory(User $admin, string $name): Category
+    public function createCategory(User $admin, string $name, ?int $parentId = null): Category
     {
         $name = $this->validName(null, $name);
-        $category = $this->categories->save(new Category(null, $name));
+        if ($parentId !== null) {
+            $parent = $this->categories->findById($parentId);
+            if ($parent === null || $parent->parentId !== null) {
+                throw new ValidationException(['parent_id' => 'Alt kategori yalnız ana kategorinin altına eklenebilir.']);
+            }
+        }
+        $category = $this->categories->save(new Category(null, $name, true, $parentId));
         $this->audit->record($admin, 'create', 'category', $category->id, null, $category->toArray());
 
         return $category;
@@ -91,7 +120,7 @@ final class CatalogService
         }
 
         $old = $current->toArray();
-        $category = $this->categories->save(new Category($id, $name, $active));
+        $category = $this->categories->save(new Category($id, $name, $active, $current->parentId));
         $this->audit->record($admin, $active ? 'update' : 'deactivate', 'category', $id, $old, $category->toArray());
 
         return $category;

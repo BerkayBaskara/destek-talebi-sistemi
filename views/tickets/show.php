@@ -11,6 +11,7 @@
 /** @var list<string> $actions */
 /** @var bool $canReply */
 /** @var bool $canEscalate */
+/** @var string $categoryLabel */
 /** @var bool $canAsk */
 /** @var int $questionsLeft */
 /** @var list<array{agent: \App\Model\User, load: int, capacity: int}> $assignableAgents */
@@ -46,7 +47,7 @@ $closureReasons = [
             <?php if ($viewer->role !== Role::Customer): ?>
                 <div><dt>Müşteri</dt><dd><?= e($names[$ticket->creatorId] ?? '-') ?></dd></div>
             <?php endif; ?>
-            <div><dt>Kategori</dt><dd><?= e($category->name ?? '-') ?></dd></div>
+            <div><dt>Kategori</dt><dd><?= e($categoryLabel) ?></dd></div>
             <div><dt>Öncelik</dt><dd><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></dd></div>
             <div><dt>Oluşturulma Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>
             <div><dt>Başlangıç Tarihi</dt><dd><?= e($date($ticket->createdAt)) ?></dd></div>

@@ -3,7 +3,8 @@
 /** @var array<int|string, array<string, string>> $old */
 /** @var array<int|string, array<string, string>> $errors */
 /** @var callable $csrfField */
-/** @var array<int, list<array{id: int, category_id: int, label: string, type: string, required: bool}>> $fields */
+/** @var array<int, list<array{id: int, category_id: int, label: string, type: string, required: bool, options: list<string>, max_length: ?int}>> $fields */
+/** @var array<int, string> $labels */
 /** @var array<string, string> $fieldTypes */
 $fieldError = static fn (string $row, string $f): string => isset($errors[$row][$f]) ? '<div class="field-error">' . e($errors[$row][$f]) . '</div>' : '';
 ?>
@@ -22,7 +23,7 @@ $fieldError = static fn (string $row, string $f): string => isset($errors[$row][
                 $active = isset($old[$row]) ? ($old[$row]['active'] ?? '') === '1' : $category->active;
                 ?>
                 <tr>
-                    <td data-label="No"><?= e($category->id) ?></td>
+                    <td data-label="No"><?= e($category->id) ?><?= $category->parentId !== null ? '<div class="muted">' . e($labels[$category->parentId] ?? '') . ' altında</div>' : '' ?></td>
                     <td data-label="Ad">
                         <form id="<?= e($form) ?>" method="post" action="/yonetici/kategoriler/<?= e($row) ?>"><?= $csrfField() ?></form>
                         <label class="sr-only" for="<?= e($form) ?>-name">Kategori adı</label>
@@ -49,6 +50,18 @@ $fieldError = static fn (string $row, string $f): string => isset($errors[$row][
             <input type="text" id="new-name" name="name" maxlength="60" value="<?= e($old['new']['name'] ?? '') ?>" required>
             <?= $fieldError('new', 'name') ?>
         </div>
+        <div class="form-row">
+            <label for="new-parent">Ana kategori (alt kategori eklemek için seçin)</label>
+            <select id="new-parent" name="parent_id">
+                <option value="">Yok (ana kategori)</option>
+                <?php foreach ($categories as $parent): ?>
+                    <?php if ($parent->parentId === null): ?>
+                        <option value="<?= e($parent->id) ?>"<?= ($old['new']['parent_id'] ?? '') === (string) $parent->id ? ' selected' : '' ?>><?= e($parent->name) ?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+            <?= $fieldError('new', 'parent_id') ?>
+        </div>
         <button type="submit" class="btn">Ekle</button>
     </form>
 </section>
@@ -58,14 +71,14 @@ $fieldError = static fn (string $row, string $f): string => isset($errors[$row][
     <?php foreach ($categories as $category): ?>
         <?php $c = (int) $category->id; $fe = $errors['field-' . $c] ?? []; ?>
         <div class="field-block">
-            <h3><?= e($category->name) ?></h3>
+            <h3><?= e($labels[$c] ?? $category->name) ?></h3>
             <?php if (($fields[$c] ?? []) === []): ?>
                 <p class="muted">Ek alan yok.</p>
             <?php else: ?>
                 <ul class="plain">
                     <?php foreach ($fields[$c] as $field): ?>
                         <li>
-                            <?= e($field['label']) ?> <span class="muted">(<?= e($fieldTypes[$field['type']] ?? $field['type']) ?><?= $field['required'] ? ', zorunlu' : '' ?>)</span>
+                            <?= e($field['label']) ?> <span class="muted">(<?= e($fieldTypes[$field['type']] ?? $field['type']) ?><?= $field['options'] !== [] ? ': ' . e(implode(', ', $field['options'])) : '' ?><?= $field['max_length'] !== null ? ', en fazla ' . e($field['max_length']) . ' karakter' : '' ?><?= $field['required'] ? ', zorunlu' : '' ?>)</span>
                             <form method="post" action="/yonetici/kategoriler/alanlar/<?= e($field['id']) ?>/sil" class="inline-form" data-confirm="Bu alan silinsin mi? Daha önce girilen değerler taleplerde kalır.">
                                 <?= $csrfField() ?>
                                 <button type="submit" class="linklike danger-link">Sil</button>
@@ -89,6 +102,16 @@ $fieldError = static fn (string $row, string $f): string => isset($errors[$row][
                         <?php endforeach; ?>
                     </select>
                     <?php if (isset($fe['field_type'])): ?><div class="field-error"><?= e($fe['field_type']) ?></div><?php endif; ?>
+                </div>
+                <div class="grow">
+                    <label for="field-options-<?= e($c) ?>">Seçenekler (seçim listesi için, virgülle)</label>
+                    <input type="text" id="field-options-<?= e($c) ?>" name="options" maxlength="300">
+                    <?php if (isset($fe['field_options'])): ?><div class="field-error"><?= e($fe['field_options']) ?></div><?php endif; ?>
+                </div>
+                <div>
+                    <label for="field-max-<?= e($c) ?>">En fazla karakter</label>
+                    <input type="number" id="field-max-<?= e($c) ?>" name="max_length" min="1" max="200" class="input-sm">
+                    <?php if (isset($fe['field_max_length'])): ?><div class="field-error"><?= e($fe['field_max_length']) ?></div><?php endif; ?>
                 </div>
                 <div><label><input type="checkbox" name="required" value="1"> Zorunlu</label></div>
                 <div><button type="submit" class="btn btn-light">Alan ekle</button></div>
