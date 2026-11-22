@@ -24,6 +24,10 @@ final class SettingsService
         'sla.breach_wait_days' => '1',
         'sla.extra_percent' => '33',
         'sla.auto_close_days' => '3',
+        'files.max_image_mb' => '5',
+        'files.max_video_mb' => '50',
+        'files.max_count' => '3',
+        'auth.security_questions' => "İlk evcil hayvanınızın adı nedir?\nDoğduğunuz şehir neresidir?\nİlkokul öğretmeninizin soyadı nedir?\nEn sevdiğiniz yemek nedir?",
     ];
 
     public function __construct(
@@ -94,8 +98,37 @@ final class SettingsService
             'sla.breach_wait_days' => self::intIn($value, 0, 10) ? null : 'Bekleme süresi 0 ile 10 iş günü arasında olmalı.',
             'sla.extra_percent' => self::intIn($value, 1, 100) ? null : 'Ek SLA oranı 1 ile 100 arasında olmalı.',
             'sla.auto_close_days' => self::intIn($value, 1, 30) ? null : 'Otomatik tamamlama süresi 1 ile 30 iş günü arasında olmalı.',
+            'files.max_image_mb' => self::intIn($value, 1, 20) ? null : 'Görsel/PDF sınırı 1 ile 20 MB arasında olmalı.',
+            'files.max_video_mb' => self::intIn($value, 1, 200) ? null : 'Video sınırı 1 ile 200 MB arasında olmalı.',
+            'files.max_count' => self::intIn($value, 1, 10) ? null : 'Dosya sayısı 1 ile 10 arasında olmalı.',
+            'auth.security_questions' => self::questionsError($value),
             default => null,
         };
+    }
+
+    /**
+     * Satır başına bir değer tutan ayar (ör. güvenlik soruları), boş satırlar atılır.
+     *
+     * @return list<string>
+     */
+    public function lines(string $key): array
+    {
+        return array_values(array_filter(array_map('trim', explode("\n", str_replace("\r", '', $this->string($key)))), static fn (string $l): bool => $l !== ''));
+    }
+
+    private static function questionsError(string $value): ?string
+    {
+        $lines = array_values(array_filter(array_map('trim', explode("\n", str_replace("\r", '', $value))), static fn (string $l): bool => $l !== ''));
+        if ($lines === [] || count($lines) > 10) {
+            return 'En az bir güvenlik sorusu olmalı, en fazla 10 soru yazılabilir (her satıra bir soru).';
+        }
+        foreach ($lines as $line) {
+            if (mb_strlen($line) < 5 || mb_strlen($line) > 150) {
+                return 'Her soru 5-150 karakter olmalı.';
+            }
+        }
+
+        return null;
     }
 
     private static function intIn(string $value, int $min, int $max): bool

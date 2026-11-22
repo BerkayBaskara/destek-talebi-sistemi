@@ -128,7 +128,6 @@ final class Kernel
     private readonly SlaStatusService $slaStatusService;
     private readonly TicketService $ticketService;
     private readonly AttachmentRepositoryInterface $attachmentRepository;
-    private readonly AttachmentService $attachmentService;
 
     public function __construct(
         private readonly string $rootDir,
@@ -148,7 +147,7 @@ final class Kernel
         $this->brandingService = new BrandingService($this->rootDir . '/public/branding', $this->settingsService, $this->auditLogger);
 
         $this->userRepository = new JsonUserRepository($this->store);
-        $this->authService = new AuthService($this->userRepository);
+        $this->authService = new AuthService($this->userRepository, $this->settingsService, new \App\Repository\Json\JsonAttemptRepository($this->store), $this->clock);
         $this->staffService = new StaffService($this->userRepository, $this->authService, $this->settingsService, $this->auditLogger);
 
         // Aşama 2: tüm depolar JSON. Aşama 3'te yalnız bu satırlar MySql* sınıflarıyla değişir.
@@ -201,12 +200,6 @@ final class Kernel
         $this->slaMonitor = new SlaMonitorService($this->ticketRepository, $this->escalationService, new JsonRuntimeStateRepository($this->store), $this->clock);
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
-        $this->attachmentService = AttachmentService::fromSettingsFile(
-            $this->attachmentRepository,
-            $this->rootDir . '/storage/uploads',
-            $config . '/settings.json',
-            $this->clock,
-        );
 
         $registerRoutes = require __DIR__ . '/routes.php';
         $registerRoutes($this->router, $this);
@@ -550,9 +543,19 @@ final class Kernel
         return $this->attachmentRepository;
     }
 
+    /** Dosya sınırları her kullanımda güncel yönetici ayarından okunur (Sistem Yapılandırması → Site Ayarları). */
     public function attachmentService(): AttachmentService
     {
-        return $this->attachmentService;
+        return new AttachmentService(
+            $this->attachmentRepository,
+            $this->rootDir . '/storage/uploads',
+            [
+                'max_upload_bytes' => $this->settingsService->int('files.max_image_mb') * 1024 * 1024,
+                'max_video_bytes' => $this->settingsService->int('files.max_video_mb') * 1024 * 1024,
+                'max_files_per_ticket' => $this->settingsService->int('files.max_count'),
+            ],
+            $this->clock,
+        );
     }
 
     /**

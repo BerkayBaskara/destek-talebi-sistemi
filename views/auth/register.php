@@ -39,8 +39,14 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
                 <?php foreach ($questions as $question): ?>
                     <option value="<?= e($question) ?>"<?= ($old['secret_question'] ?? '') === $question ? ' selected' : '' ?>><?= e($question) ?></option>
                 <?php endforeach; ?>
+                <option value="__custom"<?= ($old['secret_question'] ?? '') === '__custom' ? ' selected' : '' ?>>Kendi sorumu yazacağım</option>
             </select>
             <?= $fieldError('secret_question') ?>
+        </div>
+        <div class="form-row">
+            <label for="custom_question">Kendi sorunuz (yalnız "Kendi sorumu yazacağım" seçildiyse)</label>
+            <input type="text" id="custom_question" name="custom_question" maxlength="150" value="<?= e($old['custom_question'] ?? '') ?>">
+            <?= $fieldError('custom_question') ?>
         </div>
         <div class="form-row">
             <label for="secret_answer">Gizli sorunun cevabı</label>

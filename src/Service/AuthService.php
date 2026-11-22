@@ -9,6 +9,8 @@ use App\Exception\AuthorizationException;
 use App\Exception\ValidationException;
 use App\Model\Enum\Role;
 use App\Model\User;
+use App\Repository\AttemptRepositoryInterface;
+use App\Core\Clock\ClockInterface;
 use App\Repository\UserRepositoryInterface;
 
 /**
@@ -25,8 +27,29 @@ final class AuthService
         'En sevdiğiniz yemek nedir?',
     ];
 
-    public function __construct(private readonly UserRepositoryInterface $users)
+    /** Şifre sıfırlamada izin verilen hatalı cevap sayısı ve süresi (FR-31). */
+    public const RESET_ATTEMPTS = 5;
+    public const RESET_WINDOW_SECONDS = 900;
+    public const RESET_BLOCKED = 'Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin.';
+
+    public function __construct(
+        private readonly UserRepositoryInterface $users,
+        private readonly ?SettingsService $settings = null,
+        private readonly ?AttemptRepositoryInterface $attempts = null,
+        private readonly ?ClockInterface $clock = null,
+    ) {
+    }
+
+    /**
+     * Kayıtta seçilebilen güvenlik soruları (yönetici düzenler; ayar yoksa varsayılan liste).
+     *
+     * @return list<string>
+     */
+    public function questions(): array
     {
+        $list = $this->settings?->lines('auth.security_questions') ?? [];
+
+        return $list !== [] ? $list : self::SECRET_QUESTIONS;
     }
 
     public function register(
@@ -35,8 +58,10 @@ final class AuthService
         #[\SensitiveParameter] string $password,
         string $secretQuestion,
         #[\SensitiveParameter] string $secretAnswer,
+        bool $ownQuestion = false,
     ): User
     {
+        $secretQuestion = trim($secretQuestion);
         $name = trim($name);
         $surname = trim($surname);
         $errors = [];
@@ -50,7 +75,11 @@ final class AuthService
         if ($passwordError !== null) {
             $errors['password'] = $passwordError;
         }
-        if (!in_array($secretQuestion, self::SECRET_QUESTIONS, true)) {
+        if ($ownQuestion) {
+            if (Text::length($secretQuestion) < 5 || Text::length($secretQuestion) > 150) {
+                $errors['custom_question'] = 'Kendi sorunuz 5-150 karakter olmalı.';
+            }
+        } elseif (!in_array($secretQuestion, $this->questions(), true)) {
             $errors['secret_question'] = 'Listeden bir gizli soru seçin.';
         }
         if (Text::length(trim($secretAnswer)) < 2) {
@@ -102,13 +131,23 @@ final class AuthService
             throw new ValidationException(['password' => $passwordError]);
         }
 
-        $user = $this->users->findByCustomerNo(self::normalizeNumber($customerNo));
+        $number = self::normalizeNumber($customerNo);
+        $key = 'reset:' . $number;
+        $now = $this->clock?->now()->getTimestamp() ?? time();
+        if ($this->attempts !== null && $this->attempts->countSince($key, $now - self::RESET_WINDOW_SECONDS) >= self::RESET_ATTEMPTS) {
+            throw new ValidationException(['secret_answer' => self::RESET_BLOCKED]);
+        }
+
+        $user = $this->users->findByCustomerNo($number);
         if ($user === null || !password_verify(self::normalizeAnswer($secretAnswer), $user->secretAnswerHash)) {
+            $this->attempts?->record($key, $now);
+
             return false;
         }
 
         $user->passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
         $this->users->save($user);
+        $this->attempts?->clear($key);
 
         return true;
     }

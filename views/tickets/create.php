@@ -5,6 +5,8 @@
 /** @var array<string, string> $errors */
 /** @var callable $csrfField */
 /** @var int $maxFiles */
+/** @var int $maxImageMb */
+/** @var int $maxVideoMb */
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class="field-error">' . e($errors[$f]) . '</div>' : '';
 ?>
 <section class="card narrow-wide">
@@ -44,7 +46,7 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<div class=
             <?= $fieldError('description') ?>
         </div>
         <div class="form-row">
-            <label for="ekler">Ek dosya (en fazla <?= e($maxFiles) ?> dosya; görsel/PDF 5 MB, video 50 MB)</label>
+            <label for="ekler">Ek dosya (en fazla <?= e($maxFiles) ?> dosya; görsel/PDF <?= e($maxImageMb) ?> MB, video <?= e($maxVideoMb) ?> MB)</label>
             <input type="file" id="ekler" name="ekler[]" multiple accept=".jpg,.jpeg,.png,.pdf,.mp4,.webm,image/jpeg,image/png,application/pdf,video/mp4,video/webm">
             <div class="muted">İzinli türler: JPG, PNG, PDF, MP4, WebM</div>
             <?= $fieldError('ekler') ?>

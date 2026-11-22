@@ -266,6 +266,8 @@ final class TicketController
             'old' => $old,
             'errors' => $errors,
             'maxFiles' => $this->kernel->attachmentService()->maxFiles(),
+            'maxImageMb' => $this->kernel->settingsService()->int('files.max_image_mb'),
+            'maxVideoMb' => $this->kernel->settingsService()->int('files.max_video_mb'),
         ];
     }
 }

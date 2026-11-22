@@ -93,6 +93,8 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/yonetici/ayarlar/site', static fn (Request $r, array $p): Response => $settings->siteForm());
     $router->add('POST', '/yonetici/ayarlar/site', static fn (Request $r, array $p): Response => $settings->saveSite($r));
     $router->add('POST', '/yonetici/ayarlar/logo', static fn (Request $r, array $p): Response => $settings->uploadLogo($r));
+    $router->add('POST', '/yonetici/ayarlar/dosya', static fn (Request $r, array $p): Response => $settings->saveFiles($r));
+    $router->add('POST', '/yonetici/ayarlar/sorular', static fn (Request $r, array $p): Response => $settings->saveQuestions($r));
     $router->add('GET', '/yonetici/denetim', static fn (Request $r, array $p): Response => $settings->audit());
 
     $catalog = new CatalogController($kernel);

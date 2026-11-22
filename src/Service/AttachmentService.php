@@ -54,23 +54,6 @@ final class AttachmentService
         $this->mover = $mover ?? static fn (string $from, string $to): bool => move_uploaded_file($from, $to);
     }
 
-    public static function fromSettingsFile(AttachmentRepositoryInterface $repo, string $uploadDir, string $settingsPath, ClockInterface $clock): self
-    {
-        $data = is_file($settingsPath) ? json_decode((string) file_get_contents($settingsPath), true) : null;
-        $settings = [
-            'max_upload_bytes' => 5 * 1024 * 1024,
-            'max_video_bytes' => 50 * 1024 * 1024,
-            'max_files_per_ticket' => 3,
-        ];
-        foreach (array_keys($settings) as $key) {
-            if (is_array($data) && is_int($data[$key] ?? null) && $data[$key] > 0) {
-                $settings[$key] = $data[$key];
-            }
-        }
-
-        return new self($repo, $uploadDir, $settings, $clock);
-    }
-
     /** PHP'nin çoklu dosya dizisini ($_FILES['ekler']) dosya başına bir diziye çevirir. */
     /**
      * @return list<array{name: string, type: string, tmp_name: string, error: int, size: int}>

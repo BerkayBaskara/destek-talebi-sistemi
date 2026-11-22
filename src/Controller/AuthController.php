@@ -66,7 +66,9 @@ final class AuthController
             'surname' => $request->string('surname'),
             'secret_question' => $request->string('secret_question'),
             'secret_answer' => $request->string('secret_answer'),
+            'custom_question' => $request->string('custom_question'),
         ];
+        $own = $old['secret_question'] === '__custom';
         $password = (string) $request->input('password', '');
 
         if ($password !== (string) $request->input('password_confirm', '')) {
@@ -74,7 +76,7 @@ final class AuthController
         }
 
         try {
-            $user = $this->auth->register($old['name'], $old['surname'], $password, $old['secret_question'], $old['secret_answer']);
+            $user = $this->auth->register($old['name'], $old['surname'], $password, $own ? $old['custom_question'] : $old['secret_question'], $old['secret_answer'], $own);
         } catch (ValidationException $e) {
             return $this->kernel->render('auth/register', $this->registerData($old, $e->errors()), 422);
         }
@@ -147,6 +149,6 @@ final class AuthController
      */
     private function registerData(array $old, array $errors): array
     {
-        return ['title' => 'Kayıt ol', 'old' => $old, 'errors' => $errors, 'questions' => AuthService::SECRET_QUESTIONS];
+        return ['title' => 'Kayıt ol', 'old' => $old, 'errors' => $errors, 'questions' => $this->auth->questions()];
     }
 }

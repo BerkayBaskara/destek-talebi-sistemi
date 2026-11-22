@@ -99,6 +99,56 @@ final class SettingsController
         return Response::redirect('/yonetici/ayarlar/site');
     }
 
+    /** Dosya sınırları (görsel/PDF MB, video MB, dosya sayısı). */
+    public function saveFiles(Request $request): Response
+    {
+        return $this->saveGroup($request, [
+            'max_image_mb' => 'files.max_image_mb',
+            'max_video_mb' => 'files.max_video_mb',
+            'max_count' => 'files.max_count',
+        ]);
+    }
+
+    /** Kayıtta seçilebilen güvenlik soruları (satır başına bir soru). */
+    public function saveQuestions(Request $request): Response
+    {
+        return $this->saveGroup($request, ['questions' => 'auth.security_questions']);
+    }
+
+    /**
+     * Site Ayarları sayfasındaki ayrı bir formun ayarlarını kaydeder; hata varsa sayfayı girilen değerlerle gösterir.
+     *
+     * @param array<string, string> $fields form alanı → ayar anahtarı
+     */
+    private function saveGroup(Request $request, array $fields): Response
+    {
+        $admin = $this->kernel->requireRole(Role::Admin);
+        $values = [];
+        $old = [];
+        foreach ($fields as $field => $key) {
+            $old[$field] = $request->string($field);
+            $values[$key] = $field === 'questions' ? $old[$field] : trim($old[$field]);
+        }
+        try {
+            $this->kernel->settingsService()->update($admin, $values);
+        } catch (ValidationException $e) {
+            $errors = [];
+            foreach ($e->errors() as $key => $message) {
+                $errors[(string) array_search($key, $fields, true)] = $message;
+            }
+            $settings = $this->kernel->settingsService();
+            $siteValues = [];
+            foreach (self::SITE_FIELDS as $field => $key) {
+                $siteValues[$field] = $settings->string($key);
+            }
+
+            return $this->siteView($siteValues, $errors, 422, $old);
+        }
+        $this->kernel->session()->flash('success', self::SAVED);
+
+        return Response::redirect('/yonetici/ayarlar/site');
+    }
+
     /** Son 100 yönetici değişikliği. */
     public function audit(): Response
     {
@@ -125,10 +175,20 @@ final class SettingsController
     /**
      * @param array<string, string> $values
      * @param array<string, string> $errors
+     * @param array<string, string> $groupOld dosya sınırları / sorular formunda girilen değerler
      */
-    private function siteView(array $values, array $errors, int $status = 200): Response
+    private function siteView(array $values, array $errors, int $status = 200, array $groupOld = []): Response
     {
+        $settings = $this->kernel->settingsService();
+        $groups = [
+            'max_image_mb' => $settings->string('files.max_image_mb'),
+            'max_video_mb' => $settings->string('files.max_video_mb'),
+            'max_count' => $settings->string('files.max_count'),
+            'questions' => $settings->string('auth.security_questions'),
+        ];
+
         return $this->kernel->render('admin/config/site', [
+            'groups' => $groupOld + $groups,
             'title' => 'Site Ayarları',
             'values' => $values,
             'errors' => $errors,
