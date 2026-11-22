@@ -111,6 +111,34 @@
         }
     });
 
+    // Bildirim sayacı: 60 saniyede bir yenilenir (oturum süresini uzatmaz).
+    var bell = document.querySelector('.bell');
+    if (bell) {
+        window.setInterval(function () {
+            fetch('/api/bildirimler/sayi', { headers: { Accept: 'application/json' } })
+                .then(function (response) { return response.ok ? response.json() : null; })
+                .then(function (data) {
+                    if (!data) {
+                        return;
+                    }
+                    var badge = bell.querySelector('.bell-count');
+                    if (data.count > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'bell-count';
+                            bell.appendChild(badge);
+                        }
+                        badge.textContent = String(data.count);
+                        bell.setAttribute('aria-label', 'Bildirimler (' + data.count + ' okunmamış)');
+                    } else if (badge) {
+                        badge.remove();
+                        bell.setAttribute('aria-label', 'Bildirimler');
+                    }
+                })
+                .catch(function () { /* ağ hatası: bir sonraki yoklamada tekrar denenir */ });
+        }, 60000);
+    }
+
     // Geri sayım (talep oluşturuldu ekranı). Sayfa başındaki meta yenileme JavaScript kapalıyken de yönlendirir.
     var countdown = document.querySelector('[data-countdown]');
     if (countdown) {

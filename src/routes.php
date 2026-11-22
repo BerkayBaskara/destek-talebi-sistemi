@@ -10,6 +10,7 @@ use App\Controller\AuthController;
 use App\Controller\CalendarController;
 use App\Controller\CatalogController;
 use App\Controller\HierarchyController;
+use App\Controller\NotificationController;
 use App\Controller\SettingsController;
 use App\Controller\StaffController;
 use App\Controller\HomeController;
@@ -49,6 +50,13 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/talepler/{id}/olusturuldu', static fn (Request $r, array $p): Response => $tickets->created((int) $p['id']));
     $router->add('POST', '/talepler/{id}/yanit', static fn (Request $r, array $p): Response => $tickets->reply($r, (int) $p['id']));
     $router->add('POST', '/talepler/{id}/islem', static fn (Request $r, array $p): Response => $tickets->action($r, (int) $p['id']));
+
+    // Bildirimler (FR-18)
+    $notifications = new NotificationController($kernel);
+    $router->add('GET', '/bildirimler', static fn (Request $r, array $p): Response => $notifications->index());
+    $router->add('POST', '/bildirimler/okundu', static fn (Request $r, array $p): Response => $notifications->markAllRead());
+    $router->add('GET', '/bildirimler/{id}', static fn (Request $r, array $p): Response => $notifications->open((int) $p['id']));
+    $router->add('GET', '/api/bildirimler/sayi', static fn (Request $r, array $p): Response => $notifications->count());
 
     // Ek dosyalar (yalnız yetkili kullanıcıya)
     $attachments = new AttachmentController($kernel, $kernel->attachmentService());

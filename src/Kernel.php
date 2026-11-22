@@ -54,6 +54,10 @@ use App\Service\AuditLogger;
 use App\Service\AuthService;
 use App\Service\BrandingService;
 use App\Service\HierarchyService;
+use App\Service\NotificationService;
+use App\Service\Observer\NotificationObserver;
+use App\Repository\NotificationRepositoryInterface;
+use App\Repository\Json\JsonNotificationRepository;
 use App\Service\LeaveService;
 use App\Repository\HierarchyRepositoryInterface;
 use App\Repository\LeaveRepositoryInterface;
@@ -94,6 +98,8 @@ final class Kernel
     private readonly HierarchyRepositoryInterface $hierarchyRepository;
     private readonly LeaveRepositoryInterface $leaveRepository;
     private readonly HierarchyService $hierarchyService;
+    private readonly NotificationRepositoryInterface $notificationRepository;
+    private readonly NotificationService $notificationService;
     private readonly LeaveService $leaveService;
     private readonly PriorityRepositoryInterface $priorityRepository;
     private readonly PriorityService $priorityService;
@@ -167,6 +173,9 @@ final class Kernel
         $this->ticketService->attachObserver(new TicketLogObserver($this->ticketLogRepository, $this->clock));
         $this->ticketActivityRepository = new JsonTicketActivityRepository($this->store);
         $this->ticketService->attachObserver(new TicketActivityObserver($this->ticketActivityRepository, $this->clock));
+        $this->notificationRepository = new JsonNotificationRepository($this->store);
+        $this->notificationService = new NotificationService($this->notificationRepository, $this->userRepository, $this->clock);
+        $this->ticketService->attachObserver(new NotificationObserver($this->notificationService));
 
         $this->attachmentRepository = new JsonAttachmentRepository($this->store);
         $this->attachmentService = AttachmentService::fromSettingsFile(
@@ -328,6 +337,11 @@ final class Kernel
             $currentUser = null; // veri dosyası bozuksa hata sayfası yine de sayfa düzeniyle gösterilsin
         }
         $this->view->share('currentUser', $currentUser);
+        try {
+            $this->view->share('unreadNotifications', $currentUser !== null ? $this->notificationRepository->unreadCount((int) $currentUser->id) : 0);
+        } catch (StorageException) {
+            $this->view->share('unreadNotifications', 0);
+        }
 
         return new Response($this->view->render($template, $data), $status, ['Content-Type' => 'text/html; charset=utf-8']);
     }
@@ -400,6 +414,16 @@ final class Kernel
     public function settingsService(): SettingsService
     {
         return $this->settingsService;
+    }
+
+    public function notificationRepository(): NotificationRepositoryInterface
+    {
+        return $this->notificationRepository;
+    }
+
+    public function notificationService(): NotificationService
+    {
+        return $this->notificationService;
     }
 
     public function hierarchyRepository(): HierarchyRepositoryInterface
@@ -496,6 +520,9 @@ final class Kernel
      * NFR-10: son işlemden bu yana 30 dakika geçtiyse oturumu kapatır ve true döner.
      * Sayfanın kendi kendine yaptığı SLA yoklaması (/api/sla) kullanıcı etkinliği sayılmaz.
      */
+    /** Sayfanın kendi kendine yaptığı yoklamalar; kullanıcı etkinliği sayılmaz. */
+    private const PASSIVE_POLLS = ['/api/sla', '/api/bildirimler/sayi'];
+
     private function enforceIdleTimeout(Request $request): bool
     {
         if ($this->session->get('user_id') === null) {
@@ -513,7 +540,7 @@ final class Kernel
             return true;
         }
 
-        if ($request->path !== '/api/sla') {
+        if (!in_array($request->path, self::PASSIVE_POLLS, true)) {
             $this->session->set('last_activity', $now);
         }
 

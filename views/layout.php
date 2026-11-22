@@ -7,6 +7,7 @@
 /** @var callable $csrfField */
 /** @var string $siteTitle */
 /** @var string $siteLogo */
+/** @var int $unreadNotifications */
 
 use App\Model\Enum\Role;
 
@@ -52,6 +53,10 @@ use App\Model\Enum\Role;
                     <a href="/havuz">Görev Havuzu</a>
                     <a href="/yonetici/ayarlar">Sistem Yapılandırması</a>
                 <?php endif; ?>
+                <a href="/bildirimler" class="bell" aria-label="Bildirimler<?= !empty($unreadNotifications) ? ' (' . e($unreadNotifications) . ' okunmamış)' : '' ?>">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <?php if (!empty($unreadNotifications)): ?><span class="bell-count"><?= e($unreadNotifications) ?></span><?php endif; ?>
+                </a>
                 <span class="who"><?= e($currentUser->fullName()) ?> (<?= e($currentUser->role->label()) ?>)</span>
                 <form method="post" action="/cikis">
                     <?= $csrfField() ?>
