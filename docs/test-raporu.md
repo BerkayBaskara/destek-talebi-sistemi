@@ -85,6 +85,7 @@ Her test metodu, içeriğine bakılarak türlere ayrıldı: birim (tek sınıf),
 - **Test verisi:** `FeatureTestCase` yardımcıları örnek katalog (`seedCatalog`), müşteri kaydı (`registerCustomer`) ve giriş (`loginAs`) hazırlar; personel `createStaff` ile oluşturulur. Örnek takvim `storage/config` altından kopyalanır.
 - **Mock ve stub:** saat ve oturum için sahte nesneler; `TicketServiceTest`'te eski kopya döndüren bir depo sarmalayıcısı (bayat veriyle yazma denemesi); `BrandingService` için dosya taşıma işlevi dışarıdan verilir. Depolar sahte değil, gerçek JSON dosyasıyla sınanır; böylece kilit ve dosya yazma da test edilir.
 - **Gerçek eşzamanlılık:** `ConcurrencyTest` ayrı PHP süreçlerini ortak bir başlama anında çalıştırır (`tests/Concurrency/take_worker.php`).
+- **Yük testi:** `tests/Load/k6-yuk-testi.js` (k6), çalışan bir sunucuya karşı çalıştırılır.
 
 ## 4. Testlerin çalıştırılması
 
@@ -150,7 +151,31 @@ OWASP ZAP ve Burp Suite ile otomatik tarama yapılmadı.
 | 50 MB video | 1600 ms | PASS | `AttachmentServiceTest::test_large_video_is_stored_quickly` |
 | 10.000 talepte rapor | ölçülür | PASS (5 sn altında) | `PerformanceScenarioTest::test_report_with_ten_thousand_tickets` |
 
-Eşzamanlı kullanıcı yükü (k6): henüz çalıştırılmadı.
+### Eşzamanlı kullanıcı yükü (k6)
+
+**Ortam:** k6 2.4.0, WAMP Apache (Windows, 150 iş parçacığı), PHP 8.3.28, geliştirme bilgisayarı. Sunucu ve k6 aynı makinede çalıştı; sonuçlar üretim donanımını değil bu bilgisayarı gösterir. Veri: örnek veri (`php bin/seed.php`).
+
+**Senaryo** (`tests/Load/k6-yuk-testi.js`): her sanal kullanıcı giriş sayfasını açar, örnek müşteri hesaplarından biriyle giriş yapar, Taleplerim ve bildirimler sayfalarını açar, çıkış yapar ve 1 saniye bekler. Kullanıcılar 20 saniyede gelir, 40 saniye yük sabit kalır, 10 saniyede biter. Komut: `k6 run -e BASE=http://destek-talebi -e VUS=<sayı> tests/Load/k6-yuk-testi.js`.
+
+| Eşzamanlı kullanıcı | İstek | Hatalı istek | Kontrol | İstek/sn | Ortalama | Medyan | p95 | En uzun |
+|---|---|---|---|---|---|---|---|---|
+| 100 | 35.464 | %0 | 17.732 / 17.732 | 503 | 31 ms | 19 ms | 110 ms | 0,69 sn |
+| 500 | 36.032 | %0 | 18.016 / 18.016 | 508 | 661 ms | 337 ms | 2,63 sn | 6,67 sn |
+| 1000 | 35.968 | %0 | 17.986 / 17.986 | 486 | 1,52 sn | 899 ms | 5,62 sn | 11,46 sn |
+
+**Sonuç:** üç yükte de hiçbir istek hata vermedi, bütün kontroller geçti (PERF-013, PERF-014, PERF-015). İşlem hızı yaklaşık 500 istek/sn'de sabitlendi: 100 kullanıcıda sunucu yetişiyor, 500 ve 1000 kullanıcıda istekler kuyrukta bekliyor ve yanıt süresi uzuyor.
+
+**Darboğaz** (500 kullanıcıda sayfa bazında ölçüm):
+
+| Adım | Ortalama | p95 |
+|---|---|---|
+| Giriş isteği | 1,07 sn | 2,91 sn |
+| Bildirimler | 801 ms | 1,52 sn |
+| Taleplerim | 769 ms | 1,55 sn |
+| Giriş sayfası | 233 ms | 954 ms |
+| Çıkış | 165 ms | 547 ms |
+
+En pahalı adım giriştir: şifre `password_hash` ile doğrulanır (bilerek yavaş bir algoritma) ve kullanıcı tablosuna son giriş zamanı yazılır. Liste sayfalarında her istek ilgili JSON tablosunun tamamını okur; yazmalar tablo kilidiyle sıraya girer. Aşama 3'te MySQL'e geçişle (dizinli sorgu, satır kilidi) liste sayfalarının bu yükte hızlanması beklenir; şifre doğrulamasının maliyeti güvenlik gereğidir.
 
 ## 8. Bulunan hatalar
 

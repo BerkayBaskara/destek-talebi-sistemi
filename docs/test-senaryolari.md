@@ -12,7 +12,7 @@ php vendor/bin/phpunit --testdox             # test adlarını okunur listeler
 php vendor/bin/phpstan analyse                # statik analiz (seviye 6)
 ```
 
-Performans testleri geliştirme bilgisayarında uygulamanın içinden ölçer; ağ gecikmesi dahil değildir. Eşzamanlı kullanıcı yükü (JMeter/k6), OWASP ZAP ve Burp Suite taramaları ile MySQL testleri Aşama 3 işidir.
+Performans testleri geliştirme bilgisayarında uygulamanın içinden ölçer; ağ gecikmesi dahil değildir. Eşzamanlı kullanıcı yükü k6 ile ölçüldü (`docs/test-raporu.md`). OWASP ZAP ve Burp Suite taramaları ile MySQL testleri Aşama 3 işidir.
 
 ## Özet
 
@@ -20,10 +20,10 @@ Toplam 344 senaryo.
 
 | Durum | Anlamı | Sayı |
 |---|---|---|
-| ✅ | otomatik test ile doğrulandı | 320 |
-| ◐ | kısmen ya da farklı bir tasarımla karşılandı (notta açıklandı) | 3 |
-| 👁 | elle doğrulandı | 2 |
-| ⏭ | Aşama 3 (MySQL, yük ve güvenlik tarama araçları) | 10 |
+| ✅ | otomatik test ile doğrulandı | 321 |
+| ◐ | kısmen ya da farklı bir tasarımla karşılandı (notta açıklandı) | 2 |
+| 👁 | elle doğrulandı | 4 |
+| ⏭ | Aşama 3 (MySQL, yük ve güvenlik tarama araçları) | 8 |
 | ✖ | uygulanmadı (gerekçesi yazılı) | 9 |
 
 ## Senaryolarla bulunan ve düzeltilen hatalar
@@ -432,6 +432,6 @@ Toplam 344 senaryo.
 | PERF-010 | Oturum zaman aşımı: 30 dakika hareketsizlik | Oturum sonlandırılmalı | `AuthFlowTest::test_idle_30_minutes_logs_out` | ✅ |
 | PERF-011 | Responsive tasarım: 375–1920 px | Yatay kaydırma olmamalı | Tarayıcıda 375, 768 ve 1920 piksel genişlikte bütün ekranlar açıldı; yatay kaydırma çubuğu çıkmadı | 👁 |
 | PERF-012 | Raporlama: 10.000 talep | Performans ölçülmeli | `PerformanceScenarioTest::test_report_with_ten_thousand_tickets` (10.000 talepte süzme ve personel istatistiği 5 saniyenin altında) | ✅ |
-| PERF-013 | Eş zamanlı kullanıcı: 100 kullanıcı | Hata oranı ölçülmeli | `PerformanceScenarioTest::test_hundred_requests_without_errors` (100 ardışık istek hatasız; gerçek eşzamanlı 100 kullanıcı JMeter/k6 ile Aşama 3'te ölçülecek) | ◐ |
-| PERF-014 | Eş zamanlı kullanıcı: 500 kullanıcı | Sistem davranışı ölçülmeli | 500 ve 1000 eşzamanlı kullanıcı JMeter/k6 ile, MySQL sürümünde ölçülecek | ⏭ |
-| PERF-015 | Eş zamanlı kullanıcı: 1.000 kullanıcı | Darboğazlar belirlenmeli | 500 ve 1000 eşzamanlı kullanıcı JMeter/k6 ile, MySQL sürümünde ölçülecek | ⏭ |
+| PERF-013 | Eş zamanlı kullanıcı: 100 kullanıcı | Hata oranı ölçülmeli | `PerformanceScenarioTest::test_hundred_requests_without_errors` (ayrıca k6 ile 100 eşzamanlı kullanıcı: 35.464 istek, hata %0, p95 110 ms (`docs/test-raporu.md`)) | ✅ |
+| PERF-014 | Eş zamanlı kullanıcı: 500 kullanıcı | Sistem davranışı ölçülmeli | k6 ile 500 eşzamanlı kullanıcı (`tests/Load/k6-yuk-testi.js`): 36.032 istek, hata %0, p95 2,63 sn; işlem hızı yaklaşık 500 istek/sn'de doyuma ulaştı (`docs/test-raporu.md`) | 👁 |
+| PERF-015 | Eş zamanlı kullanıcı: 1.000 kullanıcı | Darboğazlar belirlenmeli | k6 ile 1000 eşzamanlı kullanıcı: 35.968 istek, hata %0, p95 5,62 sn; darboğaz giriş (şifre doğrulama) ve JSON tablolarının tamamının okunması (`docs/test-raporu.md`) | 👁 |
