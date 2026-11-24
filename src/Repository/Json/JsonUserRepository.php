@@ -61,4 +61,9 @@ final class JsonUserRepository implements UserRepositoryInterface
 
         return $user;
     }
+
+    public function recordLogin(int $userId, \DateTimeImmutable $at): void
+    {
+        $this->store->update(self::TABLE, $userId, ['last_login_at' => $at->format(DATE_ATOM)]);
+    }
 }

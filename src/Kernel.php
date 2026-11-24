@@ -153,7 +153,7 @@ final class Kernel
 
         $this->userRepository = new JsonUserRepository($this->store);
         $this->authService = new AuthService($this->userRepository, $this->settingsService, new \App\Repository\Json\JsonAttemptRepository($this->store), $this->clock);
-        $this->staffService = new StaffService($this->userRepository, $this->authService, $this->settingsService, $this->auditLogger);
+        $this->staffService = new StaffService($this->userRepository, $this->authService, $this->settingsService, $this->auditLogger, $this->clock);
 
         // Aşama 2: tüm depolar JSON. Aşama 3'te yalnız bu satırlar MySql* sınıflarıyla değişir.
         $this->ticketRepository = new JsonTicketRepository($this->store);
@@ -479,7 +479,7 @@ final class Kernel
 
     public function backupService(): BackupService
     {
-        return new BackupService($this->rootDir . '/storage/data', $this->auditLogger);
+        return new BackupService($this->rootDir . '/storage/data', $this->auditLogger, $this->store);
     }
 
     public function hierarchyRepository(): HierarchyRepositoryInterface

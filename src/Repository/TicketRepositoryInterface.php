@@ -27,6 +27,13 @@ interface TicketRepositoryInterface
      */
     public function saveIfUnchanged(Ticket $ticket, \App\Model\Enum\TicketStatus $expectedStatus, ?int $expectedAgentId): bool;
 
+    /**
+     * saveIfUnchanged gibi, ama yalnız verilen alanları yazar; okuma ile yazma arasında başka alanlarda yapılan değişiklik korunur.
+     *
+     * @param list<string> $fields toArray() anahtarları
+     */
+    public function updateIfUnchanged(Ticket $ticket, \App\Model\Enum\TicketStatus $expectedStatus, ?int $expectedAgentId, array $fields): bool;
+
     /** 6 karakterli talep koduna göre (büyük harf). */
     public function findByCode(string $code): ?Ticket;
 

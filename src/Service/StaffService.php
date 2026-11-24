@@ -22,6 +22,7 @@ final class StaffService
         private readonly AuthService $auth,
         private readonly SettingsService $settings,
         private readonly AuditLogger $audit,
+        private readonly ?\App\Core\Clock\ClockInterface $clock = null,
     ) {
     }
 
@@ -44,6 +45,9 @@ final class StaffService
             return $user;
         }
         $user->active = $active;
+        if ($active && $this->clock !== null) {
+            $user->lastLoginAt = $this->clock->now(); // FR-49 sayımı yeniden başlar; yoksa bir sonraki denetimde yine pasif olurdu
+        }
         $this->users->save($user);
         $this->audit->record($admin, $active ? 'activate' : 'deactivate', 'staff', $userId, ['active' => !$active], ['active' => $active]);
 

@@ -253,6 +253,13 @@ final class SettingsController
         } catch (ValidationException $e) {
             return $this->kernel->render('admin/config/backup', ['title' => 'Veri Yedeği', 'errors' => $e->errors()], 422);
         }
+        $same = $this->kernel->userRepository()->findById((int) $admin->id);
+        if ($same === null || $same->customerNo !== $admin->customerNo || $same->role !== Role::Admin || !$same->active) {
+            // Yedekteki kullanıcı tablosunda bu oturumun hesabı yok ya da başka biri: oturum kapatılır.
+            $this->kernel->session()->destroy();
+
+            return Response::redirect('/giris');
+        }
         $this->kernel->session()->flash('success', 'Yedek geri yüklendi. Önceki veri storage/backups/' . $auto . ' dosyasına yedeklendi.');
 
         return Response::redirect('/yonetici/yedek');

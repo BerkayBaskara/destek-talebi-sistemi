@@ -127,7 +127,7 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ◐ kısmen ya da 
 | NFR-30 | Hata yönetimi, bilgi sızdırmama | `KernelTest::test_wrong_shaped_data_gives_friendly_500_without_leaking_input`, `test_logged_in_user_with_corrupt_data_sees_friendly_500_page` | ✅ |
 | NFR-31 | Zamanlanmış iş güvenilirliği | `SlaEdgeCasesTest::test_job_lock_allows_one_run_per_interval_and_expires`; `ScenarioCoverageTest::test_monitor_does_nothing_before_deadline` | ✅ |
 | NFR-32 | Veritabanı performansı | Aşama 3 | ⏭ |
-| NFR-33 | Sayfa başına en fazla 50 kayıt | `PaginationTest`; `CustomerAccountsTest::test_list_is_paginated_by_fifty`; `TicketServiceTest::test_search_filters_by_status_and_text_and_paginates` | ✅ |
+| NFR-33 | Sayfa başına en fazla 50 kayıt | Talep listeleri, ayrıntılı rapor, bildirimler ve müşteriler sayfalanır: `PaginationTest`; `CustomerAccountsTest::test_list_is_paginated_by_fifty`; `TicketServiceTest::test_search_filters_by_status_and_text_and_paginates`. Denetim kaydı son 100 değişikliği, talep geçmişi ve rapordaki eskalasyon tablosu sayfalanmadan gösterilir | ◐ |
 | NFR-34 | 10.000 talepte rapor | `PerformanceScenarioTest::test_report_with_ten_thousand_tickets` | ✅ |
 | NFR-35 | SSE güvenilirliği | FR-83 ile aynı gerekçe; canlı veri uçları oturumsuz isteğe 401 verir (`KanbanApiTest::test_api_without_session_returns_401_json`) | ✖ |
 | NFR-36 | Kullanılabilirlik, açık hata mesajları | Form hataları alan altında, değerler korunur: `TicketCreateTest::test_invalid_form_keeps_values_422`, `TicketDetailTest::test_invalid_action_shows_reason`; 5 kullanıcılı deneme sunumda | ◐ |

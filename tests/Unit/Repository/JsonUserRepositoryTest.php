@@ -57,4 +57,23 @@ final class JsonUserRepositoryTest extends TestCase
 
         self::assertSame(['P000001', 'P000002'], array_map(static fn (User $u): string => $u->customerNo, $agents));
     }
+
+    /** Girişte yalnız son giriş zamanı yazılır; aynı anda yapılan pasifleştirme geri alınmaz. */
+    public function test_record_login_writes_only_last_login(): void
+    {
+        $repo = new JsonUserRepository($this->makeStore());
+        $id = (int) $repo->save(self::user('P000001', Role::Agent))->id;
+        $stale = $repo->findById($id);
+        $admin = $repo->findById($id);
+        self::assertNotNull($stale);
+        self::assertNotNull($admin);
+        $admin->active = false;
+        $repo->save($admin);
+
+        $repo->recordLogin($id, new \DateTimeImmutable('2026-11-24 10:00'));
+
+        $after = $repo->findById($id);
+        self::assertFalse($after?->active);
+        self::assertSame('2026-11-24 10:00', $after?->lastLoginAt?->format('Y-m-d H:i'));
+    }
 }

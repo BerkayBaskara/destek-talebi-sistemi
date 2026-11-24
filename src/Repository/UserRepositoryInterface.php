@@ -19,4 +19,7 @@ interface UserRepositoryInterface
 
     /** id yoksa ekler, varsa günceller; id'si dolu kullanıcıyı döner. */
     public function save(User $user): User;
+
+    /** Yalnız son giriş zamanını yazar (girişte satırın tamamı yazılmaz; aynı anda yapılan değişiklik korunur). */
+    public function recordLogin(int $userId, \DateTimeImmutable $at): void;
 }

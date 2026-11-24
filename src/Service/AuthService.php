@@ -139,7 +139,7 @@ final class AuthService
         }
         if ($this->clock !== null) {
             $user->lastLoginAt = $this->clock->now();
-            $this->users->save($user);
+            $this->users->recordLogin((int) $user->id, $user->lastLoginAt);
         }
 
         return $user;

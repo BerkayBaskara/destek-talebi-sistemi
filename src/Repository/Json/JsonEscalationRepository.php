@@ -17,7 +17,7 @@ final class JsonEscalationRepository implements EscalationRepositoryInterface
     {
     }
 
-    public function add(int $ticketId, ?int $fromAgentId, ?int $toAgentId, string $reason, ?string $note, DateTimeImmutable $at): int
+    public function add(int $ticketId, ?int $fromAgentId, ?int $toAgentId, string $reason, ?string $note, DateTimeImmutable $at, int $attempts = 0): int
     {
         return $this->store->insert(self::TABLE, [
             'ticket_id' => $ticketId,
@@ -26,6 +26,7 @@ final class JsonEscalationRepository implements EscalationRepositoryInterface
             'reason' => $reason,
             'note' => $note,
             'created_at' => $at->format(DATE_ATOM),
+            'attempts' => $attempts,
         ]);
     }
 
@@ -46,6 +47,7 @@ final class JsonEscalationRepository implements EscalationRepositoryInterface
                 'reason' => (string) ($row['reason'] ?? ''),
                 'note' => isset($row['note']) ? (string) $row['note'] : null,
                 'created_at' => (string) ($row['created_at'] ?? ''),
+                'attempts' => (int) ($row['attempts'] ?? 0),
             ];
         }
 

@@ -198,16 +198,17 @@ final class TicketService
         return $ticket;
     }
 
-    /** SLA'yı durduğu yerden sürdürür: kalan iş süresi şimdiden itibaren işler (FR-22). */
-    public function resumeSla(Ticket $ticket, int $actorId): Ticket
+    /**
+     * SLA'yı durduğu yerden sürdürür (FR-22): kalan iş süresi verilen andan (varsayılan: şimdi) işler. Yanıt süresi
+     * dolan soruda izleme, yanıt süresinin bittiği anı verir. Yalnız SLA alanları yazılır; aradaki başka değişiklik ezilmez.
+     */
+    public function resumeSla(Ticket $ticket, int $actorId, ?\DateTimeImmutable $at = null): Ticket
     {
         if ($ticket->pausedAt === null || $this->questions === null) {
             return $ticket;
         }
-        $ticket->deadline = $this->questions->resumedDeadline($ticket, $this->clock->now());
-        $ticket->pausedAt = null;
-        $ticket->questionDueAt = null;
-        if ($this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+        $this->questions->endPause($ticket, $at ?? $this->clock->now(), true);
+        if ($this->tickets->updateIfUnchanged($ticket, $ticket->status, $ticket->agentId, self::SLA_FIELDS)) {
             $this->notifyObservers($ticket, 'sla_resumed', [
                 'actor_id' => $actorId, 'activity' => 'sla_resumed', 'note' => $ticket->deadline->format('d.m.Y H:i'),
             ]);
@@ -361,6 +362,7 @@ final class TicketService
                 $this->authorize($isHandler);
                 $ticket->setStatus($state->resolve($ticket));
                 $ticket->resolvedAt = $this->clock->now();
+                $this->questions?->endPause($ticket, $ticket->resolvedAt, false); // soru beklerken çözüldü
                 break;
             default:
                 throw new ValidationException(['action' => 'Bilinmeyen işlem.']);
@@ -448,6 +450,9 @@ final class TicketService
     public const RESOLVED_REPLY_MESSAGE = 'Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.';
 
     /** Çözüldü durumunda sıra müşteride: personel ve yönetici yazamaz. */
+    /** @var list<string> SLA devamında yazılan alanlar */
+    public const SLA_FIELDS = ['deadline', 'paused_at', 'question_due_at', 'compliance_deadline'];
+
     public const BREACHED_REPLY_MESSAGE = 'SLA süresi dolmuş talebe personel yanıt yazamaz; talep eskalasyon sürecinde.';
 
     /** Yanıt formu yerine gösterilecek neden; kullanıcı yazabiliyorsa ya da talep kapalıysa null. */

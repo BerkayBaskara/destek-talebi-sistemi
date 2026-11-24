@@ -53,7 +53,7 @@ final class SlaMonitorService
             return false;
         }
         $ticket->warnedAt = $ticket->deadline;
-        if (!$this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+        if (!$this->tickets->updateIfUnchanged($ticket, $ticket->status, $ticket->agentId, ['warned_at'])) {
             return false;
         }
         $this->notifications->notify($ticket->agentId, 'sla_warning', (int) $ticket->id, $ticket->displayCode() . " talebinde SLA süresinin %80'i doldu; kalan süre: " . $this->slaStatus->formatMinutes($status->remainingMinutes) . '.');
@@ -68,9 +68,10 @@ final class SlaMonitorService
         $result = ['breaches' => 0, 'escalations' => 0, 'completed' => 0];
 
         foreach ($this->tickets->findAll() as $ticket) {
-            if ($ticket->pausedAt !== null && $ticket->questionDueAt !== null && $now >= $ticket->questionDueAt) {
-                // Müşteri soruyu süresinde yanıtlamadı: SLA kaldığı yerden devam eder.
-                $this->ticketService->resumeSla($ticket, TicketLog::SYSTEM_USER);
+            if ($ticket->pausedAt !== null && $ticket->questionDueAt !== null && $now >= $ticket->questionDueAt
+                && in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)) {
+                // Müşteri soruyu süresinde yanıtlamadı: SLA, yanıt süresinin bittiği andan kaldığı yerden devam eder.
+                $this->ticketService->resumeSla($ticket, TicketLog::SYSTEM_USER, $ticket->questionDueAt);
                 $this->notifications->notify((int) $ticket->agentId, 'status', (int) $ticket->id, $ticket->displayCode() . ' talebinde müşteri soruyu süresinde yanıtlamadı; SLA kaldığı yerden devam ediyor.');
                 continue;
             }

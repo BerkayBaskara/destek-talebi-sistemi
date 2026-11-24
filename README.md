@@ -141,7 +141,7 @@ Yönetici menüsündeki **Sistem Yapılandırması** ekranından:
 - **Site Ayarları:** site başlığı, logo (PNG/JPG, en fazla 1 MB), herkese açık ana sayfanın başlığı, metni ve görseli, gönderilecek bildirim türleri, personelin varsayılan kapasitesi.
 - **Kategoriler** ve **Öncelikler:** ekleme, ad değiştirme, aktif/pasif yapma (silme yok; eski talepler bozulmaz). Önceliklerin sırası, varsayılan SLA süresi ve anahtar kelimeleri buradan düzenlenir.
 - **SLA Süreleri:** kategori × öncelik tablosu (iş saati). Boş hücrede önceliğin varsayılan süresi kullanılır.
-- **Çalışma Takvimi:** çalışma günleri, mesai ve öğle arası saatleri, resmi tatiller, özel günler (yarım gün, kapalı gün, özel çalışma günü), aylık görünüm, JSON takvim dosyası yükleme; değişikliğin açık taleplere uygulanıp uygulanmayacağı seçilir.
+- **Çalışma Takvimi:** çalışma günleri, mesai ve öğle arası saatleri, resmi tatiller, özel günler (yarım gün ya da hafta sonu çalışma günü gibi o güne özel mesai saatleri; kapalı gün tatil olarak eklenir), aylık görünüm, JSON takvim dosyası yükleme; değişikliğin açık taleplere uygulanıp uygulanmayacağı seçilir.
 - **Güvenlik ve Oturum:** hatalı giriş deneme sınırı, engel süresi, hareketsizlikte oturum kapanma süresi, uzun süre giriş yapmayan personelin pasif yapılması.
 - **Personel:** personel hesabı açma, ad soyad düzeltme, aktif/pasif yapma ve kapasite.
 - **Müşteriler:** müşteri arama, aktif/pasif yapma (pasif müşteri giriş yapamaz).

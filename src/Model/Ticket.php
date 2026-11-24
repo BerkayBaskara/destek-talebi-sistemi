@@ -53,6 +53,8 @@ final class Ticket
         public ?DateTimeImmutable $questionDueAt = null,
         /** %80 uyarısı gönderilen bitiş zamanı (aynı bitiş için bir kez uyarılır). */
         public ?DateTimeImmutable $warnedAt = null,
+        /** SLA uyumu için ilk bitiş, soru nedeniyle duran iş süresi kadar ileri alınmış hâli (FR-22); boşsa ilk bitiş. */
+        public ?DateTimeImmutable $complianceDeadline = null,
     ) {
     }
 
@@ -125,6 +127,7 @@ final class Ticket
             self::date($row['paused_at'] ?? null),
             self::date($row['question_due_at'] ?? null),
             self::date($row['warned_at'] ?? null),
+            self::date($row['compliance_deadline'] ?? null),
         );
     }
 
@@ -157,6 +160,7 @@ final class Ticket
             'paused_at' => $this->pausedAt?->format(DATE_ATOM),
             'question_due_at' => $this->questionDueAt?->format(DATE_ATOM),
             'warned_at' => $this->warnedAt?->format(DATE_ATOM),
+            'compliance_deadline' => $this->complianceDeadline?->format(DATE_ATOM),
         ];
     }
 

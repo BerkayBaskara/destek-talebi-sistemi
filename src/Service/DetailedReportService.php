@@ -41,10 +41,10 @@ final class DetailedReportService
     private function score(User $agent, array $own): int
     {
         $base = $this->settings?->int('score.base') ?? 100;
-        $received = [];
+        $received = []; // talep → devralındığı andaki deneme sayısı (en son aktarma)
         foreach ($this->escalations?->all() ?? [] as $escalation) {
             if ($escalation['to_agent_id'] === $agent->id) {
-                $received[$escalation['ticket_id']] = true;
+                $received[$escalation['ticket_id']] = $escalation['attempts'];
             }
         }
         $total = 0;
@@ -52,7 +52,8 @@ final class DetailedReportService
             if ($ticket->status !== TicketStatus::Closed || $ticket->resolvedAt === null) {
                 continue;
             }
-            $factor = self::ATTEMPT_FACTORS[$ticket->attemptCount] ?? 0.0;
+            // Devralan personelin denemeleri devraldığı andan sayılır; öncekinin retleri onun puanını düşürmez.
+            $factor = self::ATTEMPT_FACTORS[max(0, $ticket->attemptCount - ($received[(int) $ticket->id] ?? 0))] ?? 0.0;
             if (isset($received[(int) $ticket->id])) {
                 $factor *= self::ESCALATION_BONUS;
             }
@@ -112,10 +113,13 @@ final class DetailedReportService
         return $rows;
     }
 
-    /** SLA uyumu ilk SLA bitişine göre (ek SLA ile uzayan bitiş "süresinde" sayılmaz). */
+    /**
+     * SLA uyumu ilk SLA bitişine göre (ek SLA ile uzayan bitiş "süresinde" sayılmaz). Soru nedeniyle duran iş süresi
+     * personelin aleyhine sayılmaz (FR-22).
+     */
     public static function metFirstDeadline(Ticket $ticket): bool
     {
-        return $ticket->resolvedAt !== null && $ticket->resolvedAt <= $ticket->firstDeadline();
+        return $ticket->resolvedAt !== null && $ticket->resolvedAt <= ($ticket->complianceDeadline ?? $ticket->firstDeadline());
     }
 
     /**

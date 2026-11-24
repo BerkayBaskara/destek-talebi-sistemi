@@ -182,6 +182,7 @@ final class EscalationService
         $code = $ticket->displayCode();
 
         $ticket->holdUntil = null;
+        (new QuestionPolicy($this->settings, $this->sla))->endPause($ticket, $now, false); // soru beklerken aktarıldı
         if ($target === null) {
             $ticket->agentId = null;
             $ticket->previousAgentId = $failing;
@@ -190,7 +191,7 @@ final class EscalationService
             if (!$this->tickets->saveIfUnchanged($ticket, $old, $oldAgent)) {
                 return null;
             }
-            $this->escalations->add((int) $ticket->id, $failing, null, $reason, $note, $now);
+            $this->escalations->add((int) $ticket->id, $failing, null, $reason, $note, $now, $ticket->attemptCount);
             if ($old !== TicketStatus::Pending) {
                 $this->statusChanged($ticket, $old, $actorId);
             }
@@ -212,7 +213,7 @@ final class EscalationService
         if (!$this->tickets->saveIfUnchanged($ticket, $old, $oldAgent)) {
             return null;
         }
-        $this->escalations->add((int) $ticket->id, $failing, (int) $target->id, $reason, $note, $now);
+        $this->escalations->add((int) $ticket->id, $failing, (int) $target->id, $reason, $note, $now, $ticket->attemptCount);
         if ($old !== TicketStatus::Taken) {
             $this->statusChanged($ticket, $old, $actorId);
         }
