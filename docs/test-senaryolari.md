@@ -75,8 +75,8 @@ Toplam 344 senaryo.
 | AUTH-037 | Birbirinden farklı sorular | Yanlış eşleşme yapılmamalı | FR-29 benzerlik kontrolü yok: parola kurtarmada kayıtlı soru ekranda gösterilir, kullanıcı soruyu yazmaz, yalnız cevabı yazar; karşılaştırılacak serbest soru metni olmadığı için %90 benzerlik ölçümüne gerek kalmıyor | ✖ |
 | AUTH-038 | İzin verilen kurtarma denemeleri | İstekler kabul edilmeli | `SecurityAndLimitsTest::test_reset_is_blocked_after_five_wrong_answers_for_configured_minutes` | ✅ |
 | AUTH-039 | Deneme sınırını aşma | Yeni istekler engellenmeli | `SecurityAndLimitsTest::test_reset_is_blocked_after_five_wrong_answers_for_configured_minutes`; `ConfigCompletionTest::test_login_is_blocked_after_configured_failed_attempts` | ✅ |
-| AUTH-040 | Kullanıcıyı pasifleştirme | Kullanıcı giriş yapamamalı | `AuthFlowTest::test_inactive_user_cannot_login_with_message`, `test_deactivated_user_session_ends_on_next_request` | ✅ |
-| AUTH-041 | Pasif kullanıcıyı aktifleştirme | Kullanıcı yeniden erişebilmeli | `StaffServiceTest::test_deactivate_and_activate_agent` | ✅ |
+| AUTH-040 | Kullanıcıyı pasifleştirme | Kullanıcı giriş yapamamalı | `AuthFlowTest::test_inactive_user_cannot_login_with_message`, `test_deactivated_user_session_ends_on_next_request`; `CustomerAccountsTest::test_deactivated_customer_cannot_log_in_until_reactivated` | ✅ |
+| AUTH-041 | Pasif kullanıcıyı aktifleştirme | Kullanıcı yeniden erişebilmeli | `StaffServiceTest::test_deactivate_and_activate_agent`; `CustomerAccountsTest::test_deactivated_customer_cannot_log_in_until_reactivated` | ✅ |
 
 ## 2. Talep (Ticket) yönetimi testleri
 
@@ -300,14 +300,14 @@ Toplam 344 senaryo.
 
 | No | Senaryo | Beklenen | Test / denetim | Durum |
 |---|---|---|---|---|
-| NOT-001 | Bildirim oluşturma | Bildirim kaydedilmeli | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count` | ✅ |
+| NOT-001 | Bildirim oluşturma | Bildirim kaydedilmeli | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count`; `PaginationTest::test_notifications_show_fifty_per_page_and_older_ones_are_reachable` | ✅ |
 | NOT-002 | Olmayan kullanıcıya bildirim | Kontrollü hata | `ScenarioGapsTest::test_notification_to_unknown_user_is_ignored` | ✅ |
-| NOT-003 | Bildirimleri listeleme | Kullanıcı bildirimleri dönmeli | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count` | ✅ |
+| NOT-003 | Bildirimleri listeleme | Kullanıcı bildirimleri dönmeli | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count`; `PaginationTest::test_notifications_show_fifty_per_page_and_older_ones_are_reachable` | ✅ |
 | NOT-004 | Başka kullanıcının bildirimi | Erişim engellenmeli | `NotificationTest::test_opening_notification_marks_read_and_others_cannot_open_it`, `test_mark_all_read` | ✅ |
 | NOT-005 | Bildirimi okundu yapma | Durum güncellenmeli | `NotificationTest::test_opening_notification_marks_read_and_others_cannot_open_it`, `test_mark_all_read` | ✅ |
 | NOT-006 | Bildirimi okunmadı yapma | Durum güncellenmeli | `ScenarioGapsTest::test_notification_can_be_marked_unread_and_reading_twice_is_consistent` | ✅ |
 | NOT-007 | Aynı bildirimi iki kez okuma | Veri tutarlı kalmalı | `ScenarioGapsTest::test_notification_can_be_marked_unread_and_reading_twice_is_consistent` | ✅ |
-| NOT-008 | Yeni görev atama | Personele bildirim | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count` | ✅ |
+| NOT-008 | Yeni görev atama | Personele bildirim | `NotificationTest::test_assignment_notifies_agent_and_bell_shows_count`; `PaginationTest::test_notifications_show_fifty_per_page_and_older_ones_are_reachable` | ✅ |
 | NOT-009 | Eskalasyon | İlgili personele bildirim | `EscalationTest::test_no_response_escalates_to_next_level_with_extra_sla` | ✅ |
 | NOT-010 | SLA uyarısı | Uyarı bildirimi | `ScenarioGapsTest::test_sla_warning_notification_is_sent_once`; `EscalationTest::test_breach_puts_ticket_on_hold_in_pool_and_asks_customer` | ✅ |
 | NOT-011 | Çözüm onayı | Müşteriye bildirim | `NotificationTest::test_replies_and_resolution_notify_the_other_side` | ✅ |

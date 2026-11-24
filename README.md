@@ -67,12 +67,14 @@ Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her
 | Görev Havuzu: uygun personel yoksa talep bekler, yer açılınca otomatik atanır; "Üzerime Al" kapasiteye uyar | ✅ |
 | Kategori bazlı personel hiyerarşisi ve personel izinleri; hiyerarşiye göre atama | ✅ |
 | SLA aşımı kuralı: müşteriye sorulur ("aynı personelle devam" / "sorun çözüldü"), bekleme süresi, ek SLA, üst seviyeye eskalasyon (FR-08, FR-14) | ✅ |
-| Çözüm onayı ("İşe yaradı / İşe yaramadı"), 3. retten sonra eskalasyon, yanıtsız çözümün otomatik tamamlanması, manuel eskalasyon, yöneticinin elle ataması, "çözülemedi" kapanışı | ✅ |
+| Çözüm onayı ("İşe yaradı" / "İşe yaramadı, aynı personelle devam" / "İşe yaramadı, başka personel istiyorum"), 3. retten sonra eskalasyon, yanıtsız çözümün otomatik tamamlanması, manuel eskalasyon, yöneticinin elle ataması, "çözülemedi" kapanışı | ✅ |
+| Personelin müşteriye soru sorması (SLA durur, sınır ayarlı), SLA süresi dolan talebe personel yanıtının engellenmesi (FR-22, FR-60) | ✅ |
 | Uygulama içi bildirimler (çan), 6 karakterli talep kodu, işlem geçmişi (Günlük) | ✅ |
-| Ayrıntılı rapor ve CSV, kategoriye özel ek alanlar, dosya sınırları ve güvenlik soruları ayarı, şifre sıfırlama deneme sınırı, veri yedeği indirme | ✅ |
-| Puanlama (FR-15), MySQL | Aşama 3 |
+| Ayrıntılı rapor, eskalasyon kayıtları ve CSV, alt kategoriler, kategoriye özel ek alanlar (metin, sayı, tarih, seçim, e-posta), dosya sınırları, güvenlik soruları, giriş ve şifre sıfırlama deneme sınırı, veri yedeği indirme ve geri yükleme | ✅ |
+| Personel puanı (FR-15), yöneticinin talep açması (FR-16), müşteri hesaplarının aktif/pasif yapılması (FR-33), özel günler ve takvim dosyası yükleme (FR-13) | ✅ |
+| MySQL, migration, JSON'dan aktarım | Aşama 3 |
 
-Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test).
+Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test), `docs/test-senaryolari.md` (test senaryosu → test).
 
 ## ⚙️ Kurulum
 
@@ -136,18 +138,20 @@ php vendor/bin/phpstan analyse
 
 Yönetici menüsündeki **Sistem Yapılandırması** ekranından:
 
-- **Site Ayarları:** site başlığı, logo (PNG/JPG, en fazla 1 MB), herkese açık ana sayfanın başlığı ve metni, personelin varsayılan kapasitesi.
+- **Site Ayarları:** site başlığı, logo (PNG/JPG, en fazla 1 MB), herkese açık ana sayfanın başlığı, metni ve görseli, gönderilecek bildirim türleri, personelin varsayılan kapasitesi.
 - **Kategoriler** ve **Öncelikler:** ekleme, ad değiştirme, aktif/pasif yapma (silme yok; eski talepler bozulmaz). Önceliklerin sırası, varsayılan SLA süresi ve anahtar kelimeleri buradan düzenlenir.
 - **SLA Süreleri:** kategori × öncelik tablosu (iş saati). Boş hücrede önceliğin varsayılan süresi kullanılır.
-- **Çalışma Takvimi:** çalışma günleri, mesai ve öğle arası saatleri, resmi tatiller.
-- **Personel:** personel hesabı açma, aktif/pasif yapma ve kapasite.
+- **Çalışma Takvimi:** çalışma günleri, mesai ve öğle arası saatleri, resmi tatiller, özel günler (yarım gün, kapalı gün, özel çalışma günü), aylık görünüm, JSON takvim dosyası yükleme; değişikliğin açık taleplere uygulanıp uygulanmayacağı seçilir.
+- **Güvenlik ve Oturum:** hatalı giriş deneme sınırı, engel süresi, hareketsizlikte oturum kapanma süresi, uzun süre giriş yapmayan personelin pasif yapılması.
+- **Personel:** personel hesabı açma, ad soyad düzeltme, aktif/pasif yapma ve kapasite.
+- **Müşteriler:** müşteri arama, aktif/pasif yapma (pasif müşteri giriş yapamaz).
 - **Personel Hiyerarşisi** ve **Personel İzinleri:** her kategoride personelin seviyesi (1 ilk basamak); izinli personel yeni talep almaz.
-- **SLA Süreleri** sayfasındaki kurallar: müşteri kararı için bekleme (varsayılan 1 iş günü; 0 = hemen eskalasyon), ek SLA oranı (varsayılan %33), çözüm onayı için otomatik tamamlama süresi (varsayılan 3 iş günü).
-- **Site Ayarları** sayfasındaki dosya sınırları ve güvenlik soruları; **Veri Yedeği** (zip indirme).
+- **SLA Süreleri** sayfasındaki kurallar: müşteri kararı için bekleme (varsayılan 1 iş günü; 0 = hemen eskalasyon), ek SLA oranı (varsayılan %33), çözüm onayı için otomatik tamamlama süresi (varsayılan 3 iş günü), personelin soru sınırı (varsayılan 2) ve müşterinin soruya yanıt süresi.
+- **Site Ayarları** sayfasındaki dosya sınırları ve güvenlik soruları; **Veri Yedeği** (zip indirme ve geri yükleme; geri yüklemeden önce otomatik yedek alınır).
 - **Kategoriler** sayfasında kategoriye özel ek talep alanları. Yönetici menüsünde **Ayrıntılı Rapor** (süzgeç + CSV).
 - **Denetim Kaydı:** yöneticilerin yaptığı son 100 değişiklik (eski ve yeni değerleriyle).
 
-Yapılan değişiklikler yeni taleplere uygulanır; açılmış taleplerin SLA bitiş zamanı yeniden hesaplanmaz.
+Yapılan değişiklikler yeni taleplere uygulanır. Takvim değişikliğinin açık taleplerin SLA bitişine de uygulanması Çalışma Takvimi ekranından seçilir.
 
 ### Yapılandırma dosyaları (`storage/config/`)
 

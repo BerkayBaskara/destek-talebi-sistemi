@@ -153,6 +153,23 @@ final class StaffService
     }
 
     /** Yalnız personel hesapları yönetilir; yönetici kendi hesabını pasif yapamaz. */
+    /** FR-33: müşteri hesabını aktif ya da pasif yapar; pasif müşteri giriş yapamaz, açık oturumu sonraki istekte kapanır. */
+    public function setCustomerActive(User $admin, int $userId, bool $active): User
+    {
+        $user = $this->users->findById($userId);
+        if ($user === null || $user->role !== Role::Customer) {
+            throw new NotFoundException('Müşteri bulunamadı.');
+        }
+        if ($user->active === $active) {
+            return $user;
+        }
+        $user->active = $active;
+        $this->users->save($user);
+        $this->audit->record($admin, $active ? 'activate' : 'deactivate', 'customer', $userId, ['active' => !$active], ['active' => $active]);
+
+        return $user;
+    }
+
     private function agent(int $userId): User
     {
         $user = $this->users->findById($userId) ?? throw new NotFoundException('Kullanıcı bulunamadı.');

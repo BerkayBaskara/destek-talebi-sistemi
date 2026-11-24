@@ -35,10 +35,16 @@ final class ReportController
             $byStatus[$status->label()] = count(array_filter($tickets, static fn (Ticket $t): bool => $t->status === $status));
         }
 
+        $page = \App\Service\TicketService::paginate($tickets, max(1, (int) $request->string('sayfa')), self::PER_PAGE);
+        $params = array_filter($request->query, static fn ($v, $k): bool => is_string($v) && $v !== '' && $k !== 'sayfa', ARRAY_FILTER_USE_BOTH);
+
         return $this->kernel->render('admin/report', [
             'title' => 'Ayrıntılı Rapor',
             'filters' => $request->query,
-            'tickets' => array_slice($tickets, 0, 200),
+            'tickets' => $page['items'],
+            'page' => $page['page'],
+            'pages' => $page['pages'],
+            'pageParams' => array_map('strval', $params),
             'total' => count($tickets),
             'byStatus' => $byStatus,
             'perAgent' => $report->perAgent($tickets),
@@ -104,6 +110,9 @@ final class ReportController
             'agent' => (int) $request->string('personel'),
         ];
     }
+
+    /** NFR-33: talep tablosunda sayfa başına en fazla 50 kayıt; tamamı CSV'de. */
+    public const PER_PAGE = 50;
 
     private const REASONS = [
         'sla_breach' => 'SLA aşıldı (beklemeden)',

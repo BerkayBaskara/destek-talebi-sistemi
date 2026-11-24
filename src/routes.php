@@ -14,6 +14,7 @@ use App\Controller\NotificationController;
 use App\Controller\ReportController;
 use App\Controller\SettingsController;
 use App\Controller\StaffController;
+use App\Controller\CustomerController;
 use App\Controller\HomeController;
 use App\Controller\TicketController;
 use App\Core\Http\Request;
@@ -58,7 +59,7 @@ return static function (Router $router, Kernel $kernel): void {
 
     // Bildirimler (FR-18)
     $notifications = new NotificationController($kernel);
-    $router->add('GET', '/bildirimler', static fn (Request $r, array $p): Response => $notifications->index());
+    $router->add('GET', '/bildirimler', static fn (Request $r, array $p): Response => $notifications->index($r));
     $router->add('POST', '/bildirimler/okundu', static fn (Request $r, array $p): Response => $notifications->markAllRead());
     $router->add('GET', '/bildirimler/{id}', static fn (Request $r, array $p): Response => $notifications->open((int) $p['id']));
     $router->add('POST', '/bildirimler/{id}/okunmadi', static fn (Request $r, array $p): Response => $notifications->markUnread((int) $p['id']));
@@ -145,4 +146,8 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/yonetici/personel', static fn (Request $r, array $p): Response => $staff->index());
     $router->add('POST', '/yonetici/personel', static fn (Request $r, array $p): Response => $staff->create($r));
     $router->add('POST', '/yonetici/personel/{id}', static fn (Request $r, array $p): Response => $staff->update($r, (int) $p['id']));
+
+    $customers = new CustomerController($kernel);
+    $router->add('GET', '/yonetici/musteriler', static fn (Request $r, array $p): Response => $customers->index($r));
+    $router->add('POST', '/yonetici/musteriler/{id}/durum', static fn (Request $r, array $p): Response => $customers->setActive($r, (int) $p['id']));
 };

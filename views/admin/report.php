@@ -1,6 +1,9 @@
 <?php
 /** @var array<string, mixed> $filters */
 /** @var list<\App\Model\Ticket> $tickets */
+/** @var int $page */
+/** @var int $pages */
+/** @var array<string, string> $pageParams */
 /** @var int $total */
 /** @var array<string, int> $byStatus */
 /** @var list<array{agent: \App\Model\User, total: int, resolved: int, metPercent: ?int, avgMinutes: ?int, score: int}> $perAgent */
@@ -87,7 +90,7 @@ $f = static fn (string $key): string => is_string($filters[$key] ?? null) ? $fil
     </div>
 </section>
 <section class="card">
-    <h2>Talepler <span class="muted">(en fazla 200 gösterilir; tamamı CSV'de)</span></h2>
+    <h2>Talepler <span class="muted">(sayfa başına 50; tamamı CSV'de)</span></h2>
     <?php if ($tickets === []): ?>
         <p class="muted">Bu süzgece uyan talep yok.</p>
     <?php else: ?>
@@ -107,6 +110,8 @@ $f = static fn (string $key): string => is_string($filters[$key] ?? null) ? $fil
                 </tbody>
             </table>
         </div>
+        <p class="muted"><?= e($total) ?> talep</p>
+        <?= $view->partial('partials/pagination', ['page' => $page, 'pages' => $pages, 'baseUrl' => '/yonetici/rapor', 'params' => $pageParams]) ?>
     <?php endif; ?>
 </section>
 <section class="card">

@@ -15,13 +15,20 @@ final class NotificationController
     {
     }
 
-    public function index(): Response
+    /** NFR-33: sayfa başına en fazla 50 bildirim, en yeni önce. */
+    public const PER_PAGE = 50;
+
+    public function index(\App\Core\Http\Request $request): Response
     {
         $user = $this->kernel->requireRole();
+        $all = $this->kernel->notificationRepository()->forUser((int) $user->id, PHP_INT_MAX);
+        $page = \App\Service\TicketService::paginate($all, max(1, (int) $request->string('sayfa')), self::PER_PAGE);
 
         return $this->kernel->render('notifications/index', [
             'title' => 'Bildirimler',
-            'notifications' => $this->kernel->notificationRepository()->forUser((int) $user->id),
+            'notifications' => $page['items'],
+            'page' => $page['page'],
+            'pages' => $page['pages'],
         ]);
     }
 

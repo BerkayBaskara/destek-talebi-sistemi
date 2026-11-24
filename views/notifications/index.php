@@ -1,6 +1,9 @@
 <?php
 /** @var list<\App\Model\Notification> $notifications */
+/** @var int $page */
+/** @var int $pages */
 /** @var callable $csrfField */
+/** @var \App\Core\View $view */
 ?>
 <section class="card">
     <div class="card-head">
@@ -30,5 +33,6 @@
                 </li>
             <?php endforeach; ?>
         </ul>
+        <?= $view->partial('partials/pagination', ['page' => $page, 'pages' => $pages, 'baseUrl' => '/bildirimler', 'params' => []]) ?>
     <?php endif; ?>
 </section>

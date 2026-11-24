@@ -571,8 +571,9 @@ final class TicketService
     /**
      * Ortak sayfalama yardımcısı.
      *
-     * @param list<Ticket> $items
-     * @return array{items: list<Ticket>, total: int, page: int, pages: int}
+     * @template T
+     * @param list<T> $items
+     * @return array{items: list<T>, total: int, page: int, pages: int}
      */
     public static function paginate(array $items, int $page, int $perPage): array
     {

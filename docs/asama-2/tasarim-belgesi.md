@@ -307,7 +307,7 @@ Ekip içi gözden geçirmeden sonra Aşama 2 aşağıdaki değişikliklerle geni
 
 **Hiyerarşi:** `category_staff` tablosu her kategoride personelin seviyesini tutar (1 ilk basamak). Atama en alt uygun seviyeden yapılır. Uygun personel aktif, izinde değil ve kapasitesi dolmamış olandır. Hiyerarşisi tanımlanmamış kategoride bütün personel adaydır (eski davranış).
 
-**Çözüm onayı:** müşteri "İşe yaradı" ya da "İşe yaramadı" der. "İşe yaramadı" ek SLA verir; 3. retten sonra talep üst seviyeye aktarılır (`EscalationObserver`). Çözüldü talep ayardaki iş günü boyunca yanıtsız kalırsa "Otomatik tamamlandı" nedeniyle kapanır.
+**Çözüm onayı:** müşteri "İşe yaradı", "İşe yaramadı, aynı personelle devam" ya da "İşe yaramadı, başka personel istiyorum" der. Aynı personelle devam ek SLA verir; başka personel isteği ve 3. ret talebi üst seviyeye aktarır (`EscalationObserver`, FR-63, FR-64). SLA süresi dolmuş talebe personel yanıt yazamaz (FR-60). Çözüldü talep ayardaki iş günü boyunca yanıtsız kalırsa "Otomatik tamamlandı" nedeniyle kapanır.
 
 **Diğerleri:**
 - Uygulama içi bildirimler (çan, 60 sn yoklama; oturum süresini uzatmaz).
@@ -316,11 +316,14 @@ Ekip içi gözden geçirmeden sonra Aşama 2 aşağıdaki değişikliklerle geni
 - Manuel eskalasyon (gerekçeli); yöneticinin elle ataması (kapasitesi dolu personele gerekçeyle); "çözülemedi" kapanışı.
 - Kategoriye özel ek alanlar.
 - Ayrıntılı rapor ve CSV (Excel için UTF-8 BOM, noktalı virgül, formül hücreleri korunur).
-- Dosya sınırları ve güvenlik soruları yönetici ayarında; kullanıcı kendi güvenlik sorusunu yazabilir; şifre sıfırlamada 15 dakikada 5 hatalı deneme sınırı.
-- Veri yedeği yalnız indirilir; geri yükleme web'den yapılmaz.
+- Dosya sınırları ve güvenlik soruları yönetici ayarında; kullanıcı kendi güvenlik sorusunu yazabilir; giriş ve şifre sıfırlamada hatalı deneme sınırı ve engel süresi yönetici ayarında (varsayılan 5 deneme, 5 dakika).
+- Veri yedeği indirilir ve yönetici ekranından geri yüklenir; geri yüklemeden önce mevcut veri `storage/backups/` altına otomatik yedeklenir, bozuk ya da eksik yedek reddedilir.
+- Yönetici müşteri hesaplarını aktif ya da pasif yapar (FR-33); bildirim, rapor ve müşteri listeleri sayfa başına en fazla 50 kayıt gösterir (NFR-33).
 
 **Yapılmayanlar ve nedenleri:**
 - SSE yerine mevcut yoklama kullanılır, çünkü yerleşik PHP sunucusu tek iş parçacıklıdır.
-- Güvenlik sorusunda "%90 benzerlik" yoktur, çünkü soru ekranda zaten gösteriliyor.
-- Puanlama (FR-15) Aşama 3'e kaldı.
+- Güvenlik sorusunda "%90 benzerlik" (FR-29) yoktur, çünkü soru ekranda zaten gösteriliyor.
+- Form sürüm numarası (FR-42) tutulmaz; her talep doldurulduğu andaki alan etiketleri ve değerleriyle saklanır, form değişikliği eski talebi değiştirmez.
+- Takvimde ayrı yıllık görünüm yok; aylık görünümde aylar arasında geçilir.
+- Kullanıcının rolü değiştirilmez: rol, numaranın önekiyle (M/P/Y) birlikte verilir; yönetici yeni rolde hesap açar, eskisini pasif yapar.
 
