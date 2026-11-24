@@ -30,6 +30,7 @@ final class EscalationService
     public const REASON_NO_RESPONSE = 'sla_no_response';
     public const REASON_MANUAL = 'manual';
     public const REASON_REJECTED = 'rejected_limit';
+    public const REASON_CUSTOMER_REQUEST = 'customer_request';
     public const REASON_PREVIOUS_UNAVAILABLE = 'previous_unavailable';
 
     public const CLOSED_BY_CUSTOMER = 'customer_resolved';
@@ -232,12 +233,18 @@ final class EscalationService
     }
 
     /**
-     * Müşteri "İşe yaramadı" dedi (talep İnceleniyor'a döndü): itiraz ek SLA alır (FR-14);
-     * 3. retten sonra talep otomatik olarak üst seviyeye aktarılır.
+     * Müşteri "İşe yaramadı" dedi (talep İnceleniyor'a döndü). Aynı personelle devam ederse itiraz ek SLA alır (FR-14);
+     * başka personel istediyse (FR-63, FR-64) ya da 3. retten sonra talep üst seviyeye aktarılır.
      */
-    public function onRejected(Ticket $ticket, int $actorId): void
+    public function onRejected(Ticket $ticket, int $actorId, bool $otherAgent = false): void
     {
         if ($ticket->status !== TicketStatus::InReview) {
+            return;
+        }
+        if ($otherAgent) {
+            $this->escalate($ticket, self::REASON_CUSTOMER_REQUEST, $actorId, 'Müşteri çözümü yetersiz bulup başka personel istedi');
+            $this->ticketService->fillFromPool();
+
             return;
         }
         if ($ticket->attemptCount >= self::REJECTION_LIMIT) {

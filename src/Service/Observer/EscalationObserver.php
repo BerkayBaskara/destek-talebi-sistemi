@@ -10,8 +10,8 @@ use App\Service\EscalationService;
 use App\Service\TicketService;
 
 /**
- * Sınıf diyagramındaki EscalationObserver: müşteri çözümü reddettiğinde (Çözüldü → İnceleniyor) ek SLA uygular,
- * 3. retten sonra talebi üst seviyeye aktarır. Zamana bağlı eskalasyon SlaMonitorService'te.
+ * Sınıf diyagramındaki EscalationObserver: müşteri çözümü reddettiğinde (Çözüldü → İnceleniyor) ek SLA uygular;
+ * müşteri başka personel istediyse ya da 3. retten sonra talebi üst seviyeye aktarır. Zamana bağlı eskalasyon SlaMonitorService'te.
  */
 final class EscalationObserver implements TicketObserver
 {
@@ -25,7 +25,11 @@ final class EscalationObserver implements TicketObserver
             return;
         }
         if (($context['old'] ?? null) === TicketStatus::Resolved && ($context['new'] ?? null) === TicketStatus::InReview) {
-            $this->escalation->onRejected($ticket, is_int($context['actor_id'] ?? null) ? $context['actor_id'] : 0);
+            $this->escalation->onRejected(
+                $ticket,
+                is_int($context['actor_id'] ?? null) ? $context['actor_id'] : 0,
+                ($context['other_agent'] ?? false) === true,
+            );
         }
     }
 }

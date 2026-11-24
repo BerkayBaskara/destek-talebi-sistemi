@@ -324,7 +324,7 @@ final class TicketService
     }
 
     /**
-     * Durum eylemi. cancel/approve/reject: talebin sahibi müşteri; start_review/resolve: atanan personel
+     * Durum eylemi. cancel/approve/reject/reject_other: talebin sahibi müşteri; start_review/resolve: atanan personel
      * veya yönetici. İzin verilmeyen geçişte InvalidTransitionException (State deseni) atılır.
      */
     public function perform(int $ticketId, User $actor, string $action): Ticket
@@ -347,6 +347,7 @@ final class TicketService
                 $ticket->setStatus($state->close($ticket));
                 break;
             case 'reject':
+            case 'reject_other': // FR-63: işe yaramadı + başka personel isteği (aktarmayı EscalationObserver yapar)
                 $this->authorize($isOwner);
                 $ticket->setStatus($state->reject($ticket));
                 $ticket->incrementAttempt();
@@ -369,7 +370,12 @@ final class TicketService
         if (!$this->tickets->saveIfStatus($ticket, $old)) {
             throw new ConflictException('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.');
         }
-        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, ['old' => $old, 'new' => $ticket->status, 'actor_id' => (int) $actor->id]);
+        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
+            'old' => $old,
+            'new' => $ticket->status,
+            'actor_id' => (int) $actor->id,
+            'other_agent' => $action === 'reject_other',
+        ]);
 
         if (in_array($ticket->status, [TicketStatus::Resolved, TicketStatus::Closed, TicketStatus::Cancelled], true)) {
             $this->fillFromPool(); // personelde yer açıldı; havuzda bekleyen talep varsa atanır
@@ -382,7 +388,7 @@ final class TicketService
      * Ekranda gösterilecek eylem düğmeleri: kullanıcının yetkisi olan ve mevcut durumda State'in izin verdiği eylemler.
      * Sunucu her eylemde perform() ile yine denetler; bu liste yalnız arayüz içindir.
      *
-     * @return list<string> cancel | start_review | resolve | approve | reject
+     * @return list<string> cancel | start_review | resolve | approve | reject | reject_other
      */
     public function availableActions(Ticket $ticket, User $viewer): array
     {
@@ -395,6 +401,7 @@ final class TicketService
             'resolve' => [$isHandler, static fn () => $state->resolve($ticket)],
             'approve' => [$isOwner, static fn () => $state->close($ticket)],
             'reject' => [$isOwner, static fn () => $state->reject($ticket)],
+            'reject_other' => [$isOwner, static fn () => $state->reject($ticket)],
         ];
 
         $actions = [];
@@ -416,12 +423,13 @@ final class TicketService
     /** Yanıt yazabilir mi (arayüzde form gösterilsin mi). */
     /**
      * Yanıt yazılabilir mi: kapanmış/iptal talebe kimse, Çözüldü durumundaki talebe personel ve yönetici yazamaz
-     * (müşterinin onayı ya da reddi beklenir). SLA süresi dolmuş olsa da yazmak serbesttir.
+     * (müşterinin onayı ya da reddi beklenir). SLA süresi dolmuş talebe personel yazamaz (FR-60).
      */
     public function canReply(Ticket $ticket, User $viewer): bool
     {
         return !$ticket->status->isFinal()
             && !self::awaitsCustomer($ticket, $viewer)
+            && !$this->slaExpiredForAgent($ticket, $viewer)
             && ($ticket->creatorId === $viewer->id
                 || $viewer->role === Role::Admin
                 || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id));
@@ -440,6 +448,27 @@ final class TicketService
     public const RESOLVED_REPLY_MESSAGE = 'Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.';
 
     /** Çözüldü durumunda sıra müşteride: personel ve yönetici yazamaz. */
+    public const BREACHED_REPLY_MESSAGE = 'SLA süresi dolmuş talebe personel yanıt yazamaz; talep eskalasyon sürecinde.';
+
+    /** Yanıt formu yerine gösterilecek neden; kullanıcı yazabiliyorsa ya da talep kapalıysa null. */
+    public function replyBlockedReason(Ticket $ticket, User $viewer): ?string
+    {
+        return match (true) {
+            self::awaitsCustomer($ticket, $viewer) => self::RESOLVED_REPLY_MESSAGE,
+            $this->slaExpiredForAgent($ticket, $viewer) && $ticket->agentId === $viewer->id => self::BREACHED_REPLY_MESSAGE,
+            default => null,
+        };
+    }
+
+    /** FR-60: SLA süresi dolmuş (ve soru nedeniyle durdurulmamış) açık talebe personel yanıt yazamaz. */
+    private function slaExpiredForAgent(Ticket $ticket, User $user): bool
+    {
+        return $user->role === Role::Agent
+            && $ticket->pausedAt === null
+            && in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)
+            && $this->clock->now() >= $ticket->deadline;
+    }
+
     private static function awaitsCustomer(Ticket $ticket, User $user): bool
     {
         return $ticket->status === TicketStatus::Resolved && $user->role !== Role::Customer;
@@ -462,6 +491,9 @@ final class TicketService
         }
         if (self::awaitsCustomer($ticket, $author)) {
             throw new ValidationException(['message' => self::RESOLVED_REPLY_MESSAGE]);
+        }
+        if ($this->slaExpiredForAgent($ticket, $author)) {
+            throw new ValidationException(['message' => self::BREACHED_REPLY_MESSAGE]);
         }
         $message = trim($message);
         if (Text::length($message) < 1 || Text::length($message) > 5000) {

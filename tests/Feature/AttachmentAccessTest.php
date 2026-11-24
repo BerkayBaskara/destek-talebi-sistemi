@@ -28,6 +28,16 @@ final class AttachmentAccessTest extends FeatureTestCase
         )->id;
     }
 
+    /** PERF-004: yetki kontrolü ve dosya teslimi 1 saniyenin altında. */
+    public function test_authorized_download_is_under_one_second(): void
+    {
+        $start = hrtime(true);
+        $response = $this->get('/ekler/' . $this->attachmentId);
+
+        self::assertSame(200, $response->status);
+        self::assertLessThan(1000, (hrtime(true) - $start) / 1e6);
+    }
+
     public function test_owner_downloads_with_safe_headers(): void
     {
         $response = $this->get('/ekler/' . $this->attachmentId);

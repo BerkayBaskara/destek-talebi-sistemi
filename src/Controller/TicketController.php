@@ -154,8 +154,7 @@ final class TicketController
                 && ($viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id)),
             'assignableAgents' => $viewer->role === Role::Admin && $ticket->status === TicketStatus::Pending && $ticket->agentId === null
                 ? $this->assignableAgents() : [],
-            'awaitsCustomer' => $ticket->status === TicketStatus::Resolved && $viewer->role !== Role::Customer,
-            'replyBlockedMessage' => TicketService::RESOLVED_REPLY_MESSAGE,
+            'replyBlockedMessage' => $this->tickets->replyBlockedReason($ticket, $viewer),
         ]);
     }
 

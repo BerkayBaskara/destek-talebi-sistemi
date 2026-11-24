@@ -110,6 +110,7 @@ final class ReportController
         'sla_no_response' => 'SLA aşımında müşteri yanıt vermedi',
         'manual' => 'Manuel (personel)',
         'rejected_limit' => 'Çözüm 3 kez reddedildi',
+        'customer_request' => 'Müşteri başka personel istedi',
         'previous_unavailable' => 'Önceki personel uygun değil',
     ];
 

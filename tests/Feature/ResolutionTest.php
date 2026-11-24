@@ -74,6 +74,47 @@ final class ResolutionTest extends FeatureTestCase
         self::assertStringContainsString('İşe yaramadı', $body);
     }
 
+    /** FR-63: çözüm işe yaramadığında müşteri aynı personelle devam etmeyi ya da başka personeli seçer. */
+    public function test_did_not_work_offers_same_or_another_agent(): void
+    {
+        $this->resolve();
+
+        $body = $this->get('/talepler/1')->body;
+
+        self::assertStringContainsString('İşe yaramadı, aynı personelle devam', $body);
+        self::assertStringContainsString('İşe yaramadı, başka personel istiyorum', $body);
+    }
+
+    /** FR-64, RES-011: başka personel isteyen müşterinin talebi hiyerarşide üst seviyeye ek SLA ile aktarılır. */
+    public function test_asking_for_another_agent_escalates_to_next_level(): void
+    {
+        $this->resolve();
+
+        $this->post('/talepler/1/islem', ['islem' => 'reject_other']);
+
+        $ticket = $this->ticket();
+        self::assertSame($this->senior->id, $ticket->agentId);
+        self::assertSame(TicketStatus::Taken, $ticket->status);
+        self::assertSame(1, $ticket->attemptCount);
+        self::assertSame('2026-11-09 16:17', $ticket->deadline->format('Y-m-d H:i'), 'Devralan personel ek SLA alır: Pzt 10:00 + 317 iş dk.');
+        $escalations = $this->kernel->escalationRepository()->findByTicket(1);
+        self::assertCount(1, $escalations);
+        self::assertSame('customer_request', $escalations[0]['reason']);
+        self::assertSame($this->junior->id, $escalations[0]['from_agent_id']);
+    }
+
+    /** Başka personel isteği yalnız talep sahibinden ve yalnız Çözüldü durumunda kabul edilir. */
+    public function test_another_agent_request_needs_owner_and_resolved_status(): void
+    {
+        $this->as($this->junior->customerNo);
+        self::assertSame(403, $this->post('/talepler/1/islem', ['islem' => 'reject_other'])->status);
+
+        $this->as($this->customerNo);
+        $this->post('/talepler/1/islem', ['islem' => 'reject_other']);
+        self::assertSame($this->junior->id, $this->ticket()->agentId, 'Çözülmemiş talepte işlem yapılmaz.');
+        self::assertSame([], $this->kernel->escalationRepository()->findByTicket(1));
+    }
+
     public function test_did_not_work_applies_extra_sla(): void
     {
         $this->resolve();

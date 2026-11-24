@@ -230,4 +230,66 @@ final class ScenarioCoverageTest extends FeatureTestCase
         $none = $this->get('/yonetici/rapor?baslangic=2026-11-15&bitis=2026-11-30&kategori=1')->body;
         self::assertStringContainsString('Bu süzgece uyan talep yok.', $none);
     }
+
+    /** AUTH-022 */
+    public function test_updating_unknown_staff_gives_not_found(): void
+    {
+        $this->as($this->admin->customerNo);
+
+        self::assertSame(404, $this->post('/yonetici/personel/999', ['name' => 'Yok', 'surname' => 'Kişi', 'capacity' => '5', 'active' => '1'])->status);
+    }
+
+    /** SLA-023 */
+    public function test_monitor_does_nothing_before_deadline(): void
+    {
+        $this->openTicket();
+        $before = $this->kernel->ticketRepository()->findById(1);
+        $this->clock->advance('+30 minutes');
+        $this->kernel->slaMonitor()->run();
+
+        $after = $this->kernel->ticketRepository()->findById(1);
+        self::assertSame($before?->agentId, $after?->agentId);
+        self::assertNull($after?->holdUntil);
+        self::assertNull($after?->breachHandledAt);
+    }
+
+    /** SLA-028, RES-022 */
+    public function test_customer_cannot_escalate_and_only_admin_closes_as_unresolvable(): void
+    {
+        $this->openTicket();
+        self::assertSame(403, $this->post('/talepler/1/eskale', ['gerekce' => 'Başka personel istiyorum.'])->status);
+        self::assertSame(403, $this->post('/talepler/1/cozulemedi', ['gerekce' => 'Çözülemiyor.'])->status);
+
+        $this->as($this->agent->customerNo);
+        self::assertSame(403, $this->post('/talepler/1/cozulemedi', ['gerekce' => 'Çözülemiyor.'])->status);
+        self::assertNotSame(TicketStatus::Closed, $this->kernel->ticketRepository()->findById(1)?->status);
+    }
+
+    /** ASN-018, ASN-019: yalnız bugünü kapsayan izin atamayı engeller. */
+    public function test_future_and_finished_leave_do_not_block_assignment(): void
+    {
+        $this->kernel->leaveRepository()->add((int) $this->agent->id, '2026-11-10', '2026-11-12', 'Yarın başlayan izin');
+        $this->kernel->leaveRepository()->add((int) $this->agent->id, '2026-11-02', '2026-11-06', 'Bitmiş izin');
+
+        $this->openTicket();
+
+        self::assertSame($this->agent->id, $this->kernel->ticketRepository()->findById(1)?->agentId);
+    }
+
+    /** SLA-036, FR-60: SLA süresi dolan talepte personele yanıt formu yerine nedeni gösterilir. */
+    public function test_agent_sees_why_breached_ticket_cannot_be_answered(): void
+    {
+        $this->kernel->settingsService()->update($this->admin, ['sla.breach_wait_days' => '1']);
+        $this->openTicket();
+        $this->clock->set(new DateTimeImmutable('2026-11-11 11:00', new DateTimeZone('Europe/Istanbul'))); // SLA bitişi 11 Kasım 10:00
+        // İzleme bu dakika için çalışmış sayılır; aşım henüz işlenmeden personelin gördüğü ekran sınanır.
+        (new \App\Repository\Json\JsonRuntimeStateRepository($this->kernel->store()))->claim('sla_monitor', $this->clock->now()->getTimestamp(), 60);
+        $this->as($this->agent->customerNo);
+
+        $page = $this->get('/talepler/1')->body;
+
+        self::assertStringContainsString('SLA süresi dolmuş talebe personel yanıt yazamaz', $page);
+        self::assertStringNotContainsString('Yanıtı gönder', $page);
+    }
 }
+

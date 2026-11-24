@@ -15,8 +15,7 @@
 /** @var bool $canAsk */
 /** @var int $questionsLeft */
 /** @var list<array{agent: \App\Model\User, load: int, capacity: int}> $assignableAgents */
-/** @var bool $awaitsCustomer */
-/** @var string $replyBlockedMessage */
+/** @var string|null $replyBlockedMessage */
 /** @var callable $csrfField */
 /** @var \App\Core\View $view */
 
@@ -28,7 +27,8 @@ $actionLabels = [
     'start_review' => ['İncelemeye al', 'btn', TicketStatus::InReview],
     'resolve' => ['Çözüldü olarak işaretle', 'btn', TicketStatus::Resolved],
     'approve' => ['İşe yaradı', 'btn btn-new', TicketStatus::Closed],
-    'reject' => ['İşe yaramadı', 'btn btn-light', TicketStatus::InReview],
+    'reject' => ['İşe yaramadı, aynı personelle devam', 'btn btn-light', TicketStatus::InReview],
+    'reject_other' => ['İşe yaramadı, başka personel istiyorum', 'btn btn-light', TicketStatus::Taken],
     'cancel' => ['Talebi iptal et', 'btn btn-danger', TicketStatus::Cancelled],
 ];
 $backUrl = $viewer->role === Role::Customer ? '/talepler' : ($viewer->role === Role::Agent ? '/kanban' : '/yonetici');
@@ -185,7 +185,7 @@ $closureReasons = [
             <?php endif; ?>
             <button type="submit" class="btn">Yanıtı gönder</button>
         </form>
-    <?php elseif ($awaitsCustomer): ?>
+    <?php elseif ($replyBlockedMessage !== null): ?>
         <p class="alert alert-warning"><?= e($replyBlockedMessage) ?></p>
     <?php endif; ?>
 </section>

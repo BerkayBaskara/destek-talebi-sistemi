@@ -546,24 +546,35 @@ final class TicketServiceTest extends TestCase
         $service->take((int) $pool->id, $p1);
     }
 
-    public function test_agent_cannot_reply_to_resolved_but_can_to_breached(): void
+    /** FR-60: personel SLA süresi dolmuş ya da çözüldü durumundaki talebe yanıt yazamaz; müşteri ve yönetici yazabilir. */
+    public function test_agent_cannot_reply_to_breached_or_resolved(): void
     {
         $agent = $this->user('P000001', Role::Agent);
+        $admin = $this->user('Y000001', Role::Admin);
         $id = (int) $this->create()->id;
+        $this->service->addReply($id, $agent, 'Süre içinde yazıyorum.');
         $this->clock->advance('+30 days'); // SLA çoktan aşıldı
 
-        self::assertTrue($this->service->canReply($this->service->mustFind($id), $agent));
-        $this->service->addReply($id, $agent, 'SLA aşılmış olsa da yazabiliyorum.');
+        $breached = $this->service->mustFind($id);
+        self::assertFalse($this->service->canReply($breached, $agent));
+        self::assertTrue($this->service->canReply($breached, $this->customer));
+        self::assertTrue($this->service->canReply($breached, $admin));
+        try {
+            $this->service->addReply($id, $agent, 'SLA aşıldıktan sonra yazmayı deniyorum.');
+            self::fail('SLA süresi dolmuş talebe personel yanıtı reddedilmeli.');
+        } catch (ValidationException $e) {
+            self::assertSame(['message' => TicketService::BREACHED_REPLY_MESSAGE], $e->errors());
+        }
+        $this->service->addReply($id, $this->customer, 'Hâlâ bekliyorum.');
 
         $this->service->perform($id, $agent, 'start_review');
         $this->service->perform($id, $agent, 'resolve');
         $resolved = $this->service->mustFind($id);
         self::assertFalse($this->service->canReply($resolved, $agent));
         self::assertTrue($this->service->canReply($resolved, $this->customer), 'Müşteri çözüldü durumunda yazabilmeli.');
-        $this->service->addReply($id, $this->customer, 'Hâlâ sorun var.');
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.');
+        $this->expectExceptionMessage(TicketService::RESOLVED_REPLY_MESSAGE);
         $this->service->addReply($id, $agent, 'Bir not daha');
     }
 
