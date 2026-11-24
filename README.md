@@ -74,7 +74,7 @@ Aşama 2'de veriler `storage/data/*.json` dosyalarında tutulur (MySQL yok). Her
 | Personel puanı (FR-15), yöneticinin talep açması (FR-16), müşteri hesaplarının aktif/pasif yapılması (FR-33), özel günler ve takvim dosyası yükleme (FR-13) | ✅ |
 | MySQL, migration, JSON'dan aktarım | Aşama 3 |
 
-Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test), `docs/test-senaryolari.md` (test senaryosu → test).
+Ayrıntılar: `docs/asama-2/tasarim-belgesi.md` (tasarım), `docs/asama-2/uygulama-plani.md` (uygulama planı), `docs/izlenebilirlik.md` (gereksinim → test), `docs/test-senaryolari.md` (test senaryosu → test), `docs/test-raporu.md` (test raporu), `docs/test-sonuclari.md` (test başına sonuç).
 
 ## ⚙️ Kurulum
 
