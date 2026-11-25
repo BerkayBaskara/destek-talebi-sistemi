@@ -78,6 +78,7 @@ return static function (Router $router, Kernel $kernel): void {
     $router->add('GET', '/kanban', static fn (Request $r, array $p): Response => $kanban->board());
     $router->add('POST', '/api/talepler/{id}/durum', static fn (Request $r, array $p): Response => $kanban->move($r, (int) $p['id']));
     $router->add('GET', '/api/sla', static fn (Request $r, array $p): Response => $kanban->sla($r));
+    $router->add('GET', '/api/kanban/surum', static fn (Request $r, array $p): Response => $kanban->liveVersion());
 
     // Yönetici: tüm talepler ve Aşama 2 özet raporu
     $admin = new AdminController($kernel, $kernel->ticketService(), new ReportService(

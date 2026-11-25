@@ -140,6 +140,9 @@ button.linklike { background: none; border: 0; padding: 0; font: inherit; cursor
 .kanban-cards { display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
 .kanban-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; cursor: grab; }
 .kanban-card.dragging { opacity: 0.5; }
+.kanban-card-new { border-color: var(--ok); box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.25); animation: kanban-new 1.2s ease-in-out 3; }
+@keyframes kanban-new { 50% { box-shadow: 0 0 0 6px rgba(46, 125, 50, 0.15); } }
+@media (prefers-reduced-motion: reduce) { .kanban-card-new { animation: none; } }
 .kanban-card a { font-weight: 600; text-decoration: none; }
 .kanban-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .kanban-move { padding: 6px; font-size: 0.9em; }

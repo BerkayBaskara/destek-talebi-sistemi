@@ -29,12 +29,50 @@ final class KanbanController
     {
     }
 
-    public function board(): Response
+    /**
+     * Panodaki talepler: personelin kendi talepleri (yönetici için hepsi), yalnız Kanban sütunlarındaki durumlar.
+     *
+     * @return list<Ticket>
+     */
+    private function boardTickets(\App\Model\User $user): array
     {
-        $user = $this->kernel->requireRole(Role::Agent, Role::Admin);
         $tickets = $user->role === Role::Admin
             ? $this->kernel->ticketRepository()->findAll()
             : $this->kernel->ticketRepository()->findByAgent((int) $user->id);
+
+        return array_values(array_filter($tickets, static fn (Ticket $t): bool => in_array($t->status, self::COLUMNS, true)));
+    }
+
+    /**
+     * Panonun parmak izi: kartların kimliği ve durumu değişmedikçe aynı kalır.
+     *
+     * @param list<Ticket> $tickets
+     */
+    private static function version(array $tickets): string
+    {
+        $parts = array_map(static fn (Ticket $t): string => $t->id . ':' . $t->status->value, $tickets);
+        sort($parts);
+
+        return sha1(implode(',', $parts));
+    }
+
+    /**
+     * GET /api/kanban/surum — sayfa birkaç saniyede bir sorar; sürüm değişince pano yenilenir (yeni atanan talep
+     * personel sayfayı yenilemeden görünür). Oturum süresini uzatmaz (Kernel::PASSIVE_POLLS).
+     */
+    public function liveVersion(): Response
+    {
+        $tickets = $this->boardTickets($this->kernel->requireRole(Role::Agent, Role::Admin));
+        $ids = array_map(static fn (Ticket $t): int => (int) $t->id, $tickets);
+        sort($ids);
+
+        return Response::json(['version' => self::version($tickets), 'ids' => $ids]);
+    }
+
+    public function board(): Response
+    {
+        $user = $this->kernel->requireRole(Role::Agent, Role::Admin);
+        $tickets = $this->boardTickets($user);
 
         $columns = [];
         foreach (self::COLUMNS as $status) {
@@ -51,7 +89,7 @@ final class KanbanController
         }
         unset($column);
 
-        return $this->kernel->render('agent/kanban', ['title' => 'Kanban', 'columns' => $columns]);
+        return $this->kernel->render('agent/kanban', ['title' => 'Kanban', 'columns' => $columns, 'version' => self::version($tickets)]);
     }
 
     /** POST /api/talepler/{id}/durum  gövde: {"status": "in_review"} */

@@ -1,5 +1,6 @@
 <?php
 /** @var array<string, array{status: \App\Model\Enum\TicketStatus, cards: list<array{ticket: \App\Model\Ticket, sla: \App\Model\SlaStatus}>}> $columns */
+/** @var string $version */
 /** @var \App\Core\View $view */
 
 use App\Controller\KanbanController;
@@ -11,7 +12,8 @@ use App\Controller\KanbanController;
         <a class="btn btn-light" href="/havuz">Görev Havuzu</a>
     </div>
     <div id="kanban-error" class="alert alert-error" role="alert" hidden></div>
-    <div class="kanban">
+    <div id="kanban-live" class="alert alert-success" role="status" hidden></div>
+    <div class="kanban" data-version="<?= e($version) ?>">
         <?php foreach ($columns as $value => $column): ?>
             <div class="kanban-col" data-status="<?= e($value) ?>" data-label="<?= e($column['status']->label()) ?>">
                 <h2><?= e($column['status']->label()) ?> <span class="muted count"><?= count($column['cards']) ?></span></h2>
@@ -38,3 +40,4 @@ use App\Controller\KanbanController;
 </section>
 <script src="/assets/kanban.js" defer></script>
 <script src="/assets/sla.js" defer></script>
+<script src="/assets/kanban-canli.js" defer></script>

@@ -65,7 +65,23 @@ final class Request
     /** Önce form (POST), sonra adres çubuğu (GET) parametresine bakar. */
     public function input(string $key, mixed $default = null): mixed
     {
-        return $this->post[$key] ?? $this->query[$key] ?? $default;
+        return self::scrub($this->post[$key] ?? $this->query[$key] ?? $default);
+    }
+
+    /**
+     * Geçersiz UTF-8 baytları "?" ile değiştirir (iç içe dizilerde de). Tarayıcılar her zaman UTF-8 gönderir; başka bir
+     * istemcinin bozuk baytı JSON'a yazılırken hata verip isteği 500'e düşürmesin.
+     */
+    private static function scrub(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return mb_check_encoding($value, 'UTF-8') ? $value : mb_scrub($value, 'UTF-8');
+        }
+        if (is_array($value)) {
+            return array_map(self::scrub(...), $value);
+        }
+
+        return $value;
     }
 
     /** Metin girdisi; yoksa veya metin değilse boş dize. Baştaki/sondaki boşluklar kırpılır. */

@@ -129,7 +129,7 @@ Durum: ✅ test ile doğrulandı · 👁 elle doğrulandı · ◐ kısmen ya da 
 | NFR-32 | Veritabanı performansı | Aşama 3 | ⏭ |
 | NFR-33 | Sayfa başına en fazla 50 kayıt | Talep listeleri, ayrıntılı rapor, bildirimler ve müşteriler sayfalanır: `PaginationTest`; `CustomerAccountsTest::test_list_is_paginated_by_fifty`; `TicketServiceTest::test_search_filters_by_status_and_text_and_paginates`. Denetim kaydı son 100 değişikliği, talep geçmişi ve rapordaki eskalasyon tablosu sayfalanmadan gösterilir | ◐ |
 | NFR-34 | 10.000 talepte rapor | `PerformanceScenarioTest::test_report_with_ten_thousand_tickets` | ✅ |
-| NFR-35 | SSE güvenilirliği | FR-83 ile aynı gerekçe; canlı veri uçları oturumsuz isteğe 401 verir (`KanbanApiTest::test_api_without_session_returns_401_json`) | ✖ |
+| NFR-35 | SSE güvenilirliği, güncellemeler en çok 5 saniyede | SSE yok (FR-83 gerekçesi); bunun yerine Kanban 5 saniyede bir sürüm ucunu yoklar, personele yeni atanan talep sayfa yenilenmeden görünür; uç yalnız personel ve yöneticiye açık, oturum süresini uzatmaz: `KanbanLiveTest` | ◐ |
 | NFR-36 | Kullanılabilirlik, açık hata mesajları | Form hataları alan altında, değerler korunur: `TicketCreateTest::test_invalid_form_keeps_values_422`, `TicketDetailTest::test_invalid_action_shows_reason`; 5 kullanıcılı deneme sunumda | ◐ |
 | NFR-37 | Katmanlı mimari | Controller → Service → Repository arayüzü → JSON deposu; iş kuralları servislerde (`docs/asama-2/tasarim-belgesi.md`) | ✅ |
 | NFR-38 | Otomatik kod standardı denetimi | PSR-12'ye uygun yazıldı; otomatik denetim aracı (PHP_CodeSniffer) henüz projeye eklenmedi | ◐ |

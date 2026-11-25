@@ -607,7 +607,7 @@ final class Kernel
     }
 
     /** Sayfanın kendi kendine yaptığı yoklamalar; kullanıcı etkinliği sayılmaz. */
-    private const PASSIVE_POLLS = ['/api/sla', '/api/bildirimler/sayi'];
+    private const PASSIVE_POLLS = ['/api/sla', '/api/bildirimler/sayi', '/api/kanban/surum'];
 
     private function enforceIdleTimeout(Request $request): bool
     {

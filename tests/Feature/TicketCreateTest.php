@@ -132,4 +132,20 @@ final class TicketCreateTest extends FeatureTestCase
         self::assertStringNotContainsString('http-equiv="refresh"', $done);
         self::assertMatchesRegularExpression('/M\d{6}/', $done);
     }
+
+    /** Tarayıcı dışı bir istemcinin gönderdiği geçersiz UTF-8 500 hatası vermez; bozuk baytlar temizlenir. */
+    public function test_invalid_utf8_input_does_not_crash(): void
+    {
+        $this->loginAs($this->registerCustomer(), self::PASSWORD);
+        $response = $this->post('/talepler', [
+            'category_id' => '1', 'priority' => '2',
+            'title' => "Yaz\xFDc\xFD bozuk", 'description' => "Kodlamas\xFD bozuk a\xE7\xFDklama metni.",
+        ]);
+
+        self::assertNotSame(500, $response->status);
+        $ticket = $this->kernel->ticketRepository()->findById(1);
+        self::assertNotNull($ticket);
+        self::assertTrue(mb_check_encoding($ticket->title, 'UTF-8'));
+    }
 }
+
