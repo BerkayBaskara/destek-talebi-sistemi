@@ -54,7 +54,7 @@ Toplam 344 senaryo.
 | AUTH-016 | Oturum verisi okuma | Doğru veri dönmeli | `NativeSessionTest::test_set_get_regenerate_and_destroy` | ✅ |
 | AUTH-017 | Oturum yenileme | Session ID yenilenmeli | `NativeSessionTest::test_set_get_regenerate_and_destroy` | ✅ |
 | AUTH-018 | Oturum sonlandırma | Oturum verileri temizlenmeli | `NativeSessionTest::test_set_get_regenerate_and_destroy` | ✅ |
-| AUTH-019 | CLI üzerinden yönetici oluşturma | Yönetici oluşturulmalı | `php bin/create-admin.php <ad> <soyad> <şifre>` komut satırında çalıştırıldı; betiğin kullandığı `createStaff(Role::Admin)` testlerde her gün kullanılıyor | 👁 |
+| AUTH-019 | CLI üzerinden yönetici oluşturma | Yönetici oluşturulmalı | `php bin/create-admin.php <ad> <soyad> <şifre>` komut satırında çalıştırıldı; betiğin kullandığı `createStaff(Role::Admin)` testlerde de kullanılıyor | 👁 |
 | AUTH-020 | Web üzerinden CLI komutuna erişim | Erişim mümkün olmamalı | `AuthFlowTest::test_create_admin_script_refuses_web` | ✅ |
 | AUTH-021 | Kullanıcı bilgisi güncelleme | Bilgiler güncellenmeli | `ConfigCompletionTest::test_admin_edits_staff_name` | ✅ |
 | AUTH-022 | Olmayan kullanıcıyı güncelleme | Kontrollü hata dönmeli | `ScenarioCoverageTest::test_updating_unknown_staff_gives_not_found` | ✅ |
