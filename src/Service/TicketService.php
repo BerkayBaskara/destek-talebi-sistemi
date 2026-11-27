@@ -1,0 +1,629 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service;
+
+use App\Core\Clock\ClockInterface;
+use App\Core\Text;
+use App\Exception\AuthorizationException;
+use App\Exception\ConflictException;
+use App\Exception\NotFoundException;
+use App\Exception\ValidationException;
+use App\Model\Enum\Role;
+use App\Model\Enum\TicketStatus;
+use App\Model\Reply;
+use App\Model\State\InvalidTransitionException;
+use App\Model\Ticket;
+use App\Model\TicketCode;
+use App\Repository\CategoryFieldRepositoryInterface;
+use App\Model\TicketLog;
+use App\Model\User;
+use App\Repository\CategoryRepositoryInterface;
+use App\Repository\PriorityRepositoryInterface;
+use App\Repository\ReplyRepositoryInterface;
+use App\Repository\SlaPolicyRepositoryInterface;
+use App\Repository\TicketRepositoryInterface;
+use App\Service\Observer\TicketObserver;
+
+/**
+ * Talep iş kuralları: açma (FR-01), akıllı öncelik (FR-03), otomatik atama (FR-04), SLA bitişi (FR-05),
+ * durum geçişleri (FR-06, State deseni), yanıtlaşma ve görünürlük/yetki kuralları.
+ * Olayları Observer deseniyle yayınlar. Controller'lar iş kuralı yazmaz, buraya çağırır.
+ */
+final class TicketService
+{
+    public const EVENT_CREATED = 'ticket_created';
+    public const EVENT_ASSIGNED = 'ticket_assigned';
+    public const EVENT_STATUS_CHANGED = 'status_changed';
+    public const EVENT_CUSTOMER_REPLIED = 'customer_replied';
+    public const EVENT_AGENT_REPLIED = 'agent_replied';
+
+    /** @var list<TicketObserver> */
+    private array $observers = [];
+
+    public function __construct(
+        private readonly TicketRepositoryInterface $tickets,
+        private readonly ReplyRepositoryInterface $replies,
+        private readonly CategoryRepositoryInterface $categories,
+        private readonly SlaPolicyRepositoryInterface $policies,
+        private readonly SlaCalculatorService $sla,
+        private readonly PriorityRepositoryInterface $priorities,
+        private readonly AssignmentService $assignment,
+        private readonly ClockInterface $clock,
+        private readonly ?CategoryFieldRepositoryInterface $fields = null,
+        private readonly ?ExtraSlaPolicy $extraSla = null,
+        private readonly ?QuestionPolicy $questions = null,
+    ) {
+    }
+
+    public function attachObserver(TicketObserver $observer): void
+    {
+        $this->observers[] = $observer;
+    }
+
+    /** @param array<string, mixed> $context */
+    public function notifyObservers(Ticket $ticket, string $eventType, array $context = []): void
+    {
+        foreach ($this->observers as $observer) {
+            $observer->update($ticket, $eventType, $context);
+        }
+    }
+
+    /**
+     * Yeni talep: doğrula → etkin öncelik → SLA bitişi → kaydet (Bekleniyor) → açıklamayı ilk mesaj yap
+     * → en az iş yüklü personele ata (varsa).
+     *
+     * @param array<string, mixed> $data category_id, priority, title, description
+     */
+    public function createTicket(User $creator, array $data): Ticket
+    {
+        if ($creator->role === Role::Agent) {
+            throw new AuthorizationException('Talep yalnız müşteri ya da yönetici hesabıyla açılabilir.');
+        }
+
+        $title = trim(is_string($data['title'] ?? null) ? $data['title'] : '');
+        $description = trim(is_string($data['description'] ?? null) ? $data['description'] : '');
+        $categoryId = is_numeric($data['category_id'] ?? null) ? (int) $data['category_id'] : 0;
+        $chosen = is_numeric($data['priority'] ?? null) ? $this->priorities->findById((int) $data['priority']) : null;
+        if ($chosen !== null && !$chosen->active) {
+            $chosen = null;
+        }
+
+        $errors = [];
+        if (!($this->categories->findById($categoryId)->active ?? false)) {
+            $errors['category_id'] = 'Geçerli bir kategori seçin.';
+        }
+        if ($chosen === null) {
+            $errors['priority'] = 'Geçerli bir öncelik seçin.';
+        }
+        if (Text::length($title) < 3 || Text::length($title) > 150) {
+            $errors['title'] = 'Konu başlığı 3-150 karakter olmalı.';
+        }
+        if (Text::length($description) < 10 || Text::length($description) > 5000) {
+            $errors['description'] = 'Açıklama 10-5000 karakter olmalı.';
+        }
+        $extra = $this->extraFields($categoryId, is_array($data['extra'] ?? null) ? $data['extra'] : [], $errors);
+        if ($errors !== [] || $chosen === null) {
+            throw new ValidationException($errors);
+        }
+
+        $priority = (new PriorityDetector($this->priorities->findActive()))->effective($chosen, $title, $description);
+        $hours = $this->policies->findFor($categoryId, (int) $priority->id)->durationHours ?? $priority->defaultSlaHours;
+        $now = $this->clock->now();
+
+        $deadline = $this->sla->calculateWithJson($now, $hours * 60);
+        $ticket = $this->tickets->save(new Ticket(
+            null,
+            (int) $creator->id,
+            null,
+            $categoryId,
+            $title,
+            TicketStatus::Pending,
+            (int) $priority->id,
+            (int) $chosen->id,
+            0,
+            $now,
+            $deadline,
+            null,
+            code: $this->newCode(),
+            originalDeadline: $deadline, // ilk SLA bitişi; ek SLA yalnız deadline'ı uzatır
+            extraFields: $extra,
+        ));
+        $this->replies->save(new Reply(null, (int) $ticket->id, (int) $creator->id, $description, $now));
+        $this->notifyObservers($ticket, self::EVENT_CREATED, ['actor_id' => (int) $creator->id]);
+
+        return $this->autoAssign($ticket) ?? $ticket;
+    }
+
+    /**
+     * Kategorinin ek alanlarını doğrular (zorunlu, sayı, tarih) ve etiket → değer olarak döner.
+     *
+     * @param array<mixed> $input alan id → değer
+     * @param array<string, string> $errors
+     * @return array<string, string>
+     */
+    private function extraFields(int $categoryId, array $input, array &$errors): array
+    {
+        $values = [];
+        foreach ($this->fields?->forCategory($categoryId) ?? [] as $field) {
+            $raw = $input[$field['id']] ?? $input[(string) $field['id']] ?? '';
+            $value = trim(is_string($raw) ? $raw : '');
+            $key = 'extra_' . $field['id'];
+            if ($value === '') {
+                if ($field['required']) {
+                    $errors[$key] = $field['label'] . ' alanı zorunlu.';
+                }
+                continue;
+            }
+            $max = $field['max_length'] ?? 200;
+            if ($field['type'] === 'number' && !is_numeric($value)) {
+                $errors[$key] = $field['label'] . ' alanı sayı olmalı.';
+            } elseif ($field['type'] === 'date' && (\DateTimeImmutable::createFromFormat('!Y-m-d', $value) === false)) {
+                $errors[$key] = $field['label'] . ' alanı geçerli bir tarih olmalı.';
+            } elseif ($field['type'] === 'select' && !in_array($value, $field['options'], true)) {
+                $errors[$key] = $field['label'] . ' için listeden bir seçenek seçin.';
+            } elseif ($field['type'] === 'email' && filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                $errors[$key] = $field['label'] . ' geçerli bir e-posta adresi olmalı.';
+            } elseif (Text::length($value) > $max) {
+                $errors[$key] = $field['label'] . ' en fazla ' . $max . ' karakter olabilir.';
+            }
+            $values[$field['label']] = $value;
+        }
+
+        return $values;
+    }
+
+    /** @throws ValidationException */
+    private function pauseForQuestion(Ticket $ticket): Ticket
+    {
+        if ($ticket->pausedAt !== null) {
+            throw new ValidationException(['message' => 'Önceki sorunun yanıtı bekleniyor.']);
+        }
+        if (!in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)) {
+            throw new ValidationException(['message' => 'Soru yalnız Atandı ya da İnceleniyor durumundaki talepte sorulabilir.']);
+        }
+        $max = $this->questions?->maxQuestions() ?? 0;
+        if ($ticket->agentQuestionCount >= $max) {
+            throw new ValidationException(['message' => 'Bu talepte en fazla ' . $max . ' soru sorulabilir.']);
+        }
+        $now = $this->clock->now();
+        $ticket->agentQuestionCount++;
+        $ticket->pausedAt = $now;
+        $ticket->questionDueAt = $this->questions?->replyDue($now);
+        if (!$this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            throw new ValidationException(['message' => 'Talep az önce değişti. Sayfayı yenileyip tekrar deneyin.']);
+        }
+
+        return $ticket;
+    }
+
+    /**
+     * SLA'yı durduğu yerden sürdürür (FR-22): kalan iş süresi verilen andan (varsayılan: şimdi) işler. Yanıt süresi
+     * dolan soruda izleme, yanıt süresinin bittiği anı verir. Yalnız SLA alanları yazılır; aradaki başka değişiklik ezilmez.
+     */
+    public function resumeSla(Ticket $ticket, int $actorId, ?\DateTimeImmutable $at = null): Ticket
+    {
+        if ($ticket->pausedAt === null || $this->questions === null) {
+            return $ticket;
+        }
+        $this->questions->endPause($ticket, $at ?? $this->clock->now(), true);
+        if ($this->tickets->updateIfUnchanged($ticket, $ticket->status, $ticket->agentId, self::SLA_FIELDS)) {
+            $this->notifyObservers($ticket, 'sla_resumed', [
+                'actor_id' => $actorId, 'activity' => 'sla_resumed', 'note' => $ticket->deadline->format('d.m.Y H:i'),
+            ]);
+        }
+
+        return $ticket;
+    }
+
+    /**
+     * Havuzda beklerken süresi geçmiş talep personele verildiğinde ek SLA alır; aksi hâlde SLA denetimi talebi
+     * atandıktan hemen sonra aşım nedeniyle geri alırdı.
+     */
+    public function extendIfOverdue(Ticket $ticket, int $actorId): Ticket
+    {
+        $now = $this->clock->now();
+        if ($this->extraSla === null || $ticket->deadline > $now) {
+            return $ticket;
+        }
+        $ticket->deadline = $this->extraSla->extendedDeadline($ticket, $now);
+        if ($this->tickets->saveIfUnchanged($ticket, $ticket->status, $ticket->agentId)) {
+            $this->notifyObservers($ticket, 'sla_extended', [
+                'actor_id' => $actorId, 'activity' => 'sla_extended', 'note' => $ticket->deadline->format('d.m.Y H:i'),
+            ]);
+        }
+
+        return $this->mustFind((int) $ticket->id);
+    }
+
+    /** Kullanılmamış 6 karakterli talep kodu (çakışma olasılığı çok düşük; yine de denetlenir). */
+    private function newCode(): string
+    {
+        for ($try = 0; $try < 20; $try++) {
+            $code = TicketCode::generate();
+            if ($this->tickets->findByCode($code) === null) {
+                return $code;
+            }
+        }
+        throw new \RuntimeException('Benzersiz talep kodu üretilemedi.');
+    }
+
+    /**
+     * Havuzdaki talepleri eskiden yeniye uygun personele atar (yer açılınca çağrılır).
+     * Uygun personel kalmayınca durur. Atanan talep sayısını döner.
+     */
+    public function fillFromPool(): int
+    {
+        $assigned = 0;
+        foreach ($this->tickets->getPoolTickets() as $ticket) {
+            if ($ticket->isOnHold()) {
+                continue; // müşteri kararı ya da yönetici müdahalesi bekleniyor
+            }
+            // Kategoriye göre uygun personel değişebildiği için biri atanamasa da diğerleri denenir.
+            if ($this->autoAssign($ticket) !== null) {
+                $assigned++;
+            }
+        }
+
+        return $assigned;
+    }
+
+    /** Sistem atamasi: uygun personel varsa talebi kilit içinde ona verir; yoksa null. */
+    private function autoAssign(Ticket $ticket): ?Ticket
+    {
+        $agent = $this->assignment->pickAgent($ticket->categoryId);
+        if ($agent === null || !$this->tickets->assignIfUnassigned((int) $ticket->id, (int) $agent->id, $this->assignment->capacityOf($agent))) {
+            return null;
+        }
+
+        $ticket = $this->mustFind((int) $ticket->id);
+        $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id]);
+        $ticket = $this->extendIfOverdue($ticket, TicketLog::SYSTEM_USER);
+        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
+            'old' => TicketStatus::Pending,
+            'new' => TicketStatus::Taken,
+            'actor_id' => TicketLog::SYSTEM_USER,
+        ]);
+
+        return $ticket;
+    }
+
+    /** Personel havuzdaki talebi üstlenir; aynı anda iki kişi alamaz (NFR-04). */
+    public function take(int $ticketId, User $agent): Ticket
+    {
+        if (!in_array($agent->role, [Role::Agent, Role::Admin], true)) {
+            throw new AuthorizationException('Talebi yalnız personel üstlenebilir.');
+        }
+        $ticket = $this->mustFind($ticketId);
+        if ($agent->role === Role::Agent && !$this->assignment->canWork($ticket->categoryId, (int) $agent->id)) {
+            throw new AuthorizationException('Bu kategorideki talepleri üstlenme yetkiniz yok.');
+        }
+        if ($ticket->agentId === null) {
+            $ticket->state()->take($ticket); // iptal edilmiş vb. ise nedenini söyler
+        }
+
+        // Kontrol ile atama arasında başka biri alabilir; asıl karar kilit içindeki koşullu atamada.
+        if ($ticket->agentId !== null || !$this->tickets->assignIfUnassigned($ticketId, (int) $agent->id, $this->assignment->capacityOf($agent))) {
+            $fresh = $this->mustFind($ticketId);
+            if ($fresh->agentId === null && $fresh->status === TicketStatus::Pending) {
+                throw new ConflictException('Kapasiteniz dolu; yeni talep alamazsınız.');
+            }
+            throw new ConflictException('Bu talep az önce başka bir personel tarafından alındı.');
+        }
+
+        $ticket = $this->mustFind($ticketId);
+        $this->notifyObservers($ticket, self::EVENT_ASSIGNED, ['agent_id' => (int) $agent->id, 'actor_id' => (int) $agent->id]);
+        $ticket = $this->extendIfOverdue($ticket, (int) $agent->id);
+        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
+            'old' => TicketStatus::Pending,
+            'new' => TicketStatus::Taken,
+            'actor_id' => (int) $agent->id,
+        ]);
+
+        return $ticket;
+    }
+
+    /**
+     * Durum eylemi. cancel/approve/reject/reject_other: talebin sahibi müşteri; start_review/resolve: atanan personel
+     * veya yönetici. İzin verilmeyen geçişte InvalidTransitionException (State deseni) atılır.
+     */
+    public function perform(int $ticketId, User $actor, string $action): Ticket
+    {
+        $ticket = $this->mustFind($ticketId);
+        $isOwner = $ticket->creatorId === $actor->id;
+        $isHandler = $actor->role === Role::Admin || ($actor->role === Role::Agent && $ticket->agentId === $actor->id);
+        $state = $ticket->state();
+        $old = $ticket->status;
+
+        switch ($action) {
+            case 'cancel':
+                $this->authorize($isOwner);
+                $ticket->setStatus($state->cancel($ticket));
+                $ticket->holdUntil = null; // iptal edilen talep için karar ya da eskalasyon beklenmez
+                $ticket->awaitingAdmin = false;
+                break;
+            case 'approve':
+                $this->authorize($isOwner);
+                $ticket->setStatus($state->close($ticket));
+                break;
+            case 'reject':
+            case 'reject_other': // FR-63: işe yaramadı + başka personel isteği (aktarmayı EscalationObserver yapar)
+                $this->authorize($isOwner);
+                $ticket->setStatus($state->reject($ticket));
+                $ticket->incrementAttempt();
+                $ticket->resolvedAt = null;
+                break;
+            case 'start_review':
+                $this->authorize($isHandler);
+                $ticket->setStatus($state->startReview($ticket));
+                break;
+            case 'resolve':
+                $this->authorize($isHandler);
+                $ticket->setStatus($state->resolve($ticket));
+                $ticket->resolvedAt = $this->clock->now();
+                $this->questions?->endPause($ticket, $ticket->resolvedAt, false); // soru beklerken çözüldü
+                break;
+            default:
+                throw new ValidationException(['action' => 'Bilinmeyen işlem.']);
+        }
+
+        // Okuma ile yazma arasında başka bir istek talebi değiştirdiyse üzerine yazma (NFR-04 ruhu).
+        if (!$this->tickets->saveIfStatus($ticket, $old)) {
+            throw new ConflictException('Talep bu arada değişti. Sayfayı yenileyip tekrar deneyin.');
+        }
+        $this->notifyObservers($ticket, self::EVENT_STATUS_CHANGED, [
+            'old' => $old,
+            'new' => $ticket->status,
+            'actor_id' => (int) $actor->id,
+            'other_agent' => $action === 'reject_other',
+        ]);
+
+        if (in_array($ticket->status, [TicketStatus::Resolved, TicketStatus::Closed, TicketStatus::Cancelled], true)) {
+            $this->fillFromPool(); // personelde yer açıldı; havuzda bekleyen talep varsa atanır
+        }
+
+        return $ticket;
+    }
+
+    /**
+     * Ekranda gösterilecek eylem düğmeleri: kullanıcının yetkisi olan ve mevcut durumda State'in izin verdiği eylemler.
+     * Sunucu her eylemde perform() ile yine denetler; bu liste yalnız arayüz içindir.
+     *
+     * @return list<string> cancel | start_review | resolve | approve | reject | reject_other
+     */
+    public function availableActions(Ticket $ticket, User $viewer): array
+    {
+        $isOwner = $ticket->creatorId === $viewer->id;
+        $isHandler = $viewer->role === Role::Admin || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id);
+        $state = $ticket->state();
+        $checks = [
+            'cancel' => [$isOwner, static fn () => $state->cancel($ticket)],
+            'start_review' => [$isHandler, static fn () => $state->startReview($ticket)],
+            'resolve' => [$isHandler, static fn () => $state->resolve($ticket)],
+            'approve' => [$isOwner, static fn () => $state->close($ticket)],
+            'reject' => [$isOwner, static fn () => $state->reject($ticket)],
+            'reject_other' => [$isOwner, static fn () => $state->reject($ticket)],
+        ];
+
+        $actions = [];
+        foreach ($checks as $action => [$allowed, $try]) {
+            if (!$allowed) {
+                continue;
+            }
+            try {
+                $try();
+                $actions[] = $action;
+            } catch (InvalidTransitionException) {
+                // bu durumda izin yok
+            }
+        }
+
+        return $actions;
+    }
+
+    /** Yanıt yazabilir mi (arayüzde form gösterilsin mi). */
+    /**
+     * Yanıt yazılabilir mi: kapanmış/iptal talebe kimse, Çözüldü durumundaki talebe personel ve yönetici yazamaz
+     * (müşterinin onayı ya da reddi beklenir). SLA süresi dolmuş talebe personel yazamaz (FR-60).
+     */
+    public function canReply(Ticket $ticket, User $viewer): bool
+    {
+        return !$ticket->status->isFinal()
+            && !self::awaitsCustomer($ticket, $viewer)
+            && !$this->slaExpiredForAgent($ticket, $viewer)
+            && ($ticket->creatorId === $viewer->id
+                || $viewer->role === Role::Admin
+                || ($viewer->role === Role::Agent && $ticket->agentId === $viewer->id));
+    }
+
+    /** Kanban'da kartı sütuna taşıma: yalnız ileri geçişler (Alındı → İnceleniyor → Çözüldü). */
+    public function moveOnKanban(int $ticketId, User $agent, TicketStatus $target): Ticket
+    {
+        return match ($target) {
+            TicketStatus::InReview => $this->perform($ticketId, $agent, 'start_review'),
+            TicketStatus::Resolved => $this->perform($ticketId, $agent, 'resolve'),
+            default => throw new InvalidTransitionException("Kanban'da bu sütuna taşınamaz."),
+        };
+    }
+
+    public const RESOLVED_REPLY_MESSAGE = 'Çözüldü durumundaki talebe yanıt yazılamaz; müşterinin yanıtı bekleniyor.';
+
+    /** Çözüldü durumunda sıra müşteride: personel ve yönetici yazamaz. */
+    /** @var list<string> SLA devamında yazılan alanlar */
+    public const SLA_FIELDS = ['deadline', 'paused_at', 'question_due_at', 'compliance_deadline'];
+
+    public const BREACHED_REPLY_MESSAGE = 'SLA süresi dolmuş talebe personel yanıt yazamaz; talep eskalasyon sürecinde.';
+
+    /** Yanıt formu yerine gösterilecek neden; kullanıcı yazabiliyorsa ya da talep kapalıysa null. */
+    public function replyBlockedReason(Ticket $ticket, User $viewer): ?string
+    {
+        return match (true) {
+            self::awaitsCustomer($ticket, $viewer) => self::RESOLVED_REPLY_MESSAGE,
+            $this->slaExpiredForAgent($ticket, $viewer) && $ticket->agentId === $viewer->id => self::BREACHED_REPLY_MESSAGE,
+            default => null,
+        };
+    }
+
+    /** FR-60: SLA süresi dolmuş (ve soru nedeniyle durdurulmamış) açık talebe personel yanıt yazamaz. */
+    private function slaExpiredForAgent(Ticket $ticket, User $user): bool
+    {
+        return $user->role === Role::Agent
+            && $ticket->pausedAt === null
+            && in_array($ticket->status, [TicketStatus::Taken, TicketStatus::InReview], true)
+            && $this->clock->now() >= $ticket->deadline;
+    }
+
+    private static function awaitsCustomer(Ticket $ticket, User $user): bool
+    {
+        return $ticket->status === TicketStatus::Resolved && $user->role !== Role::Customer;
+    }
+
+    /** Talebe mesaj yazar (US-04, US-10): talep sahibi, atanan personel veya yönetici. */
+    /**
+     * @param bool $asQuestion personel yanıtı müşteriye soru olarak gönderir (FR-22): SLA durur
+     */
+    public function addReply(int $ticketId, User $author, string $message, bool $asQuestion = false): Reply
+    {
+        $ticket = $this->mustFind($ticketId);
+        $this->authorize(
+            $ticket->creatorId === $author->id
+            || $author->role === Role::Admin
+            || ($author->role === Role::Agent && $ticket->agentId === $author->id),
+        );
+        if ($ticket->status->isFinal()) {
+            throw new ValidationException(['message' => 'Kapalı veya iptal edilmiş talebe yanıt yazılamaz.']);
+        }
+        if (self::awaitsCustomer($ticket, $author)) {
+            throw new ValidationException(['message' => self::RESOLVED_REPLY_MESSAGE]);
+        }
+        if ($this->slaExpiredForAgent($ticket, $author)) {
+            throw new ValidationException(['message' => self::BREACHED_REPLY_MESSAGE]);
+        }
+        $message = trim($message);
+        if (Text::length($message) < 1 || Text::length($message) > 5000) {
+            throw new ValidationException(['message' => 'Mesaj 1-5000 karakter olmalı.']);
+        }
+
+        $asQuestion = $asQuestion && $author->role !== Role::Customer && $this->questions !== null;
+        if ($asQuestion) {
+            $ticket = $this->pauseForQuestion($ticket);
+        }
+
+        $reply = $this->replies->save(new Reply(null, $ticketId, (int) $author->id, $message, $this->clock->now(), $asQuestion));
+        if ($author->id === $ticket->creatorId && $ticket->pausedAt !== null) {
+            $ticket = $this->resumeSla($ticket, (int) $author->id); // müşteri soruyu yanıtladı
+        }
+        $event = $author->role === Role::Customer ? self::EVENT_CUSTOMER_REPLIED : self::EVENT_AGENT_REPLIED;
+        $this->notifyObservers($ticket, $event, ['actor_id' => (int) $author->id, 'reply_id' => $reply->id]);
+
+        return $reply;
+    }
+
+    /**
+     * Görüntüleme yetkisi: müşteri yalnız kendi talebini, personel kendisine atananı ve havuzdakini,
+     * yönetici hepsini görür. Talep yoksa 404, yetki yoksa 403.
+     */
+    public function findVisible(int $ticketId, User $viewer): Ticket
+    {
+        $ticket = $this->mustFind($ticketId);
+        $visible = match ($viewer->role) {
+            Role::Admin => true,
+            Role::Customer => $ticket->creatorId === $viewer->id,
+            Role::Agent => $ticket->agentId === $viewer->id
+                || ($ticket->agentId === null && $ticket->status === TicketStatus::Pending),
+        };
+        $this->authorize($visible, 'Bu talebi görüntüleme yetkiniz yok.');
+
+        return $ticket;
+    }
+
+    /**
+     * Müşterinin talepleri: durum filtresi, başlıkta veya talep numarasında arama, sayfalama (yeniden eskiye).
+     *
+     * @return array{items: list<Ticket>, total: int, page: int, pages: int}
+     */
+    public function searchForCustomer(User $customer, ?TicketStatus $status, string $query, int $page, int $perPage = 10): array
+    {
+        $items = array_values(array_filter(
+            $this->tickets->findByCreator((int) $customer->id),
+            fn (Ticket $t): bool => ($status === null || $t->status === $status) && $this->matches($t, $query),
+        ));
+        usort($items, static fn (Ticket $a, Ticket $b): int => [$b->createdAt, $b->id] <=> [$a->createdAt, $a->id]);
+
+        return self::paginate($items, $page, $perPage);
+    }
+
+    /**
+     * Yönetici listesi: tüm talepler; durum, öncelik ve personel filtresi, başlık/numara araması, sayfalama.
+     *
+     * @return array{items: list<Ticket>, total: int, page: int, pages: int}
+     */
+    public function searchAll(?TicketStatus $status, ?int $priorityId, ?int $agentId, string $query, int $page, int $perPage = 15): array
+    {
+        $items = array_values(array_filter(
+            $this->tickets->findAll(),
+            fn (Ticket $t): bool => ($status === null || $t->status === $status)
+                && ($priorityId === null || $t->priorityId === $priorityId)
+                && ($agentId === null || $t->agentId === $agentId)
+                && $this->matches($t, $query),
+        ));
+        usort($items, static fn (Ticket $a, Ticket $b): int => [$b->createdAt, $b->id] <=> [$a->createdAt, $a->id]);
+
+        return self::paginate($items, $page, $perPage);
+    }
+
+    /**
+     * Ortak sayfalama yardımcısı.
+     *
+     * @template T
+     * @param list<T> $items
+     * @return array{items: list<T>, total: int, page: int, pages: int}
+     */
+    public static function paginate(array $items, int $page, int $perPage): array
+    {
+        $total = count($items);
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = min(max(1, $page), $pages);
+
+        return [
+            'items' => array_slice($items, ($page - 1) * $perPage, $perPage),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+        ];
+    }
+
+    /** Arama: "#7" yalnız talep numarası; düz metin başlıkta (Türkçe büyük/küçük harf duyarsız) veya numarada. */
+    public function matches(Ticket $ticket, string $query): bool
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return true;
+        }
+        $code = TicketCode::normalize($query);
+        if ($code !== null && $ticket->code === $code) {
+            return true;
+        }
+        if (preg_match('/^#(\d+)$/', $query, $m) === 1) {
+            return $ticket->id === (int) $m[1];
+        }
+        if (ctype_digit($query) && $ticket->id === (int) $query) {
+            return true;
+        }
+
+        return str_contains(Text::fold($ticket->title), Text::fold($query));
+    }
+
+    public function mustFind(int $ticketId): Ticket
+    {
+        return $this->tickets->findById($ticketId) ?? throw new NotFoundException('Talep bulunamadı.');
+    }
+
+    private function authorize(bool $allowed, string $message = 'Bu işlem için yetkiniz yok.'): void
+    {
+        if (!$allowed) {
+            throw new AuthorizationException($message);
+        }
+    }
+}

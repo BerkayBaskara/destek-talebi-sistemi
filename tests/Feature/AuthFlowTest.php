@@ -1,0 +1,238 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature;
+
+use App\Model\Enum\Role;
+use App\Service\AuthService;
+
+final class AuthFlowTest extends FeatureTestCase
+{
+    public function test_register_shows_customer_number_then_login_works(): void
+    {
+        $response = $this->post('/kayit', [
+            'name' => 'Ayşe',
+            'surname' => 'Demir',
+            'password' => 'gizliSifre1!',
+            'password_confirm' => 'gizliSifre1!',
+            'secret_question' => AuthService::SECRET_QUESTIONS[1],
+            'secret_answer' => 'Trabzon',
+        ]);
+        self::assertSame(302, $response->status);
+        self::assertSame('/kayit/tamam', $response->headers['Location']);
+
+        $done = $this->get('/kayit/tamam');
+        self::assertSame(200, $done->status);
+        self::assertSame(1, preg_match('/M\d{6}/', $done->body, $m));
+
+        $login = $this->post('/giris', ['customer_no' => $m[0], 'password' => 'gizliSifre1!']);
+        self::assertSame(302, $login->status);
+        self::assertSame('/', $login->headers['Location']);
+        self::assertSame('/talepler', $this->get('/')->headers['Location'] ?? null);
+    }
+
+    public function test_register_password_mismatch_keeps_values(): void
+    {
+        $response = $this->post('/kayit', [
+            'name' => 'Ayşe',
+            'surname' => 'Demir',
+            'password' => 'gizliSifre1!',
+            'password_confirm' => 'baskaSifre2!',
+            'secret_question' => AuthService::SECRET_QUESTIONS[1],
+            'secret_answer' => 'Trabzon',
+        ]);
+
+        self::assertSame(422, $response->status);
+        self::assertStringContainsString('Şifreler aynı değil.', $response->body);
+        self::assertStringContainsString('value="Ayşe"', $response->body);
+        self::assertStringNotContainsString('gizliSifre1!', $response->body);
+    }
+
+    public function test_wrong_password_shows_error_and_keeps_number(): void
+    {
+        $number = $this->registerCustomer();
+
+        $response = $this->post('/giris', ['customer_no' => $number, 'password' => 'yanlisSifre']);
+
+        self::assertSame(422, $response->status);
+        self::assertStringContainsString('Müşteri numarası veya şifre hatalı.', $response->body);
+        self::assertStringContainsString('value="' . $number . '"', $response->body);
+    }
+
+    public function test_session_id_regenerated_on_login(): void
+    {
+        $number = $this->registerCustomer();
+
+        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1!']);
+
+        self::assertTrue($this->session->regenerated);
+    }
+
+    public function test_customer_cannot_open_admin_page(): void
+    {
+        $this->loginAs($this->registerCustomer(), 'gizliSifre1!');
+
+        self::assertSame(403, $this->get('/yonetici')->status);
+        self::assertSame(403, $this->get('/kanban')->status);
+    }
+
+    public function test_guest_redirected_to_login(): void
+    {
+        $response = $this->get('/talepler');
+
+        self::assertSame(302, $response->status);
+        self::assertSame('/giris', $response->headers['Location']);
+    }
+
+    public function test_idle_30_minutes_logs_out(): void
+    {
+        $this->loginAs($this->registerCustomer(), 'gizliSifre1!');
+        self::assertSame(200, $this->get('/talepler')->status);
+
+        $this->clock->advance('+29 minutes');
+        self::assertSame(200, $this->get('/talepler')->status, '29 dakika sonra hâlâ oturum açık olmalı.');
+
+        $this->clock->advance('+31 minutes');
+        $response = $this->get('/talepler');
+        self::assertSame(302, $response->status);
+        self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
+    }
+
+    public function test_idle_timeout_on_form_post_redirects_to_login_not_csrf_error(): void
+    {
+        $this->loginAs($this->registerCustomer(), 'gizliSifre1!');
+        $token = $this->kernel->csrf()->token(); // sayfa 30 dakika önce açılmış gibi
+        $this->clock->advance('+31 minutes');
+
+        $response = $this->kernel->handle(new \App\Core\Http\Request('POST', '/cikis', [], ['_csrf' => $token]));
+
+        self::assertSame(302, $response->status);
+        self::assertSame('/giris', $response->headers['Location']);
+        self::assertSame('DENY', $response->headers['X-Frame-Options'] ?? null, 'Erken dönen yanıtta da güvenlik başlıkları olmalı.');
+        self::assertStringContainsString('30 dakika', $this->get('/giris')->body);
+    }
+
+    public function test_csrf_token_is_rotated_on_login(): void
+    {
+        $number = $this->registerCustomer();
+        $before = $this->kernel->csrf()->token();
+
+        $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1!']);
+
+        self::assertNotSame($before, $this->kernel->csrf()->token());
+    }
+
+    public function test_login_form_posted_after_idle_expiry_still_logs_in(): void
+    {
+        $number = $this->registerCustomer();
+        $this->loginAs($number, 'gizliSifre1!');
+        $this->clock->advance('+2 hours');
+
+        $response = $this->post('/giris', ['customer_no' => $number, 'password' => 'gizliSifre1!']);
+
+        self::assertSame('/', $response->headers['Location'] ?? null, 'Giriş formu süre dolduktan sonra da işlenmeli.');
+        self::assertSame(200, $this->get('/talepler')->status);
+    }
+
+    public function test_logout_ends_session(): void
+    {
+        $this->loginAs($this->registerCustomer(), 'gizliSifre1!');
+
+        $this->post('/cikis');
+
+        self::assertSame(302, $this->get('/talepler')->status);
+    }
+
+    public function test_forgot_password_flow(): void
+    {
+        $number = $this->registerCustomer();
+
+        $step1 = $this->post('/sifre-sifirla', ['customer_no' => $number]);
+        self::assertSame(200, $step1->status);
+        self::assertStringContainsString(e(AuthService::SECRET_QUESTIONS[0]), $step1->body);
+
+        $wrong = $this->post('/sifre-sifirla/yeni', ['customer_no' => $number, 'secret_answer' => 'Tekir', 'password' => 'yeniSifre99!']);
+        self::assertSame(422, $wrong->status);
+        self::assertStringContainsString('Gizli sorunun cevabı hatalı.', $wrong->body);
+
+        $ok = $this->post('/sifre-sifirla/yeni', ['customer_no' => $number, 'secret_answer' => 'pamuk', 'password' => 'yeniSifre99!']);
+        self::assertSame('/giris', $ok->headers['Location'] ?? null);
+        self::assertSame(302, $this->post('/giris', ['customer_no' => $number, 'password' => 'yeniSifre99!'])->status);
+    }
+
+    public function test_unknown_number_in_forgot_password(): void
+    {
+        $response = $this->post('/sifre-sifirla', ['customer_no' => 'M999999']);
+
+        self::assertSame(422, $response->status);
+        self::assertStringContainsString('Bu müşteri numarası bulunamadı.', $response->body);
+    }
+
+    public function test_staff_home_redirects_by_role(): void
+    {
+        $auth = $this->kernel->authService();
+        $agent = $auth->createStaff(Role::Agent, 'Zeynep', 'Kaya', 'Destek2026!');
+        $this->loginAs($agent->customerNo, 'Destek2026!');
+        self::assertSame('/kanban', $this->get('/')->headers['Location'] ?? null);
+
+        $this->post('/cikis');
+        $admin = $auth->createStaff(Role::Admin, 'Yönetici', 'Bey', 'Destek2026!');
+        $this->loginAs($admin->customerNo, 'Destek2026!');
+        self::assertSame('/yonetici', $this->get('/')->headers['Location'] ?? null);
+    }
+
+    public function test_inactive_user_cannot_login_with_message(): void
+    {
+        $agent = $this->kernel->authService()->createStaff(Role::Agent, 'Zeynep', 'Kaya', 'Destek2026!');
+        $agent->active = false;
+        $this->kernel->userRepository()->save($agent);
+
+        $response = $this->post('/giris', ['customer_no' => $agent->customerNo, 'password' => 'Destek2026!']);
+
+        self::assertSame(422, $response->status);
+        self::assertStringContainsString('Hesabınız pasif durumda. Lütfen yöneticinize başvurun.', $response->body);
+    }
+
+    public function test_deactivated_user_session_ends_on_next_request(): void
+    {
+        $agent = $this->kernel->authService()->createStaff(Role::Agent, 'Zeynep', 'Kaya', 'Destek2026!');
+        $this->loginAs($agent->customerNo, 'Destek2026!');
+        self::assertSame(200, $this->get('/kanban')->status);
+
+        $agent->active = false;
+        $this->kernel->userRepository()->save($agent);
+
+        self::assertSame('/giris', $this->get('/kanban')->headers['Location'] ?? null);
+        self::assertSame('/giris', $this->get('/kanban')->headers['Location'] ?? null, 'Oturum kapanmış olmalı.');
+    }
+
+    public function test_register_rejects_weak_password_and_keeps_values(): void
+    {
+        $response = $this->post('/kayit', [
+            'name' => 'Ayşe', 'surname' => 'Çelik', 'password' => 'zayifsifre', 'password_confirm' => 'zayifsifre',
+            'secret_question' => AuthService::SECRET_QUESTIONS[0], 'secret_answer' => 'Pamuk',
+        ]);
+
+        self::assertSame(422, $response->status);
+        self::assertStringContainsString(e(\App\Service\PasswordPolicy::MESSAGE), $response->body);
+        self::assertStringContainsString('value="Ayşe"', $response->body);
+    }
+
+    public function test_create_admin_script_refuses_web(): void
+    {
+        require_once dirname(__DIR__, 2) . '/bin/create-admin.php';
+
+        self::assertFalse(\canCreateAdminFrom('apache2handler'));
+        self::assertTrue(\canCreateAdminFrom('cli'));
+    }
+
+    public function test_register_page_shows_live_password_rules(): void
+    {
+        $body = $this->get('/kayit')->body;
+
+        self::assertStringContainsString('data-password-rules', $body);
+        self::assertStringContainsString('En az bir noktalama işareti', $body);
+        self::assertStringContainsString('/assets/password.js', $body);
+    }
+}

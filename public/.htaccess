@@ -1,0 +1,20 @@
+# Apache (WAMP) ayarları. Sanal hostun DocumentRoot'u bu public/ klasörü olmalı.
+
+# Var olmayan her adresi tek giriş noktasına (index.php) yönlendir.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Spec'teki ek sınırları (görsel/PDF 5 MB, video 50 MB, talep başına 3 dosya) PHP'nin de kabul etmesi için.
+# WAMP'ın varsayılanı upload_max_filesize=2M, post_max_size=8M'dir. (Yalnız mod_php ile çalışır.)
+<IfModule php_module>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 160M
+</IfModule>
+<IfModule mod_php.c>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 160M
+</IfModule>

@@ -1,0 +1,43 @@
+<?php
+/** @var array<string, array{status: \App\Model\Enum\TicketStatus, cards: list<array{ticket: \App\Model\Ticket, sla: \App\Model\SlaStatus}>}> $columns */
+/** @var string $version */
+/** @var \App\Core\View $view */
+
+use App\Controller\KanbanController;
+
+?>
+<section class="card">
+    <div class="card-head">
+        <h1>Kanban</h1>
+        <a class="btn btn-light" href="/havuz">Görev Havuzu</a>
+    </div>
+    <div id="kanban-error" class="alert alert-error" role="alert" hidden></div>
+    <div id="kanban-live" class="alert alert-success" role="status" hidden></div>
+    <div class="kanban" data-version="<?= e($version) ?>">
+        <?php foreach ($columns as $value => $column): ?>
+            <div class="kanban-col" data-status="<?= e($value) ?>" data-label="<?= e($column['status']->label()) ?>">
+                <h2><?= e($column['status']->label()) ?> <span class="muted count"><?= count($column['cards']) ?></span></h2>
+                <div class="kanban-cards">
+                    <?php foreach ($column['cards'] as ['ticket' => $ticket, 'sla' => $sla]): ?>
+                        <article class="kanban-card" draggable="true" data-id="<?= e($ticket->id) ?>">
+                            <a href="/talepler/<?= e($ticket->id) ?>"><?= e($ticket->displayCode()) ?> · <?= e($ticket->title) ?></a>
+                            <div class="kanban-meta">
+                                <span class="badge"><?= $view->partial('partials/priority', ['ticket' => $ticket]) ?></span>
+                                <?= $view->partial('partials/sla_badge', ['sla' => $sla, 'ticketId' => $ticket->id]) ?>
+                            </div>
+                            <label class="sr-only" for="move-<?= e($ticket->id) ?>">Durum</label>
+                            <select class="kanban-move" id="move-<?= e($ticket->id) ?>">
+                                <?php foreach (KanbanController::COLUMNS as $status): ?>
+                                    <option value="<?= e($status->value) ?>"<?= $status->value === $value ? ' selected' : '' ?>><?= e($status->label()) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<script src="/assets/kanban.js" defer></script>
+<script src="/assets/sla.js" defer></script>
+<script src="/assets/kanban-canli.js" defer></script>
